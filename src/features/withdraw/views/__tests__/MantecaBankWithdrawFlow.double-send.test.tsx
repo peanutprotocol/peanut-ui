@@ -135,7 +135,22 @@ jest.mock('@/components/Global/AmountInput', () => ({ __esModule: true, default:
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: Nothing }))
 jest.mock('@/components/Global/SoundPlayer', () => ({ SoundPlayer: Nothing }))
 jest.mock('@/components/Common/PointsCard', () => ({ __esModule: true, default: Nothing }))
-jest.mock('@/components/Global/ValidatedInput', () => ({ __esModule: true, default: Nothing }))
+jest.mock('@/components/Global/ValidatedInput', () => ({
+    __esModule: true,
+    default: ({
+        value,
+        onUpdate,
+    }: {
+        value: string
+        onUpdate: (u: { value: string; isValid: boolean; isChanging: boolean }) => void
+    }) => (
+        <input
+            data-testid="destination-input"
+            value={value}
+            onChange={(e) => onUpdate({ value: e.target.value, isValid: true, isChanging: false })}
+        />
+    ),
+}))
 jest.mock('@/components/0_Bruddle/BaseSelect', () => ({ __esModule: true, default: Nothing }))
 jest.mock('@/components/Profile/AvatarWithBadge', () => ({ __esModule: true, default: Nothing }))
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({ InitiateKycModal: Nothing }))
@@ -237,10 +252,17 @@ const flush = async () => {
     })
 }
 
-/** Locks the quote from the amount step, then shows the review. */
-async function openReview(params: URLSearchParams = searchParams) {
+/** Locks the quote from the amount step (typing an unsaved destination first when given), then shows the review. */
+async function openReview(params: URLSearchParams = searchParams, typedDestination?: string) {
+    if (typedDestination) mockStepper.step = 'bank-details'
     const view = render(<MantecaBankWithdrawFlow searchParams={params} />)
     await flush()
+    if (typedDestination) {
+        fireEvent.change(screen.getByTestId('destination-input'), { target: { value: typedDestination } })
+        fireEvent.click(screen.getByText('common.continue'))
+        await flush()
+        view.rerender(<MantecaBankWithdrawFlow searchParams={params} />)
+    }
     fireEvent.click(screen.getByText('common.continue'))
     await flush()
     expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1)
@@ -479,9 +501,13 @@ it("another account's cancelled withdrawal does not prove this card-balance send
 })
 
 /** A lost answer whose recovery ran out of time: the confirming screen, the marker kept. Then the screen goes. */
-async function loseTheAnswerAndLeave(params: URLSearchParams = searchParams, markerKey = MARKER_KEY) {
+async function loseTheAnswerAndLeave(
+    params: URLSearchParams = searchParams,
+    markerKey = MARKER_KEY,
+    typedDestination?: string
+) {
     mockWithdrawWithSignedTx.mockRejectedValue(new TypeError('Failed to fetch'))
-    const view = await openReview(params)
+    const view = await openReview(params, typedDestination)
     fireEvent.click(withdrawButton())
     await act(async () => {
         await jest.advanceTimersByTimeAsync(65_000)
@@ -564,12 +590,8 @@ it('a recovered success shows no amount the booked row does not carry', async ()
 
 it('an unsaved destination is held under no name, and a later visit through a saved account is held too', async () => {
     // typed once, not saved: the flow has no saved-account id for it
-    const typed = new URLSearchParams({
-        country: 'argentina',
-        destination: 'otra.cuenta.peanut',
-        isSavedAccount: 'true',
-    })
-    await loseTheAnswerAndLeave(typed, NEW_DESTINATION_KEY)
+    const typed = new URLSearchParams({ country: 'argentina' })
+    await loseTheAnswerAndLeave(typed, NEW_DESTINATION_KEY, 'otra.cuenta.peanut')
     expect(window.localStorage.getItem(MARKER_KEY)).toBeNull()
     expect(storageNames('otra.cuenta.peanut')).toBe(false)
 
@@ -587,12 +609,8 @@ it('an unsaved destination is held under no name, and a later visit through a sa
 })
 
 it('the hold for an unsaved destination completes on the one Manteca withdrawal booked since it began', async () => {
-    const typed = new URLSearchParams({
-        country: 'argentina',
-        destination: 'otra.cuenta.peanut',
-        isSavedAccount: 'true',
-    })
-    await loseTheAnswerAndLeave(typed, NEW_DESTINATION_KEY)
+    const typed = new URLSearchParams({ country: 'argentina' })
+    await loseTheAnswerAndLeave(typed, NEW_DESTINATION_KEY, 'otra.cuenta.peanut')
 
     mockHistory.mockReturnValue([
         withdrawalTo('otra.cuenta.peanut', 'COMPLETED', { amount: '50', currency: { amount: '50000', code: 'ARS' } }),
@@ -614,13 +632,14 @@ it('the hold for an unsaved destination completes on the one Manteca withdrawal 
 it("a saved account's hold also holds a withdrawal to a destination typed afterwards", async () => {
     await loseTheAnswerAndLeave()
 
-    const typed = new URLSearchParams({
-        country: 'argentina',
-        destination: 'otra.cuenta.peanut',
-        isSavedAccount: 'true',
-    })
+    const typed = new URLSearchParams({ country: 'argentina' })
+    mockStepper.step = 'bank-details'
     const view = render(<MantecaBankWithdrawFlow searchParams={typed} />)
     await flush()
+    fireEvent.change(screen.getByTestId('destination-input'), { target: { value: 'otra.cuenta.peanut' } })
+    fireEvent.click(screen.getByText('common.continue'))
+    await flush()
+    view.rerender(<MantecaBankWithdrawFlow searchParams={typed} />)
     expect(screen.getByTestId('payment-confirming')).toBeInTheDocument()
     expect(screen.queryByText('common.continue')).toBeNull()
     expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1)
@@ -633,6 +652,23 @@ it("a saved account's hold also holds a withdrawal to a destination typed afterw
     })
     view.rerender(<MantecaBankWithdrawFlow searchParams={typed} />)
     expect(mockStepper.step).not.toBe('success')
+    expect(window.localStorage.getItem(MARKER_KEY)).not.toBeNull()
+    view.unmount()
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(5_000)
+    })
+})
+
+it('routes USER_OP_RECEIPT_TIMEOUT and MutationResponseTimeoutError to recovery instead of clearing the hold', async () => {
+    mockWithdrawWithSignedTx.mockResolvedValue({ error: 'Receipt timeout', code: 'USER_OP_RECEIPT_TIMEOUT' })
+    mockReadUserOpOutcome.mockResolvedValue({ executed: '0xfound' })
+    const view = await openReview()
+
+    fireEvent.click(withdrawButton())
+    await flush()
+    view.rerender(<MantecaBankWithdrawFlow searchParams={searchParams} />)
+
+    expect(screen.getByTestId('payment-confirming')).toBeInTheDocument()
     expect(window.localStorage.getItem(MARKER_KEY)).not.toBeNull()
     view.unmount()
     await act(async () => {

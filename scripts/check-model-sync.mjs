@@ -71,7 +71,8 @@ function main() {
     const unsynced = []
     for (const file of changed) {
         const naming = [...models].filter(([, paths]) => paths.includes(file)).map(([spec]) => spec)
-        if (naming.length > 0 && !naming.some(specChanged)) unsynced.push({ file, specs: naming })
+        const missing = naming.filter((spec) => !specChanged(spec))
+        if (missing.length > 0) unsynced.push({ file, specs: missing })
     }
     if (unsynced.length === 0) {
         console.log(`check-model-sync: ${changed.size} changed files, every modelled one changed with its spec.`)

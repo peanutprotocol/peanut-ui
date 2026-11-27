@@ -121,3 +121,21 @@ it("this attempt's own marker lets its broadcast through", () => {
     expect(JSON.parse(window.localStorage.getItem(KEY) ?? 'null')?.backendBroadcast).toBe(true)
     tab.result.current.clear()
 })
+
+it('begin refuses to overwrite another tab live claim after lease expiry', () => {
+    const tab = screen()
+    expect(tab.result.current.claim()).toBe(true)
+    // Simulate lease expiry + another tab claiming the same intent before begin() runs
+    claimOf({
+        chargeId: 'other-charge',
+        owner: 'other-tab',
+        startedAt: Date.now(),
+        userOps: [],
+        backendBroadcast: false,
+    })
+    expect(() => tab.result.current.begin('charge-1')).toThrow('another tab')
+    expect(JSON.parse(window.localStorage.getItem(KEY) ?? 'null')?.owner).toBe('other-tab')
+    expect(JSON.parse(window.localStorage.getItem(KEY) ?? 'null')?.chargeId).toBe('other-charge')
+    tab.result.current.clear()
+    expect(JSON.parse(window.localStorage.getItem(KEY) ?? 'null')?.owner).toBe('other-tab')
+})

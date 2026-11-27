@@ -421,6 +421,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             liveKycStatus !== prevStatus &&
             liveKycStatus !== 'APPROVED' &&
             liveKycStatus !== 'PENDING' &&
+            liveKycStatus !== 'IN_REVIEW' &&
             liveKycStatus !== 'REVERIFYING'
         ) {
             // close modal for any non-success terminal state (REJECTED, ACTION_REQUIRED, FAILED, etc.)

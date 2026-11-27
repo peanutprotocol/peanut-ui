@@ -103,13 +103,11 @@ const REFUSED_BEFORE_SEND_CONFLICTS = new Set<string>([
  */
 export function isDefinitiveSendRefusal(error: unknown): boolean {
     if (isStaleKeyError(error)) return true
+    const code = wireErrorCode(error)
+    if (code !== undefined && REFUSED_BEFORE_SEND_CONFLICTS.has(code)) return true
     const status = apiErrorStatus(error)
     if (status !== undefined) {
-        const code = wireErrorCode(error)
-        return (
-            REFUSED_BEFORE_SEND_STATUSES.has(status) ||
-            (status === 409 && code !== undefined && REFUSED_BEFORE_SEND_CONFLICTS.has(code))
-        )
+        return REFUSED_BEFORE_SEND_STATUSES.has(status)
     }
     const kind = userOpFailureKind(error)
     if (kind === 'signature_invalid' || kind === 'expired') return true

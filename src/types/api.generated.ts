@@ -1814,6 +1814,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/card/funding-pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark that the user left the card funding step to send a bank transfer */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "ok": true
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            ok: true;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/card/waitlist/join": {
         parameters: {
             query?: never;
@@ -5542,7 +5600,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Public indicative display-sell rate for one currency pair. */
+        /** @description Public indicative rates for one currency pair: rate sells one `from`, buyRate buys one `from`, both in `to` units. */
         get: {
             parameters: {
                 query: {
@@ -5566,6 +5624,8 @@ export interface paths {
                         "application/json": {
                             /** @enum {string} */
                             basis: "display_sell";
+                            /** @description `to` units it costs to buy one `from`. */
+                            buyRate: string;
                             effectiveAt: string | null;
                             from: string;
                             fromSource: "identity" | "bridge" | "manteca" | "reference";
@@ -5573,6 +5633,7 @@ export interface paths {
                             generatedAt: string;
                             /** @enum {boolean} */
                             indicative: true;
+                            /** @description `to` units one `from` sells for. */
                             rate: string;
                             selection: "identity" | "provider_pair" | "reference_pair";
                             to: string;
@@ -7034,7 +7095,7 @@ export interface paths {
         put?: never;
         /**
          * Complete QR payment with signed transaction
-         * @description Broadcasts the signed UserOp, or submits the signed Rain withdrawal via the session key, first; the Manteca payment is created only once the USDC mined at the QR deposit address and is claimed for this attempt. A payment that fails after that is recorded and its USDC refunded.
+         * @description Broadcasts the signed UserOp, or submits the signed Rain withdrawal via the session key, first; the Manteca payment is created only once the USDC mined at the QR deposit address and is claimed for this attempt. A payment that fails after that is recorded and its USDC refunded. One payment lock is funded at most once: while another attempt for the lock is unresolved the answer is 409 FUNDING_PENDING_CONFIRMATION, and once that attempt moved money and is final it is 409 QR_PAYMENT_LOCK_USED. Neither sends anything.
          */
         post: {
             parameters: {
@@ -13721,19 +13782,19 @@ export interface paths {
             requestBody?: never;
             responses: {
                 /** @description Default Response */
-                200: {
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
-                            joinedAt: string;
-                            position: number;
+                            code?: string;
+                            error: string;
                         };
                     };
                 };
                 /** @description Default Response */
-                404: {
+                410: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -16480,13 +16541,13 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody: {
+            requestBody?: {
                 content: {
                     "application/json": {
-                        documents: {
+                        documents?: {
                             hash?: string;
                             slug: string;
-                            version: string;
+                            version?: string;
                         }[];
                     };
                 };
@@ -17083,6 +17144,9 @@ export interface paths {
                             error: string;
                             message: string;
                             userMessage: string;
+                        } | {
+                            code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -22492,64 +22556,6 @@ export interface paths {
         };
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/card/funding-pending": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Mark that the user left the card funding step to send a bank transfer */
-        post: {
-            parameters: {
-                query?: never;
-                header: {
-                    Authorization: string;
-                };
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "ok": true
-                         *     }
-                         */
-                        "application/json": {
-                            /** @enum {boolean} */
-                            ok: true;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                            message: string;
-                        };
-                    };
-                };
-            };
-        };
         delete?: never;
         options?: never;
         head?: never;

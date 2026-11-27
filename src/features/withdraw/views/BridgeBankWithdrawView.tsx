@@ -64,17 +64,16 @@ export default function BridgeBankWithdrawView() {
         ? payoutAmounts(flow.executedAmountUsd, flow.executedPayout ?? flow.payout)
         : null
 
-    // the USDC for a typed bank amount comes from its quote — nothing to review
-    // before the first one. A later refresh that fails keeps this page, and any
-    // open KYC, terms or confirm step, mounted: the review shows the error inline.
-    // A recovery could not confirm the withdrawal, or confirmed one this visit
-    // did not start (its amounts are not known here): say so, claim nothing.
-    if (flow.isPaymentStatusUnknown || (step === 'success' && !successAmounts)) {
+    // A recovery could not confirm the withdrawal: show confirming copy and keep
+    // Pay off. When recovery HAS confirmed completion (step === 'success' &&
+    // !isPaymentStatusUnknown), render the completed view even if this visit
+    // reloaded without local quote amounts.
+    if (flow.isPaymentStatusUnknown) {
         return (
             <PaymentConfirmingView
                 headerTitle={fromSendFlow ? tNav('send') : tNav('withdraw')}
                 // the funds left on-chain: the transfer-processing copy, with its 30-minute support line
-                {...(flow.isPaymentStatusUnknown && flow.sentTxHash
+                {...(flow.sentTxHash
                     ? { title: t('bank.transferProcessing'), description: t('bank.confirmPending') }
                     : {})}
             />
@@ -133,12 +132,12 @@ export default function BridgeBankWithdrawView() {
                 />
             )}
 
-            {step === 'success' && successAmounts && (
+            {step === 'success' && (
                 <PaymentSuccessView
                     isWithdrawFlow
                     isFromSendFlow={fromSendFlow}
-                    currencyAmount={successAmounts.headline}
-                    secondaryAmount={successAmounts.secondary}
+                    currencyAmount={successAmounts?.headline}
+                    secondaryAmount={successAmounts?.secondary}
                     message={bankAccount ? shortenStringLong(bankAccount.identifier.toUpperCase()) : ''}
                     points={flow.pointsData?.estimatedPoints}
                     providerId={providerId}

@@ -71,7 +71,7 @@ interface PendingChargeSendOptions {
 /**
  * The double-send guard of every wallet payment that pays an order (direct
  * send, request pay, pot contribution, crypto, Bridge and Manteca withdraw),
- * the Fixed variant of mono engineering/api/state-machines/ChargeSendFlow.tla:
+ * the Fixed variant of verification/tla/ChargeSendFlow.tla:
  *
  * 0. `claim` latches the tap before the first await, so a second tap in the
  *    same tick starts nothing; `release` lets it go once the attempt ended.
@@ -161,13 +161,27 @@ export function usePendingChargeSend({
 
     // A marker left by a reload or an earlier visit resumes once; an attempt
     // started on this screen never does, so a recovery that ran out of time
-    // waits for the next visit instead of starting over here.
+    // waits for the next visit instead of starting over here. Changing intents
+    // on a mounted screen resets the latch for the new key.
     const hasResumed = useRef(false)
     const attemptChargeId = useRef<string | null>(null)
+    const prevKey = useRef<string | null>(key)
+    if (prevKey.current !== key) {
+        prevKey.current = key
+        hasResumed.current = false
+        attemptChargeId.current = null
+    }
 
     const begin = useCallback(
         (chargeId: string, intentId?: string) => {
             if (!key) return
+            // If this tab's claim lease expired while creating the order and
+            // another tab claimed the intent, never overwrite the other tab's
+            // live marker (verification/tla/ChargeSendFlow.tla).
+            const held = readPendingChargeSend(key)
+            if (held && held.owner !== undefined && held.owner !== thisTab() && !isAbandonedClaim(held)) {
+                throw new Error('This payment is already in progress in another tab')
+            }
             hasResumed.current = true
             attemptChargeId.current = chargeId
             claiming.delete(key)

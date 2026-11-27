@@ -415,16 +415,15 @@ jobs:
                   path: /tmp/be-baseline.jsonl
                   retention-days: 1
 
-    # Sharded 2-way: one runner ran the ~1,500 suites in 12-13 min (Nov 2026,
-    # runs 44966518833 and 44945976697) at about 2.4x parallelism, and it was
-    # the longest job after press-contract. jest --shard splits by file.
+    # Sharded 3-way and coverage-free on PRs (same 25% istanbul saving as peanut-api-ts;
+    # pushes to main/dev keep coverage). jest --shard splits by file.
     unit:
         needs: be-baseline
         runs-on: ubuntu-latest
         strategy:
             fail-fast: false
             matrix:
-                shard: [1, 2]
+                shard: [1, 2, 3]
         # No checks: write here even though dorny/test-reporter runs below —
         # in summary mode it needs none, and this job runs PR-authored code
         # before the reporter, so any token it holds is capturable.
@@ -470,7 +469,7 @@ jobs:
                       src/components/TransactionDetails/__tests__/fixtures/be-entries.json
 
             - name: Run unit tests
-              run: pnpm test:unit:ci --shard=${{ matrix.shard }}/2
+              run: pnpm test:unit:ci --shard=${{ matrix.shard }}/3 ${{ github.event_name == 'push' && '--coverage' || '' }}
 
             - name: Publish unit test report
               uses: dorny/test-reporter@3eeb9fc888e82e8be2fb356bbeec2750231672bc # v1
@@ -484,7 +483,7 @@ jobs:
             # overwrite: v4 artifacts are immutable within a run, so a
             # "re-run failed jobs" pass would 409 here without it.
             - name: Upload unit coverage
-              if: always()
+              if: always() && github.event_name == 'push'
               uses: actions/upload-artifact@v4
               with:
                   name: coverage-unit-${{ matrix.shard }}
@@ -955,7 +954,9 @@ jobs:
               timeout-minutes: 9
               run: |
                   for attempt in 1 2 3; do
-                      if timeout --kill-after=15s 150 npx playwright install-deps chromium; then
+                      # apt runs as root. The timeout must too, otherwise its
+                      # signals cannot reap apt and every retry hits the orphan's lock.
+                      if sudo timeout --kill-after=15s 150 env PATH="$PATH" node node_modules/@playwright/test/cli.js install-deps chromium; then
                           exit 0
                       fi
                       echo "::warning::playwright install-deps attempt ${attempt} failed or stalled; retrying"
@@ -1191,7 +1192,9 @@ jobs:
               timeout-minutes: 9
               run: |
                   for attempt in 1 2 3; do
-                      if timeout --kill-after=15s 150 pnpm exec playwright install-deps chromium; then
+                      # apt runs as root. The timeout must too, otherwise its
+                      # signals cannot reap apt and every retry hits the orphan's lock.
+                      if sudo timeout --kill-after=15s 150 env PATH="$PATH" node node_modules/@playwright/test/cli.js install-deps chromium; then
                           exit 0
                       fi
                       echo "::warning::playwright install-deps attempt ${attempt} failed or stalled; retrying"
@@ -1368,7 +1371,8 @@ jobs:
                           '',
                           '</details>',
                       ].join('\n');
-                      const covBlock = [
+                      const hasCov = (p.cov.total.statements?.pct ?? 0) > 0 || (p.cov.total.lines?.pct ?? 0) > 0;
+                      const covBlock = !hasCov ? '' : [
                           '### 📊 Coverage (unit)',
                           '',
                           '| metric | % |',

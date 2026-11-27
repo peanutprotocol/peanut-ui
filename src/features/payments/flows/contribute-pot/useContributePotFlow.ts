@@ -112,6 +112,7 @@ export function useContributePotFlow() {
         recordPayment: recordFoundPayment,
         canResume: currentView === 'INITIAL',
         setIsSuccess,
+        setTxHash,
         setIsPaymentStatusUnknown,
         setCurrentView,
         setError,
@@ -288,9 +289,9 @@ export function useContributePotFlow() {
                     chargeId: chargeResult.uuid,
                     onBroadcast: pendingSend.onBroadcast,
                 })
-                const { hash } = resolveSettledTxHash(txResult, 'contribute-pot')
+                const { hash, source: txHashSource } = resolveSettledTxHash(txResult, 'contribute-pot')
 
-                pendingSend.markSent(hash)
+                if (txHashSource !== 'userOpHash') pendingSend.markSent(hash)
                 setTxHash(hash)
 
                 // step 3: record payment to backend

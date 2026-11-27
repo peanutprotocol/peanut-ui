@@ -188,7 +188,9 @@ async function readBookedWithdrawal(
     if (status === 'COMPLETED') {
         return { state: 'completed', show: () => showBooked({ amount, currency, recipientAccount }) }
     }
-    return status === 'CANCELLED' || status === 'REFUNDED' ? { state: 'closed' } : { state: 'settling' }
+    return status === 'FAILED' || status === 'CANCELLED' || status === 'REFUNDED'
+        ? { state: 'closed' }
+        : { state: 'settling' }
 }
 
 /**
@@ -295,6 +297,16 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
         }),
     })
     const step = stepper.step
+    // Cold reload with ?account=<id>: useAuth().user hydrates after mount, so
+    // paramAddress arrives after useState initialized. Sync it once when ready.
+    const hydratedSavedAccountRef = useRef(isSavedAccount)
+    useEffect(() => {
+        if (hydratedSavedAccountRef.current || !isSavedAccount || !paramAddress) return
+        hydratedSavedAccountRef.current = true
+        setDestinationAddress(paramAddress)
+        setDestinationConfirmed(true)
+        if (stepper.step === 'bank-details') void stepper.goTo('amount')
+    }, [isSavedAccount, paramAddress, stepper])
     const router = useRouter()
     // rewinds to home past every entry the flow pushed; a replace kept the
     // earlier entries, so back from home re-entered the flow
@@ -371,13 +383,19 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
     // The read matches the booked row by the held account's destination. For
     // `new`, or an account since deleted, it takes the one Manteca withdrawal
     // booked since the send began: every other Manteca withdrawal here is held.
+    // While user.accounts is still hydrating for a saved-account hold, wait
+    // (`settling`) rather than degrading destination to null and matching another row.
     const heldAccountId = intent ? mantecaWithdrawAccountId(intent) : null
+    const accountsLoaded = user?.accounts !== undefined
     const readDestination = heldAccountId
         ? (user?.accounts?.find((account) => account.id === heldAccountId)?.identifier.toLowerCase() ?? null)
         : null
     const readThisWithdrawal = useCallback(
-        (send: PendingChargeSend) => readWithdrawal(send, readDestination, setBookedAmounts),
-        [readDestination]
+        (send: PendingChargeSend) => {
+            if (heldAccountId && !accountsLoaded) return Promise.resolve({ state: 'settling' as const })
+            return readWithdrawal(send, readDestination, setBookedAmounts)
+        },
+        [heldAccountId, accountsLoaded, readDestination]
     )
     const pendingSend = usePendingChargeSend({
         intent,
@@ -788,8 +806,11 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
             return
         }
 
-        // A withdrawal to this account may still land, or a tap in this tick
-        // started one: nothing is signed, and no new quote taken, until it is final.
+        // A withdrawal to this account (or another Manteca hold in another tab)
+        // may still land, or a tap in this tick started one: nothing is signed,
+        // and no new quote taken, until it is final.
+        const activeHold = heldMantecaWithdrawIntent(userId)
+        if (activeHold && activeHold !== intent) return
         if (!pendingSend.claim()) return
 
         posthog.capture(ANALYTICS_EVENTS.WITHDRAW_CONFIRMED, {
@@ -952,10 +973,17 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
                     // signed once the attempt before it provably moved nothing.
                     pendingSend.begin(withdrawalOrderId(candidate, priceLock.priceLockCode))
                     pendingSend.onBroadcast(withdrawalBroadcast(candidate))
-                    // A transport failure after the request left: the backend
-                    // may have broadcast the withdrawal with the answer lost.
+                    // A transport, timeout, abort, or non-JSON gateway failure
+                    // after the request left: the backend may have broadcast the
+                    // withdrawal with the answer lost.
                     return mantecaApi.withdrawWithSignedTx(withdrawBody(candidate)).catch((error: unknown) => {
-                        throw isNetworkLayerFailure(error) ? markSpendMayHaveBroadcast(error) : error
+                        const ambiguous =
+                            isNetworkLayerFailure(error) ||
+                            (error instanceof Error &&
+                                (error.name === 'MutationResponseTimeoutError' ||
+                                    error.name === 'AbortError' ||
+                                    error instanceof SyntaxError))
+                        throw ambiguous ? markSpendMayHaveBroadcast(error) : error
                     })
                 },
                 {
@@ -980,7 +1008,11 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
             // The backend failed without saying why, or this signed withdrawal is
             // still confirming there: it submits the withdrawal before it creates
             // the order, so the money may have moved.
-            if (result.error === 'Unexpected error' || result.code === API_ERROR_CODES.FUNDING_PENDING_CONFIRMATION) {
+            if (
+                result.error === 'Unexpected error' ||
+                result.code === API_ERROR_CODES.FUNDING_PENDING_CONFIRMATION ||
+                result.code === 'USER_OP_RECEIPT_TIMEOUT'
+            ) {
                 await pendingSend.recover()
                 return
             }

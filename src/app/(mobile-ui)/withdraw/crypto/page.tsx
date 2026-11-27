@@ -242,7 +242,11 @@ export default function WithdrawCryptoPage() {
     const readCharge = useCallback(
         async ({ chargeId }: PendingChargeSend) => {
             const found = await chargesApi.get(chargeId)
-            return { state: chargeOrderState(found.status), show: () => setChargeDetails(found) }
+            return {
+                state: chargeOrderState(found.status),
+                txHash: found.fulfillmentPayment?.payerTransactionHash as Hash | undefined,
+                show: () => setChargeDetails(found),
+            }
         },
         [setChargeDetails]
     )
@@ -593,6 +597,7 @@ export default function WithdrawCryptoPage() {
         })
 
         let finalTxHash: Hex | undefined
+        let txHashSource: 'receipt' | 'txHash' | 'userOpHash' | undefined
         pendingSend.begin(chargeDetails.uuid)
         try {
             // For same-chain + same-token withdraws, useCrossChainTransfer
@@ -630,7 +635,9 @@ export default function WithdrawCryptoPage() {
                 if (receipt !== null && isTxReverted(receipt)) {
                     throw new Error(`Transaction failed (reverted). Hash: ${receipt.transactionHash}`)
                 }
-                finalTxHash = resolveSettledTxHash({ receipt, userOpHash, txHash }, 'withdraw-crypto').hash as Hex
+                const settled = resolveSettledTxHash({ receipt, userOpHash, txHash }, 'withdraw-crypto')
+                finalTxHash = settled.hash as Hex
+                txHashSource = settled.source
             } else {
                 // payAmount is the USDC the kernel actually needs on-hand to execute
                 // the first tx — principal + Rhino fee on the SDA path (mode='receive'),
@@ -650,8 +657,9 @@ export default function WithdrawCryptoPage() {
                 if (receipt !== null && isTxReverted(receipt)) {
                     throw new Error(`Transaction failed (reverted). Hash: ${receipt.transactionHash}`)
                 }
-                finalTxHash = resolveSettledTxHash({ receipt, userOpHash: txResult.userOpHash }, 'withdraw-crypto')
-                    .hash as Hex
+                const settled = resolveSettledTxHash({ receipt, userOpHash: txResult.userOpHash }, 'withdraw-crypto')
+                finalTxHash = settled.hash as Hex
+                txHashSource = settled.source
             }
 
             // the send resolved, so it left this device: the money may have moved
@@ -692,7 +700,7 @@ export default function WithdrawCryptoPage() {
             // Funds moved (a userOp hash is not a transfer the recovery can
             // record): from here on, any failure goes to recovery, never to a
             // second broadcast.
-            if (!mixedWithoutMinedHash) pendingSend.markSent(finalTxHash)
+            if (!mixedWithoutMinedHash && txHashSource !== 'userOpHash') pendingSend.markSent(finalTxHash)
 
             let payment: Awaited<ReturnType<typeof recordPayment>> | null = null
             if (mixedWithoutMinedHash) {

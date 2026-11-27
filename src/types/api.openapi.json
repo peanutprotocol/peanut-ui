@@ -3618,6 +3618,72 @@
 				]
 			}
 		},
+		"/card/funding-pending": {
+			"post": {
+				"parameters": [
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"ok": true
+								},
+								"schema": {
+									"properties": {
+										"ok": {
+											"enum": [
+												true
+											],
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"ok"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error",
+										"message"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Mark that the user left the card funding step to send a bank transfer",
+				"tags": [
+					"card"
+				]
+			}
+		},
 		"/card/waitlist/join": {
 			"post": {
 				"deprecated": true,
@@ -10267,7 +10333,7 @@
 		},
 		"/fx/rate": {
 			"get": {
-				"description": "Public indicative display-sell rate for one currency pair.",
+				"description": "Public indicative rates for one currency pair: rate sells one `from`, buyRate buys one `from`, both in `to` units.",
 				"parameters": [
 					{
 						"description": "ISO-style currency code or supported four-letter internal ticker",
@@ -10301,6 +10367,11 @@
 											"enum": [
 												"display_sell"
 											],
+											"type": "string"
+										},
+										"buyRate": {
+											"description": "`to` units it costs to buy one `from`.",
+											"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
 											"type": "string"
 										},
 										"effectiveAt": {
@@ -10357,6 +10428,7 @@
 											"type": "boolean"
 										},
 										"rate": {
+											"description": "`to` units one `from` sells for.",
 											"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
 											"type": "string"
 										},
@@ -10419,6 +10491,7 @@
 										"from",
 										"to",
 										"rate",
+										"buyRate",
 										"basis",
 										"indicative",
 										"selection",
@@ -12669,7 +12742,7 @@
 		},
 		"/manteca/qr-payment/complete-with-signed-tx": {
 			"post": {
-				"description": "Broadcasts the signed UserOp, or submits the signed Rain withdrawal via the session key, first; the Manteca payment is created only once the USDC mined at the QR deposit address and is claimed for this attempt. A payment that fails after that is recorded and its USDC refunded.",
+				"description": "Broadcasts the signed UserOp, or submits the signed Rain withdrawal via the session key, first; the Manteca payment is created only once the USDC mined at the QR deposit address and is claimed for this attempt. A payment that fails after that is recorded and its USDC refunded. One payment lock is funded at most once: while another attempt for the lock is unresolved the answer is 409 FUNDING_PENDING_CONFIRMATION, and once that attempt moved money and is final it is 409 QR_PAYMENT_LOCK_USED. Neither sends anything.",
 				"parameters": [
 					{
 						"in": "header",
@@ -26962,21 +27035,20 @@
 					}
 				],
 				"responses": {
-					"200": {
+					"404": {
 						"content": {
 							"application/json": {
 								"schema": {
 									"properties": {
-										"joinedAt": {
+										"code": {
 											"type": "string"
 										},
-										"position": {
-											"type": "number"
+										"error": {
+											"type": "string"
 										}
 									},
 									"required": [
-										"joinedAt",
-										"position"
+										"error"
 									],
 									"type": "object"
 								}
@@ -26984,7 +27056,7 @@
 						},
 						"description": "Default Response"
 					},
-					"404": {
+					"410": {
 						"content": {
 							"application/json": {
 								"schema": {
@@ -32951,24 +33023,18 @@
 												}
 											},
 											"required": [
-												"slug",
-												"version"
+												"slug"
 											],
 											"type": "object"
 										},
 										"maxItems": 8,
-										"minItems": 1,
 										"type": "array"
 									}
 								},
-								"required": [
-									"documents"
-								],
 								"type": "object"
 							}
 						}
-					},
-					"required": true
+					}
 				},
 				"responses": {
 					"200": {
@@ -35044,46 +35110,64 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"properties": {
-										"code": {
-											"anyOf": [
-												{
-													"enum": [
-														"feature_setup_unavailable"
-													],
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"anyOf": [
+														{
+															"enum": [
+																"feature_setup_unavailable"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_setup_pending"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_not_open"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"error": {
 													"type": "string"
 												},
-												{
-													"enum": [
-														"feature_setup_pending"
-													],
+												"message": {
 													"type": "string"
 												},
-												{
-													"enum": [
-														"feature_not_open"
-													],
+												"userMessage": {
 													"type": "string"
 												}
-											]
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error"
+											],
+											"type": "object"
 										},
-										"error": {
-											"type": "string"
-										},
-										"message": {
-											"type": "string"
-										},
-										"userMessage": {
-											"type": "string"
+										{
+											"properties": {
+												"code": {
+													"type": "string"
+												},
+												"error": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"error"
+											],
+											"type": "object"
 										}
-									},
-									"required": [
-										"code",
-										"userMessage",
-										"message",
-										"error"
-									],
-									"type": "object"
+									]
 								}
 							}
 						},
@@ -49130,72 +49214,6 @@
 						"description": "Default Response"
 					}
 				}
-			}
-		},
-		"/card/funding-pending": {
-			"post": {
-				"parameters": [
-					{
-						"in": "header",
-						"name": "Authorization",
-						"required": true,
-						"schema": {
-							"type": "string"
-						}
-					}
-				],
-				"responses": {
-					"200": {
-						"content": {
-							"application/json": {
-								"example": {
-									"ok": true
-								},
-								"schema": {
-									"properties": {
-										"ok": {
-											"enum": [
-												true
-											],
-											"type": "boolean"
-										}
-									},
-									"required": [
-										"ok"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					},
-					"500": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"error": {
-											"type": "string"
-										},
-										"message": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"error",
-										"message"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					}
-				},
-				"summary": "Mark that the user left the card funding step to send a bank transfer",
-				"tags": [
-					"card"
-				]
 			}
 		}
 	},

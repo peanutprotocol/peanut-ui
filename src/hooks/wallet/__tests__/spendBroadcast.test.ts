@@ -1,5 +1,6 @@
 import { entryPoint07Address, getUserOperationHash } from 'viem/account-abstraction'
 import { ApiError } from '@/services/api-error'
+import { StaleCardApprovalError } from '@/services/rain'
 import { createStaleSessionError } from '@/utils/walletCredential.utils'
 import {
     describeSignedUserOp,
@@ -65,7 +66,11 @@ describe('isDefinitiveSendRefusal', () => {
         ['a refused payload (400)', new ApiError('bad request', { status: 400 })],
         ['an out-of-date preparation (410)', new ApiError('start again', { status: 410 })],
         [
-            'a stale card approval (409 STALE_CARD_APPROVAL)',
+            'a stale card approval (StaleCardApprovalError, thrown by rainApi on 409)',
+            new StaleCardApprovalError('re-enable your card'),
+        ],
+        [
+            'a stale card approval (409 STALE_CARD_APPROVAL ApiError)',
             new ApiError('re-enable your card', { status: 409, code: 'STALE_CARD_APPROVAL' }),
         ],
     ])('%s is a refusal', (_label, error) => {

@@ -361,8 +361,8 @@ export function useSemanticRequestFlow() {
                     // `txHash` (Rain coordinator submits the on-chain tx). Fall
                     // back to it so card-collateral users don't get an
                     // undefined hash here.
-                    const { hash } = resolveSettledTxHash(txResult, 'semantic-request')
-                    pendingSend.markSent(hash)
+                    const { hash, source: txHashSource } = resolveSettledTxHash(txResult, 'semantic-request')
+                    if (txHashSource !== 'userOpHash') pendingSend.markSent(hash)
                     setTxHash(hash)
 
                     // record payment
@@ -547,10 +547,10 @@ export function useSemanticRequestFlow() {
 
     // call prepareRoute when entering confirm view and charge is ready
     useEffect(() => {
-        if (currentView === 'CONFIRM' && charge) {
+        if (currentView === 'CONFIRM' && charge && !pendingSend.isPending) {
             prepareRoute()
         }
-    }, [currentView, charge, prepareRoute])
+    }, [currentView, charge, pendingSend.isPending, prepareRoute])
 
     // SDA deposit addresses don't expire — no route-expiry handlers needed.
 
@@ -578,6 +578,7 @@ export function useSemanticRequestFlow() {
 
         try {
             let hash: Hash
+            let txHashSource: 'receipt' | 'txHash' | 'userOpHash'
 
             // check if charge is for same chain and same token (usdc on arbitrum)
             const isChargeSameChainToken =
@@ -598,7 +599,9 @@ export function useSemanticRequestFlow() {
                 })
                 // collateral-only routes return `txHash` only — see
                 // sibling site at line ~293 for the same fallback.
-                hash = resolveSettledTxHash(txResult, 'semantic-request-pay').hash
+                const settled = resolveSettledTxHash(txResult, 'semantic-request-pay')
+                hash = settled.hash
+                txHashSource = settled.source
             } else if (needsRoute && routeTransactions && routeTransactions.length > 0) {
                 // cross-chain or token swap payment via Rhino SDA. Pass
                 // `requiredUsdcAmount = payAmount` (principal + Rhino fee on SDA
@@ -626,12 +629,14 @@ export function useSemanticRequestFlow() {
                           }
                         : undefined
                 )
-                hash = resolveSettledTxHash(txResult, 'semantic-request-fulfill').hash
+                const settled = resolveSettledTxHash(txResult, 'semantic-request-fulfill')
+                hash = settled.hash
+                txHashSource = settled.source
             } else {
                 throw new Error('route not ready for cross-chain payment')
             }
 
-            pendingSend.markSent(hash)
+            if (txHashSource !== 'userOpHash') pendingSend.markSent(hash)
             setTxHash(hash)
 
             // record payment to backend

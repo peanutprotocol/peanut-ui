@@ -569,7 +569,10 @@ export function useBridgeOfframpFlow() {
             // (collateral-only path) BEFORE the userOp hash. confirmOfframp expects a real
             // 32-byte tx hash — userOpHash is an account-abstraction bundler hash, not a
             // chain tx hash, and the BE rejects it.
-            const txIdentifier = resolveSettledTxHash({ receipt, txHash, userOpHash }, 'withdraw-bank').hash
+            const { hash: txIdentifier, source: txHashSource } = resolveSettledTxHash(
+                { receipt, txHash, userOpHash },
+                'withdraw-bank'
+            )
             // the send resolved, so it left this device: the deposit may have moved
             if (!txIdentifier)
                 throw markSpendMayHaveBroadcast(new Error('No transaction identifier returned from sendMoney'))
@@ -577,7 +580,7 @@ export function useBridgeOfframpFlow() {
             // The deposit left the wallet. From here on any failure (a confirm
             // timeout included) goes to recovery, which confirms the same hash
             // again — re-running this handler would send a second deposit.
-            pendingSend.markSent(txIdentifier as Hash)
+            if (txHashSource !== 'userOpHash') pendingSend.markSent(txIdentifier as Hash)
             await confirmDeposit(data.transferId, txIdentifier as Hash)
             pendingSend.clear()
 

@@ -1273,7 +1273,7 @@ describe('MoneySettings', () => {
                     reason: { code: 'some_code_without_app_copy', userMessage: words },
                 },
             ]
-            mockIsKycApproved = true
+            mockHasAnyEnabledRail = true
             mockIdentity = { status: 'verified' }
             render()
             fireEvent.click(screen.getByText('EUR'))

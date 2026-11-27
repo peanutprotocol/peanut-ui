@@ -144,7 +144,18 @@ jest.mock('@/services/charges', () => ({
     chargesApi: { setAmount: (...args: unknown[]) => mockSetChargeAmount(...args) },
 }))
 jest.mock('@/utils/settled-tx-hash.utils', () => ({
-    resolveSettledTxHash: (r: { txHash?: string }) => ({ hash: r.txHash ?? '0xmined' }),
+    resolveSettledTxHash: (r: {
+        txHash?: string
+        userOpHash?: string
+        receipt?: { transactionHash: string } | null
+    }) =>
+        r.receipt?.transactionHash
+            ? { hash: r.receipt.transactionHash, source: 'receipt' as const }
+            : r.txHash
+              ? { hash: r.txHash, source: 'txHash' as const }
+              : r.userOpHash
+                ? { hash: r.userOpHash, source: 'userOpHash' as const }
+                : { hash: '0xmined', source: 'receipt' as const },
 }))
 
 jest.mock('@/utils/network-triage', () => ({ captureNetworkTriagedFailure: jest.fn() }))

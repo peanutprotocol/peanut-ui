@@ -5,7 +5,7 @@
    lock whose withdrawal the backend submits before it creates the order: in each, a lost answer
    after the send left the device is the same state. One user intent: the user keeps tapping Send
    until a status screen shows.
-   Models: src/features/payments/shared/hooks/usePendingChargeSend.ts, src/features/payments/shared/utils/decide-recovery.ts
+   Models: src/features/payments/shared/hooks/usePendingChargeSend.ts, src/features/payments/shared/utils/decide-recovery.ts, src/features/payments/shared/utils/pending-charge-send.ts, src/hooks/wallet/spendBroadcast.ts
    Spec-local: every constant. The recovery rules have no exported table yet.
 
    Fixed = FALSE: Send is disabled only while a request is loading, and any failure after the send

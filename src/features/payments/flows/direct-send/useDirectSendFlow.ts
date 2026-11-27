@@ -211,7 +211,10 @@ export function useDirectSendFlow() {
             const { hash, source: txHashSource } = resolveSettledTxHash(txResult, 'direct-send')
             const tMoneySent = Date.now()
 
-            pendingSend.markSent(hash)
+            // Only markSent with a real mined/broadcast tx hash; a userOpHash
+            // fallback is not an on-chain tx hash and would skip ReadUserOps in
+            // recovery, leaving a reverted op held for 24h.
+            if (txHashSource !== 'userOpHash') pendingSend.markSent(hash)
             setTxHash(hash)
             failedStep = 'record-payment'
 

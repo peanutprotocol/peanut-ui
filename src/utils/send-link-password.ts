@@ -8,12 +8,17 @@ import { getFromLocalStorage, saveToLocalStorage } from '@/utils/general.utils'
  * back in.
  */
 const passwordKey = (pubKey: string) => `sendLink::password::${pubKey}`
+// Page-memory fallback when localStorage is blocked or full (same pattern as
+// pending-charge-send.ts), so recovery on this page can still build the link.
+const memoryPasswords = new Map<string, string>()
 
 export function keepSendLinkPassword(pubKey: string, password: string): void {
+    memoryPasswords.set(pubKey, password)
     saveToLocalStorage(passwordKey(pubKey), password)
 }
 
 export function readSendLinkPassword(pubKey: string): string | null {
     const password: unknown = getFromLocalStorage(passwordKey(pubKey))
-    return typeof password === 'string' && password ? password : null
+    if (typeof password === 'string' && password) return password
+    return memoryPasswords.get(pubKey) ?? null
 }
