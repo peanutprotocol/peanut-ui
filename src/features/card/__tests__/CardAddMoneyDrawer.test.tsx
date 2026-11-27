@@ -111,7 +111,7 @@ jest.mock('@/features/deposit-accounts/useDepositAccounts', () => ({
 let mockLive = 2.5
 let mockLiveFails = false
 const mockLiveReads = jest.fn()
-jest.mock('@/features/card/readLiveSpendableUsd', () => ({
+jest.mock('@/features/add-money/drawer/readLiveSpendableUsd', () => ({
     canReadLiveSpendable: (address: string | undefined) => !!address,
     readLiveSpendableUsd: async () => {
         mockLiveReads()

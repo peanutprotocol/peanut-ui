@@ -5,24 +5,24 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import type { CardBankPlan } from '@/features/card/cardAddMoney'
-import { CardDrawerStatus } from './CardDrawerStatus'
+import type { DrawerBankPlan } from './addMoneyDrawerPlan'
+import { DrawerStatus } from './DrawerStatus'
 
-/** the bank states the user can act on; the ones they cannot are disabled rows on the step (Kush) */
-export type CardBankStatus = Extract<CardBankPlan, { kind: 'not-verified' | 'finish-setup' | 'not-offered' }>
+/** the bank states the user can act on; the ones they cannot are disabled rows on the place (Kush) */
+export type DrawerBankStatus = Extract<DrawerBankPlan, { kind: 'not-verified' | 'finish-setup' | 'not-offered' }>
 
 /**
  * Why no bank details show yet, and the one thing that moves the user on, with crypto as the
  * tertiary way to add money now. A not-offered answer here has no known residence rule (that one is
  * a disabled row), so it may be "not opened yet": the bank page has the step left.
  */
-export function CardBankStatusView({
+export function DrawerBankStatusView({
     status,
     onUseCrypto,
     onVerify,
     onFinishSetup,
 }: {
-    status: CardBankStatus
+    status: DrawerBankStatus
     onUseCrypto: () => void
     onVerify: () => void
     onFinishSetup: () => void
@@ -69,7 +69,7 @@ export function CardBankStatusView({
               }
 
     return (
-        <CardDrawerStatus
+        <DrawerStatus
             icon={content.icon}
             name={content.title}
             body={content.body}
@@ -77,6 +77,6 @@ export function CardBankStatusView({
         >
             {content.primary}
             {tertiary}
-        </CardDrawerStatus>
+        </DrawerStatus>
     )
 }

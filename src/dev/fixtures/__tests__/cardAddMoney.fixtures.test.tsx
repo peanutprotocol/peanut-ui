@@ -1,7 +1,7 @@
 /**
  * The card add-money drawer fixtures (TASK-25169) reach the state they name: each fixture's own
  * `/users/me` and `/users/deposit-accounts` answers run through the real `useAddMoneyReadiness` and
- * `cardBankPlan`, and the crypto fixtures answer the deposit and balance they promise.
+ * `drawerBankPlan`, and the crypto fixtures answer the deposit and balance they promise.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
@@ -10,7 +10,13 @@ import type { ReactNode } from 'react'
 import { FIXTURES } from '@/dev/fixtures/registry'
 import { fixtureRespond } from '@/dev/fixtures/respond'
 import { useAddMoneyReadiness } from '@/features/add-money/useAddMoneyReadiness'
-import { cardBankPlan, cardCryptoAskUsd, cardGapUsd, type CardBankPlan } from '@/features/card/cardAddMoney'
+import {
+    addMoneyGapUsd,
+    cryptoAskUsd,
+    drawerBankPlan,
+    type DrawerBankPlan,
+} from '@/features/add-money/drawer/addMoneyDrawerPlan'
+import { CARD_MIN_BALANCE_USD } from '@/features/card/cardAddMoney'
 import { DEMO_ADDRESS } from '@/constants/demo-data'
 import { getDemoBalanceUnits } from '@/utils/demo-balance'
 
@@ -67,7 +73,7 @@ function activate(name: string) {
 const RHINO_STATUS_KEY = `GET /rhino/status/${DEMO_ADDRESS}`
 const read = async (path: string, method = 'GET') => (await fixtureRespond(path, { method })).json()
 
-async function bankPlanOf(name: string): Promise<CardBankPlan> {
+async function bankPlanOf(name: string): Promise<DrawerBankPlan> {
     activate(name)
     mockAuthUser = await read('/users/me')
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -76,7 +82,7 @@ async function bankPlanOf(name: string): Promise<CardBankPlan> {
     )
     const { result } = renderHook(() => useAddMoneyReadiness(true), { wrapper })
     await waitFor(() => expect(result.current.isLoading).toBe(false))
-    return cardBankPlan(result.current)
+    return drawerBankPlan(result.current)
 }
 
 const spendableUsd = () => Number(formatUnits(getDemoBalanceUnits(), 6))
@@ -123,8 +129,8 @@ describe('card add-money drawer fixtures', () => {
         const deposit = await read('/rhino/deposit', 'POST')
         expect(deposit.depositAddress).toBe(DEMO_ADDRESS)
         expect(spendableUsd()).toBe(balance)
-        expect(cardGapUsd(spendableUsd())).toBe(gap)
-        expect(cardCryptoAskUsd(gap, deposit.minDepositLimitUsd)).toEqual(ask)
+        expect(addMoneyGapUsd(CARD_MIN_BALANCE_USD, spendableUsd())).toBe(gap)
+        expect(cryptoAskUsd(gap, deposit.minDepositLimitUsd)).toEqual(ask)
     })
 
     it.each([

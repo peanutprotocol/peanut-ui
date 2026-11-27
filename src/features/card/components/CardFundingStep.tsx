@@ -14,21 +14,21 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import Badge from '@/components/Global/Badges/Badge'
 import NavHeader from '@/components/Global/NavHeader'
 import { useAuth } from '@/context/authContext'
-import { useAddMoneyReadiness } from '@/features/add-money/useAddMoneyReadiness'
+import { AddMoneyDrawer } from '@/features/add-money/drawer/AddMoneyDrawer'
+import { addMoneyGapUsd, bankPageHref, drawerBankPlan } from '@/features/add-money/drawer/addMoneyDrawerPlan'
 import {
-    captureCardAddMoneyDrawerClosed,
-    captureCardAddMoneyRailPicked,
-    captureCardGateAddFundsTapped,
-    captureCardGateCameBackFunded,
-    type CardAddMoneyView,
-    type CardFundingMethod,
-} from '@/features/card/card-gate-analytics'
-import { CARD_MIN_BALANCE_USD, cardBankPageHref, cardBankPlan, cardGapUsd } from '@/features/card/cardAddMoney'
+    captureAddMoneyDrawerClosed,
+    captureAddMoneyRailPicked,
+    type AddMoneyDrawerView,
+    type AddMoneyMethod,
+} from '@/features/add-money/drawer/drawerAnalytics'
+import { useAddMoneyReadiness } from '@/features/add-money/useAddMoneyReadiness'
+import { captureCardGateAddFundsTapped, captureCardGateCameBackFunded } from '@/features/card/card-gate-analytics'
+import { CARD_FUNDING_RETURN_TO, CARD_MIN_BALANCE_USD } from '@/features/card/cardAddMoney'
 import { useBankRegionRefusal } from '@/features/card/useBankRegionRefusal'
 import { cardApi } from '@/services/card'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 import { formatBankAmount } from '@/utils/currency'
-import { CardAddMoneyDrawer } from './CardAddMoneyDrawer'
 
 /**
  * The card's $10 step. Bank and Crypto open the add-money drawer in place, so the step never
@@ -59,27 +59,27 @@ export function CardFundingStep({
     const router = useRouter()
     const readiness = useAddMoneyReadiness(false)
     const { user } = useAuth()
-    const plan = cardBankPlan({ ...readiness, identityStatus: user?.identityVerification?.status })
-    const gapUsd = cardGapUsd(spendableUsd)
+    const plan = drawerBankPlan({ ...readiness, identityStatus: user?.identityVerification?.status })
+    const gapUsd = addMoneyGapUsd(CARD_MIN_BALANCE_USD, spendableUsd)
 
     // one drawer per opening (`n` remounts it), kept mounted closed through vaul's exit animation
-    const [drawer, setDrawer] = useState<{ method: CardFundingMethod; n: number }>()
+    const [drawer, setDrawer] = useState<{ method: AddMoneyMethod; n: number }>()
     const [open, setOpen] = useState(false)
-    const shown = useRef<{ method: CardFundingMethod; view: CardAddMoneyView } | null>(null)
-    const onShow = useCallback((method: CardFundingMethod, view: CardAddMoneyView) => {
+    const shown = useRef<{ method: AddMoneyMethod; view: AddMoneyDrawerView } | null>(null)
+    const onShow = useCallback((method: AddMoneyMethod, view: AddMoneyDrawerView) => {
         shown.current = { method, view }
     }, [])
 
     // the drawer closes on funding only when it opened short; a funded user who opens it stays in it
     const openedShort = useRef(false)
-    const pickMethod = (method: CardFundingMethod) => {
+    const pickMethod = (method: AddMoneyMethod) => {
         captureCardGateAddFundsTapped('funding', funded, method)
         openedShort.current = !funded
         // one bank way, and it is a page: a drawer with one row would only add a tap
         if (method === 'bank' && plan.kind === 'rows' && plan.rows.length === 1 && plan.rows[0].kind === 'page') {
             const { corridor } = plan.rows[0]
-            captureCardAddMoneyRailPicked(corridor, 'page')
-            router.push(cardBankPageHref(corridor, gapUsd, readiness.residenceIso2s))
+            captureAddMoneyRailPicked('card', corridor, 'page')
+            router.push(bankPageHref(corridor, gapUsd, readiness.residenceIso2s, CARD_FUNDING_RETURN_TO))
             return
         }
         shown.current = null
@@ -89,7 +89,7 @@ export function CardFundingStep({
 
     // stable: it reads only a ref, so the effect that closes a blocked bank drawer does not re-run on it
     const dismiss = useCallback(() => {
-        if (shown.current) captureCardAddMoneyDrawerClosed(shown.current.method, shown.current.view)
+        if (shown.current) captureAddMoneyDrawerClosed('card', shown.current.method, shown.current.view)
         setOpen(false)
     }, [])
 
@@ -218,13 +218,16 @@ export function CardFundingStep({
                 {!bankOffered && bankRow}
             </ListGroup>
             {drawer && (
-                <CardAddMoneyDrawer
+                <AddMoneyDrawer
                     key={drawer.n}
                     open={open}
                     method={drawer.method}
+                    targetUsd={CARD_MIN_BALANCE_USD}
                     gapUsd={gapUsd}
                     plan={plan}
                     residenceIso2s={readiness.residenceIso2s}
+                    returnTo={CARD_FUNDING_RETURN_TO}
+                    place="card"
                     onShow={onShow}
                     onDismiss={dismiss}
                     onBankSent={bankSent}

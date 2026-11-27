@@ -10,8 +10,6 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Loading from '@/components/Global/Loading'
 import { useAuth } from '@/context/authContext'
-import { CARD_FUNDING_RETURN_TO, cardGapUsd } from '@/features/card/cardAddMoney'
-import { canReadLiveSpendable, readLiveSpendableUsd } from '@/features/card/readLiveSpendableUsd'
 import { DepositAccountDetailsBody } from '@/features/deposit-accounts/components/DepositAccountDetailsBody'
 import { DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
@@ -21,6 +19,8 @@ import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { formatBankAmount, roundUpToDecimals } from '@/utils/currency'
 import { withReturnTo } from '@/utils/return-to.utils'
+import { addMoneyGapUsd } from './addMoneyDrawerPlan'
+import { canReadLiveSpendable, readLiveSpendableUsd } from './readLiveSpendableUsd'
 
 /** Margin on a non-dollar ask: the client rate moves and the conversion takes a fee before the dollars land. */
 const BANK_FX_MARGIN = 0.02
@@ -28,14 +28,18 @@ const BANK_FX_MARGIN = 0.02
 /**
  * The held account's bank details, to send the gap from the user's own bank. The body is the
  * details screen's own, so the drawer shows the same rules, fee and arrival. Resuming after the
- * transfer is the funding step's job (TASK-25169): "I've sent the transfer" hands back to it.
+ * transfer is the place's job (TASK-25169): "I've sent the transfer" hands back to it.
  */
-export function CardBankDetailsView({
+export function DrawerBankDetailsView({
     corridor,
+    targetUsd,
+    returnTo,
     onSent,
 }: {
     corridor: DepositCorridor
-    /** "I've sent the transfer"; `inDollars`: the transfer was the dollar gap, so the step may name it */
+    targetUsd: number
+    returnTo: string
+    /** "I've sent the transfer"; `inDollars`: the transfer was the dollar gap, so the place may name it */
     onSent: (inDollars: boolean) => void
 }) {
     const t = useTranslations('card.addMoney')
@@ -47,7 +51,7 @@ export function CardBankDetailsView({
     const { address: wallet } = useWallet()
     const userId = user?.user?.userId
     // the ask is the gap from a fresh read, as the crypto view's (readLiveSpendableUsd), never the
-    // step's cached balance; undefined while it loads, null when the read failed. A read belongs to the
+    // place's cached balance; undefined while it loads, null when the read failed. A read belongs to the
     // account and address it was taken for, in the current stretch of that address being readable:
     // until an address is readable, or once it is lost or changes, the skeleton holds (never a stale
     // amount, never a failed read's "no amount"), and every return of an address is read again
@@ -60,13 +64,13 @@ export function CardBankDetailsView({
         if (!readKey) return
         let current = true
         readLiveSpendableUsd(queryClient, { address, userId }).then(
-            (value) => current && setRead({ key: readKey, gapUsd: cardGapUsd(value) ?? null }),
+            (value) => current && setRead({ key: readKey, gapUsd: addMoneyGapUsd(targetUsd, value) ?? null }),
             () => current && setRead({ key: readKey, gapUsd: null })
         )
         return () => {
             current = false
         }
-    }, [queryClient, readKey, address, userId])
+    }, [queryClient, readKey, address, userId, targetUsd])
     const gapUsd = readKey !== null && read?.key === readKey ? read.gapUsd : undefined
     // a provisioning account is re-read by the hook itself, so the skeleton turns into details here
     const { accounts, isLoading, claim } = useDepositAccounts()
@@ -82,7 +86,7 @@ export function CardBankDetailsView({
 
     const moreWays = (
         <div className="mt-2 flex justify-center">
-            <LinkButton onClick={() => router.push(withReturnTo('/add-money?method=bank', CARD_FUNDING_RETURN_TO))}>
+            <LinkButton onClick={() => router.push(withReturnTo('/add-money?method=bank', returnTo))}>
                 {tMethods('moreWays')}
             </LinkButton>
         </div>

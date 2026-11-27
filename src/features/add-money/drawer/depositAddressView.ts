@@ -1,12 +1,12 @@
 /**
- * What the card drawer's deposit view may show (TASK-25169). One rule, owned here: the deposit address
+ * What the add-money drawer's deposit view may show (TASK-25169). One rule, owned here: the deposit address
  * shows only when the API's own answer (never one a clear wrote) says nothing is on its way to it, and a
  * fresh balance read, taken after that answer and after any earlier outcome was cleared, gives the ask.
  * A deposit seen on its way, or reported, holds processing until a fresh read shows the balance above
  * where it started. Anything not positively known is a loading or a retry state: a second send is the
  * money risk.
  */
-export type CardDepositView =
+export type DepositAddressView =
     /** the address, its status, a clear or the fresh balance read is still on its way */
     | 'loading'
     /** no address could be opened */
@@ -23,7 +23,7 @@ export type CardDepositView =
 
 export type DepositStatus = 'not_started' | 'loading' | 'failed' | 'completed'
 
-export function cardDepositView(state: {
+export function depositAddressView(state: {
     addressLoading: boolean
     addressError: boolean
     /** the API itself answered with a status for this address (a clear's own "not started" is not one) */
@@ -46,7 +46,7 @@ export function cardDepositView(state: {
     /** a deposit seen on its way or reported, not yet in a fresh balance read */
     holding: boolean
     done: boolean
-}): CardDepositView {
+}): DepositAddressView {
     if (state.addressLoading) return 'loading'
     if (state.addressError) return 'address-error'
     if (state.statusRead && state.status === 'failed') return 'failed'
