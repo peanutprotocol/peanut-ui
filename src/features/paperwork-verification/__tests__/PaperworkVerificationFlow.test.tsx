@@ -36,6 +36,9 @@ const mockReplace = jest.fn()
 const mockExit = jest.fn()
 let mockAuthUserId = 'user-a'
 let mockCapabilities: unknown = undefined
+// null: the real follow-ups from the capabilities; a list: what the verified screen gets instead
+let mockFollowUps: unknown[] | null = null
+const mockFetchUser = jest.fn()
 jest.mock('@/utils/confetti', () => ({ confettiPresets: { success: jest.fn() } }))
 jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
 jest.mock('@/features/paperwork-verification/components/IdCardScanAnimation', () => ({
@@ -62,9 +65,17 @@ jest.mock('@/context/authContext', () => ({
     useOptionalAuth: () => ({ user: { user: { userId: mockAuthUserId } } }),
     useAuth: () => ({
         user: { user: { userId: mockAuthUserId, username: 'tester' }, capabilities: mockCapabilities },
-        fetchUser: jest.fn(),
+        fetchUser: (...args: unknown[]) => mockFetchUser(...args),
     }),
 }))
+jest.mock('@/features/paperwork-verification/followUps', () => {
+    const actual = jest.requireActual('@/features/paperwork-verification/followUps')
+    return {
+        ...actual,
+        verifiedFollowUps: (...args: Parameters<typeof actual.verifiedFollowUps>) =>
+            mockFollowUps ?? actual.verifiedFollowUps(...args),
+    }
+})
 jest.mock('@/hooks/useWebSocket', () => ({ useWebSocket: jest.fn() }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => mockExit }))
 jest.mock('@/hooks/useSumsubKycFlow', () => ({ useSumsubKycFlow: jest.fn() }))
@@ -258,6 +269,8 @@ const settleStepUrl = () => act(async () => new Promise((resolve) => setTimeout(
 const mockStartAction = jest.fn()
 
 beforeEach(() => {
+    mockFetchUser.mockReset()
+    mockFollowUps = null
     window.sessionStorage.clear()
     mockAuthUserId = 'user-a'
     jest.clearAllMocks()
@@ -1436,6 +1449,51 @@ describe('PaperworkVerificationFlow', () => {
         renderFlow()
         expect(await screen.findByText('Add a proof of address')).toBeInTheDocument()
         expect(screen.getByText(/^Your ID isn’t from/)).toBeInTheDocument()
+    })
+
+    describe('a verified user with a step left (a card proof of address)', () => {
+        const cardAddress = { label: 'cardAddress', note: 'home.pendingTasks.cardAddressDescription', href: '/card' }
+        beforeEach(() => {
+            mockFollowUps = [cardAddress]
+            mockStatus.mockResolvedValue('APPROVED')
+            mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+        })
+        afterEach(() => {
+            mockFollowUps = null
+        })
+
+        it('lists the step and goes to it without returnTo', async () => {
+            renderFlow('')
+            const cta = await screen.findByTestId('verify-verified-payments')
+            expect(within(screen.getByTestId('verify-steps')).getByText('Add a proof of address')).toBeInTheDocument()
+            fireEvent.click(cta)
+            expect(mockPush).toHaveBeenCalledWith('/card')
+        })
+
+        it('with returnTo, lists no step it will not lead to and goes back to the opener', async () => {
+            renderFlow('', undefined, undefined, '/card?card_step=funding')
+            const cta = await screen.findByTestId('verify-verified-payments')
+            expect(
+                within(screen.getByTestId('verify-steps')).queryByText('Add a proof of address')
+            ).not.toBeInTheDocument()
+            fireEvent.click(cta)
+            await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/card?card_step=funding'))
+            expect(mockPush).not.toHaveBeenCalled()
+        })
+    })
+
+    it('a session that changes while the user is read again does not leave for returnTo', async () => {
+        let finishRead: () => void = () => undefined
+        mockFetchUser.mockImplementationOnce(() => new Promise<void>((resolve) => (finishRead = resolve)))
+        mockStatus.mockResolvedValue('APPROVED')
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+        renderFlow('', undefined, undefined, '/card?card_step=funding')
+        fireEvent.click(await screen.findByTestId('verify-verified-payments'))
+        // another account signs in during the read
+        mockAuthUserId = 'user-b'
+        setAuthToken(`x.${btoa(JSON.stringify({ userId: 'user-b' }))}.y`)
+        await act(async () => finishRead())
+        expect(mockReplace).not.toHaveBeenCalledWith('/card?card_step=funding')
     })
 
     it('an approved user with no returnTo keeps "Set up payments"', async () => {
