@@ -134,6 +134,24 @@ export function QrPayFormView() {
         currency: limitsValidation.currency,
     })
 
+    // Everything that stops Pay except the amount checks. Add money is offered only when none of these
+    // holds, because adding money fixes none of them.
+    const payBlocked =
+        !!errorInitiatingPayment ||
+        isBlockingError ||
+        rateUnavailable ||
+        !amount ||
+        isLoading ||
+        // A replacement quote is being obtained — paying now
+        // would submit under terms the user has not seen.
+        isQuoteRecovering ||
+        shouldBlockPay ||
+        isAwaitingPixKeyOwner ||
+        pixKeySave.blocksPay ||
+        !usdAmount ||
+        usdAmount === '0.00' ||
+        limitsValidation.isBlocking
+
     return (
         <>
             <KycControlFlowProvider value="kyc_provider_request">
@@ -205,9 +223,8 @@ export function QrPayFormView() {
                         providerId={providerId}
                     />
 
-                    {/* The balance cannot cover the amount: adding money is the way on, not a disabled Pay.
-                        Never while a payment is in flight. */}
-                    {isShortOfBalance && !limitsValidation.isBlocking && !isLoading ? (
+                    {/* The balance is the one thing in the way: adding money is the way on, not a disabled Pay */}
+                    {isShortOfBalance && !payBlocked ? (
                         <Button data-testid="qr-pay-add-money" onClick={addMoney} shadowSize="4">
                             {t('addMoney')}
                         </Button>
@@ -217,23 +234,7 @@ export function QrPayFormView() {
                             onClick={payQR}
                             shadowSize="4"
                             loading={isLoading || isQuoteRecovering}
-                            disabled={
-                                !!errorInitiatingPayment ||
-                                isBlockingError ||
-                                rateUnavailable ||
-                                !amount ||
-                                isLoading ||
-                                // A replacement quote is being obtained — paying now
-                                // would submit under terms the user has not seen.
-                                isQuoteRecovering ||
-                                !!balanceErrorMessage ||
-                                shouldBlockPay ||
-                                isAwaitingPixKeyOwner ||
-                                pixKeySave.blocksPay ||
-                                !usdAmount ||
-                                usdAmount === '0.00' ||
-                                limitsValidation.isBlocking
-                            }
+                            disabled={payBlocked || !!balanceErrorMessage}
                         >
                             {isLoading ? tLoading(loadingStateKey(loadingState)) : tNav('pay')}
                         </Button>

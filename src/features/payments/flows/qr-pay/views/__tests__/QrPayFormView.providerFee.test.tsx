@@ -38,6 +38,7 @@ let mockHideRate = false
 let mockBalanceErrorMessage: string | null = null
 let mockIsShortOfBalance = false
 let mockIsLoading = false
+let mockIsBlockingError = false
 jest.mock('../../QrPayFlowContext', () => ({
     useQrPayFlow: () => ({
         qrPayment: null,
@@ -70,7 +71,7 @@ jest.mock('../../QrPayFlowContext', () => ({
         usdAmount: '18.52',
         errorMessage: null,
         errorInitiatingPayment: null,
-        isBlockingError: false,
+        isBlockingError: mockIsBlockingError,
         balanceErrorMessage: mockBalanceErrorMessage,
         isShortOfBalance: mockIsShortOfBalance,
         rateUnavailable: false,
@@ -97,6 +98,7 @@ describe('QrPayFormView', () => {
         mockBalanceErrorMessage = null
         mockIsShortOfBalance = false
         mockIsLoading = false
+        mockIsBlockingError = false
         mockPush.mockClear()
     })
 
@@ -167,5 +169,14 @@ describe('QrPayFormView', () => {
         renderWithIntl(<QrPayFormView />)
         expect(screen.queryByRole('button', { name: en.qrPay.addMoney })).toBeNull()
         expect(screen.getByTestId('qr-pay-confirm')).toBeInTheDocument()
+    })
+
+    it('keeps the disabled Pay when something other than the balance blocks it: adding money would not unblock it', () => {
+        mockBalanceErrorMessage = en.errors.notEnoughBalanceAddFunds
+        mockIsShortOfBalance = true
+        mockIsBlockingError = true
+        renderWithIntl(<QrPayFormView />)
+        expect(screen.queryByRole('button', { name: en.qrPay.addMoney })).toBeNull()
+        expect(screen.getByRole('button', { name: en.navigation.pay })).toBeDisabled()
     })
 })
