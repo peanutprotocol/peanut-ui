@@ -48,13 +48,15 @@ export function CardBankDetailsView({
     const userId = user?.user?.userId
     // the ask is the gap from a fresh read, as the crypto view's (readLiveSpendableUsd), never the
     // step's cached balance; undefined while it loads, null when the read failed. A read belongs to the
-    // account and address it was taken for: until an address is readable, or once it is lost or
-    // changes, the skeleton holds (never a stale amount, never a failed read's "no amount") and a new
-    // address is read again
+    // account and address it was taken for, in the current stretch of that address being readable:
+    // until an address is readable, or once it is lost or changes, the skeleton holds (never a stale
+    // amount, never a failed read's "no amount"), and every return of an address is read again
     const address = wallet as Address | undefined
     const readKey = canReadLiveSpendable(address) ? `${userId ?? ''}:${address ?? ''}` : null
     const [read, setRead] = useState<{ key: string; gapUsd: number | null }>()
     useEffect(() => {
+        // a read from before an outage, even of the same address, is not shown again
+        setRead(undefined)
         if (!readKey) return
         let current = true
         readLiveSpendableUsd(queryClient, { address, userId }).then(
