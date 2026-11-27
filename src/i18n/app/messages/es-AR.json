@@ -2363,7 +2363,9 @@
             "uncheckedBody": "Volvé a intentarlo en un momento.",
             "residenceMissingBody": "Las cuentas en {currency} dependen de dónde vivís. Indicá tu residencia para comprobarlo.",
             "notOfferedHereBody": "Es posible que esta cuenta no esté disponible donde vivís. Soporte puede revisarlo.",
-            "notOpenBody": "Las cuentas en {currency} todavía no están abiertas para vos.",
+            "notOpenBody": "Por ahora no estamos abriendo cuentas en {currency}.",
+            "copPausedTitle": "Apertura de cuentas en COP pausada",
+            "copPausedBody": "Bridge, nuestro socio de pagos, pausó las nuevas transferencias en COP por ahora.",
             "regionUnavailableBody": "Nuestro socio de pagos no ofrece cuentas en {currency} donde vivís. Tus otras cuentas y tus fondos en Peanut no se ven afectados."
         },
         "claim": {

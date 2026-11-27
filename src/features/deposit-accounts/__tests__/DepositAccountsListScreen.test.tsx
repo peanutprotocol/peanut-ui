@@ -806,16 +806,28 @@ describe('a withheld account with the cause the backend names', () => {
         expect(drawer().getByRole('button', { name: 'Update residence' })).toBeInTheDocument()
     })
 
-    it('says a corridor is not open yet without asking for a residence', () => {
+    it('says a corridor is unavailable right now without asking for a residence', () => {
         residenceIso2s = []
         const { container } = list(false, {
             unavailable: { FASTER_PAYMENTS_GB: withheld('FASTER_PAYMENTS_GB', 'not-offered', 'not-open') },
         })
 
         fireEvent.click(rowOf(container, 'FASTER_PAYMENTS_GB') as HTMLElement)
+        expect(drawer().getByText(LIST.notOpenTitle)).toBeInTheDocument()
         expect(drawer().getByText(LIST.notOpenBody.replace('{currency}', 'GBP'))).toBeInTheDocument()
         expect(drawer().queryByText(LIST.residenceMissingBody.replace('{currency}', 'GBP'))).not.toBeInTheDocument()
         expect(drawer().queryByRole('button', { name: 'Update residence' })).not.toBeInTheDocument()
+    })
+
+    it('describes the paused COP opening without implying this user never had access', () => {
+        const { container } = list(false, {
+            unavailable: { BANK_TRANSFER_CO: withheld('BANK_TRANSFER_CO', 'not-offered', 'not-open') },
+        })
+
+        fireEvent.click(rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement)
+        expect(drawer().getByText(LIST.copPausedTitle)).toBeInTheDocument()
+        expect(drawer().getByText(LIST.copPausedBody)).toBeInTheDocument()
+        expect(drawer().queryByText(LIST.notOpenTitle)).not.toBeInTheDocument()
     })
 })
 
@@ -1605,6 +1617,10 @@ describe('the hub copy exists in every catalog', () => {
         'notOfferedBody',
         'countriesTitle',
         'badgeNotOffered',
+        'notOpenTitle',
+        'notOpenBody',
+        'copPausedTitle',
+        'copPausedBody',
     ]
 
     it('es-419 and pt-BR carry every key the hub reads', () => {
