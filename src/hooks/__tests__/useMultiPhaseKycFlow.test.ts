@@ -1059,6 +1059,8 @@ describe('useMultiPhaseKycFlow — a self-started check ends on the verified pag
 
         expect(onIdentityVerified).toHaveBeenCalledTimes(1)
         expect(onKycSuccess).not.toHaveBeenCalled()
+        // the page waits on a stale user read after an approval this tab saw (Chip on #4317)
+        expect(window.sessionStorage.getItem('peanut:verified-approved-at')).toBeTruthy()
         expect(result.current.isModalOpen).toBe(false)
         expect(result.current.modalPhase).toBe('verifying')
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.KYC_APPROVED, expect.anything())

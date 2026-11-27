@@ -1,4 +1,5 @@
 import { verifySourceProperty } from '@/features/paperwork-verification/verifySource'
+import { markIdentityApproved } from '@/features/add-money/verified/verifiedRows'
 import { railJurisdictionForBank } from '@/utils/bridge.utils'
 import * as Sentry from '@/utils/sentry-lazy'
 import { criticalFlowTags } from '@/utils/sentry-critical-flow'
@@ -308,6 +309,7 @@ export const useMultiPhaseKycFlow = ({
     const leaveForVerifiedPage = useCallback(() => {
         if (!onIdentityVerified || isActionFlowRef.current) return false
         finishFlow(false)
+        markIdentityApproved()
         onIdentityVerified()
         return true
     }, [onIdentityVerified, finishFlow])

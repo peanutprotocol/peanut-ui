@@ -1,3 +1,4 @@
+/** @jest-environment jsdom */
 import { RESIDENCE_ADDRESS_ACTION_KEY } from '@/constants/kyc.consts'
 import type { GateState } from '@/utils/capability-gate'
 import {
@@ -6,6 +7,8 @@ import {
     bankRowState,
     cryptoWorksNow,
     isSelfStartedVerification,
+    identityJustApproved,
+    markIdentityApproved,
     verifiedPageAccess,
     verifiedRow,
     type BankRowState,
@@ -104,5 +107,24 @@ describe('verifiedPageAccess', () => {
         for (const status of ['not_started', 'action_required', 'failed'] as const)
             expect(verifiedPageAccess(status, false)).toBe('leave')
         expect(verifiedPageAccess('processing', true)).toBe('leave')
+    })
+    it('waits on a stale read right after this tab saw the approval, then gives up', () => {
+        for (const status of ['not_started', 'action_required'] as const) {
+            expect(verifiedPageAccess(status, false, true)).toBe('wait')
+            expect(verifiedPageAccess(status, true, true)).toBe('leave')
+        }
+    })
+})
+
+describe('the approval signal', () => {
+    beforeEach(() => window.sessionStorage.clear())
+    it('holds for two minutes after an approval, then lapses', () => {
+        expect(identityJustApproved()).toBe(false)
+        const now = jest.spyOn(Date, 'now').mockReturnValue(1_000_000)
+        markIdentityApproved()
+        expect(identityJustApproved()).toBe(true)
+        now.mockReturnValue(1_000_000 + 2 * 60_000)
+        expect(identityJustApproved()).toBe(false)
+        now.mockRestore()
     })
 })

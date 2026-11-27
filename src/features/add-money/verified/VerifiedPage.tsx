@@ -33,6 +33,7 @@ import {
     VERIFIED_PAGE_PATH,
     VERIFIED_ROWS_SETTLE_MS,
     type VerifiedPageVariant,
+    identityJustApproved,
     verifiedPageAccess,
     verifiedRow,
 } from './verifiedRows'
@@ -172,7 +173,8 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
 
     const username = user?.user.username
     // a direct visit must not claim a verification or a bank that is not there (Chip on #4317)
-    const access = verifiedPageAccess(user ? user.identityVerification?.status : undefined, settled)
+    const justApproved = useRef(identityJustApproved()).current
+    const access = verifiedPageAccess(user ? user.identityVerification?.status : undefined, settled, justApproved)
     useEffect(() => {
         if (access === 'leave') router.replace('/home')
     }, [access, router])

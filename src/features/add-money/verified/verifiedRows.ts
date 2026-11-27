@@ -79,16 +79,41 @@ export const anyBankReady = (states: readonly BankRowState[]) => states.includes
 export const cryptoWorksNow = (states: readonly BankRowState[]) =>
     !states.some((state) => state === 'ready' || state === 'open' || state === 'loading')
 
+// an approval this tab just saw: the page opens before the user read catches up, which may still say
+// action_required or not_started (Chip on #4317). Session storage, gone with the tab; no personal data.
+const APPROVED_AT_KEY = 'peanut:verified-approved-at'
+const APPROVAL_FRESH_MS = 2 * 60_000
+
+/** called by every route onto the page at the approval it saw */
+export function markIdentityApproved() {
+    try {
+        window.sessionStorage.setItem(APPROVED_AT_KEY, String(Date.now()))
+    } catch {
+        // private mode: the page waits for the user read only while it says processing
+    }
+}
+
+/** whether this tab saw an approval in the last two minutes */
+export function identityJustApproved(): boolean {
+    try {
+        const at = Number(window.sessionStorage.getItem(APPROVED_AT_KEY))
+        return !!at && Date.now() - at < APPROVAL_FRESH_MS
+    } catch {
+        return false
+    }
+}
+
 /**
- * Whether the page may say "verified": only to a verified identity. A check still processing waits, because the
- * page opens on approval before the user read catches up; anyone else, or a check still processing once the wait is
- * over, leaves for Home. `undefined`: the user is not read yet.
+ * Whether the page may say "verified": only to a verified identity. While the user read lags an approval (it says
+ * processing, or this tab just saw the approval) the page waits; once the wait is over, or for anyone else, it
+ * leaves for Home. `undefined`: the user is not read yet.
  */
 export function verifiedPageAccess(
     status: IdentityVerificationStatus | undefined,
-    settled: boolean
+    settled: boolean,
+    justApproved = false
 ): 'show' | 'wait' | 'leave' {
     if (status === 'verified') return 'show'
-    if (status === undefined || (status === 'processing' && !settled)) return 'wait'
+    if (status === undefined || ((status === 'processing' || justApproved) && !settled)) return 'wait'
     return 'leave'
 }

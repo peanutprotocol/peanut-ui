@@ -58,7 +58,11 @@ import { ClosedFeaturesNotice, ProofOfAddressScreen, ReviewScreen } from './comp
 import { StepsScreen } from './components/StepsScreen'
 import { VerifyStartIntro } from '@/components/Setup/redesign/VerifyStart/VerifyStartIntro'
 import { currentVerifySource } from './verifySource'
-import { isSelfStartedVerification, VERIFIED_PAGE_PATH } from '@/features/add-money/verified/verifiedRows'
+import {
+    isSelfStartedVerification,
+    markIdentityApproved,
+    VERIFIED_PAGE_PATH,
+} from '@/features/add-money/verified/verifiedRows'
 import { BankRefusalNotice } from './components/BankRefusalNotice'
 import { supportRefusal } from '@/features/kyc-features/report'
 import {
@@ -1219,6 +1223,7 @@ function PaperworkVerificationSteps({
                 }
                 if (fresh) setPlan(fresh)
                 if (fresh?.proofOfAddress !== 'suggested' && endsOnVerifiedPage()) {
+                    markIdentityApproved()
                     router.replace(VERIFIED_PAGE_PATH)
                     return
                 }
@@ -1447,8 +1452,10 @@ function PaperworkVerificationSteps({
                             ? ANALYTICS_EVENTS.KYC_PV_POA_SKIPPED
                             : ANALYTICS_EVENTS.KYC_PV_POA_UPLOADED
                     )
-                    if (endsOnVerifiedPage()) router.replace(VERIFIED_PAGE_PATH)
-                    else void stepper.goTo('verified')
+                    if (endsOnVerifiedPage()) {
+                        markIdentityApproved()
+                        router.replace(VERIFIED_PAGE_PATH)
+                    } else void stepper.goTo('verified')
                 }}
                 onUploadStarted={() => track(ANALYTICS_EVENTS.KYC_PV_POA_UPLOAD_STARTED)}
             />
