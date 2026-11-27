@@ -494,12 +494,12 @@
         },
         "needHigherLimits": "¿Necesitás límites más altos? Contactá soporte.",
         "warningCard": {
-            "addUpTo": "Podés agregar hasta {amount}",
-            "addUpToPerTransaction": "Podés agregar hasta {amount} por transacción",
-            "withdrawUpTo": "Podés retirar hasta {amount}",
-            "withdrawUpToPerTransaction": "Podés retirar hasta {amount} por transacción",
-            "payUpTo": "Podés pagar hasta {amount}",
-            "payUpToPerTransaction": "Podés pagar hasta {amount} por transacción"
+            "addUpTo": "Podés agregar hasta {amount}.",
+            "addUpToPerTransaction": "Podés agregar hasta {amount} por transacción.",
+            "withdrawUpTo": "Podés retirar hasta {amount}.",
+            "withdrawUpToPerTransaction": "Podés retirar hasta {amount} por transacción.",
+            "payUpTo": "Podés pagar hasta {amount}.",
+            "payUpToPerTransaction": "Podés pagar hasta {amount} por transacción."
         }
     },
     "exchangeRate": {

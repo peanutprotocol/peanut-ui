@@ -880,12 +880,12 @@
         "warningCard": {
             "blockingTitle": "Esse valor ultrapassa o limite",
             "attentionTitle": "Perto do limite",
-            "addUpTo": "Você pode adicionar até {amount}",
-            "addUpToPerTransaction": "Você pode adicionar até {amount} por transação",
-            "withdrawUpTo": "Você pode sacar até {amount}",
-            "withdrawUpToPerTransaction": "Você pode sacar até {amount} por transação",
-            "payUpTo": "Você pode pagar até {amount}",
-            "payUpToPerTransaction": "Você pode pagar até {amount} por transação",
+            "addUpTo": "Você pode adicionar até {amount}.",
+            "addUpToPerTransaction": "Você pode adicionar até {amount} por transação.",
+            "withdrawUpTo": "Você pode sacar até {amount}.",
+            "withdrawUpToPerTransaction": "Você pode sacar até {amount} por transação.",
+            "payUpTo": "Você pode pagar até {amount}.",
+            "payUpToPerTransaction": "Você pode pagar até {amount} por transação.",
             "resetsInDays": "Seu limite será redefinido em {days, plural, one {# dia} other {# dias}}.",
             "checkLimits": "Ver limites"
         }

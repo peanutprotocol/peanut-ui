@@ -880,12 +880,12 @@
         "warningCard": {
             "blockingTitle": "This amount exceeds the limit",
             "attentionTitle": "Close to the limit",
-            "addUpTo": "You can add up to {amount}",
-            "addUpToPerTransaction": "You can add up to {amount} per transaction",
-            "withdrawUpTo": "You can withdraw up to {amount}",
-            "withdrawUpToPerTransaction": "You can withdraw up to {amount} per transaction",
-            "payUpTo": "You can pay up to {amount}",
-            "payUpToPerTransaction": "You can pay up to {amount} per transaction",
+            "addUpTo": "You can add up to {amount}.",
+            "addUpToPerTransaction": "You can add up to {amount} per transaction.",
+            "withdrawUpTo": "You can withdraw up to {amount}.",
+            "withdrawUpToPerTransaction": "You can withdraw up to {amount} per transaction.",
+            "payUpTo": "You can pay up to {amount}.",
+            "payUpToPerTransaction": "You can pay up to {amount} per transaction.",
             "resetsInDays": "Limit resets in {days, plural, one {# day} other {# days}}.",
             "checkLimits": "Check limits"
         }
