@@ -1009,17 +1009,20 @@ const HUGE_HISTORY_ENTRY = {
 // The capture clock is frozen at 2026-09-01 12:00 UTC. This order's
 // deadline is still ahead of that clock; the expired variant reports the
 // terminal status from the status endpoint instead of inferring it from time.
+// an open order lives 30 minutes from creation: a fixed past time would draw the expired card,
+// since the details screen counts down to expireAt
+const ARS_DEPOSIT_EXPIRES_AT = new Date(Date.now() + 30 * 60_000).toISOString()
 const ARS_DEPOSIT = {
     id: 'fixture-ars-deposit',
     stages: {
-        '1': { thresholdAmount: '10000', asset: 'ARS', expireAt: '2026-09-01T12:30:00.000Z' },
+        '1': { thresholdAmount: '10000', asset: 'ARS', expireAt: ARS_DEPOSIT_EXPIRES_AT },
         '3': { amount: '10' },
     },
     details: {
         depositAddress: '0000000000000000000000',
         depositAlias: 'fixture.deposit.test',
         price: '1000',
-        priceExpireAt: '2026-09-01T12:30:00.000Z',
+        priceExpireAt: ARS_DEPOSIT_EXPIRES_AT,
         withdrawCostInAsset: '0',
     },
 }
@@ -2747,7 +2750,7 @@ export const FIXTURES: Record<string, Fixture> = {
                 capture: { actions: [{ clickSelector: '[data-testid="deposit-amount-continue"]' }] },
                 route: '/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS',
                 geoCountry: 'AR',
-                about: `ARS deposit ${status}: continue to ${status === 'pending' ? 'the transfer deadline' : 'the expired order and start-over button'}.`,
+                about: `ARS deposit ${status}: continue to ${status === 'pending' ? 'the details with their countdown' : 'the expired order and start-over button'}.`,
                 responses: {
                     'GET /users/me': {
                         residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
