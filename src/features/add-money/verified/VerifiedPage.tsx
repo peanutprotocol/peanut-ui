@@ -69,13 +69,10 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
 
     const report = capabilities.features
     const userId = user?.user.userId
-    const readyAccounts = readyAccountIds(report)
     // an account seen ready here, or from the bank_ready push, never opens the reminder again
     useEffect(() => {
         if (userId) markBankReadyShown(userId, readyAccountIds(report))
     }, [userId, report])
-    // "Your USD and EUR accounts are open": the accounts that take money now, by currency
-    const readyCurrencies = readyAccounts.map((id) => id.split('.')[1])
     const pixRoute = findPixRoute(capabilities.routes, 'deposit')
     const bank: Record<BankMethod, ReturnType<typeof verifiedRow>> = {
         ars: verifiedRow(report && accountEntry(report, 'local', 'ARS'), capabilities, settled),
@@ -92,6 +89,15 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
     }
     const methods = readiness.pickerMethods.filter(isAddMoneyRowMethod)
     const shownBank = methods.filter((method): method is BankMethod => method !== 'crypto')
+    // "Your USD and EUR accounts are open": the open accounts this page has a row for, by currency
+    const rowAccounts = [
+        'bank.',
+        ...(shownBank.includes('ars') ? ['local.ARS'] : []),
+        ...(shownBank.includes('pix') ? ['local.BRL'] : []),
+    ]
+    const readyCurrencies = readyAccountIds(report)
+        .filter((id) => rowAccounts.some((row) => id.startsWith(row)))
+        .map((id) => id.split('.')[1])
     const states = shownBank.map((method) => bank[method].state)
     const stateProps = Object.fromEntries(shownBank.map((method) => [method, bank[method].state]))
     const resolved = !readiness.isLoading && !states.includes('loading')
