@@ -541,7 +541,7 @@ describe('crypto withdraw confirm — network fee', () => {
 
             await renderIn('pt-BR')
 
-            expect(screen.getByTestId('below-minimum').textContent).toBe('O saque mínimo é $5.')
+            expect(screen.getByTestId('below-minimum').textContent).toBe('O envio mínimo para esta rede é $5.')
         })
 
         it('shows the fee that leaves nothing to deliver in es-419', async () => {
@@ -1908,7 +1908,7 @@ describe('crypto withdraw — the network minimum is checked live', () => {
         mockUrlAmount = '5'
         openAmountStep()
 
-        expect(screen.getByRole('alert')).toHaveTextContent('Minimum withdrawal is $10.10.')
+        expect(screen.getByRole('alert')).toHaveTextContent('Minimum withdrawal to this network is $10.10.')
         expect(screen.getByTestId('review-cta')).toHaveAttribute('data-continue-disabled', 'true')
     })
 
@@ -1918,7 +1918,9 @@ describe('crypto withdraw — the network minimum is checked live', () => {
         openAmountStep()
         fireEvent.click(screen.getByTestId('review-cta'))
 
-        await waitFor(() => expect(mockSetPaymentError).toHaveBeenCalledWith('Minimum withdrawal is $10.10.'))
+        await waitFor(() =>
+            expect(mockSetPaymentError).toHaveBeenCalledWith('Minimum withdrawal to this network is $10.10.')
+        )
         expect(chargesApi.create).not.toHaveBeenCalled()
     })
 
@@ -1958,7 +1960,7 @@ describe('crypto withdraw — the network minimum is checked live', () => {
             mockUrlAmount = '3'
             renderPayScreen('1', '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48')
 
-            expect(screen.getByRole('alert')).toHaveTextContent('Minimum withdrawal is $5.05.')
+            expect(screen.getByRole('alert')).toHaveTextContent('Minimum withdrawal to this network is $5.05.')
             expect(screen.getByTestId('pay-cta')).toHaveAttribute('data-continue-disabled', 'true')
         })
 

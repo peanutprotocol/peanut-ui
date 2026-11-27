@@ -2604,6 +2604,7 @@
             "invalidAmount": "Digite um valor válido.",
             "minimumSend": "O valor mínimo de envio é {amount}.",
             "minimumWithdrawal": "O saque mínimo é {amount}.",
+            "minimumCryptoWithdrawal": "O envio mínimo para esta rede é {amount}.",
             "countryUnresolved": "Não conseguimos identificar o país desta conta. Fale com o suporte.",
             "setupFailed": "Algo deu errado ao configurar seu saque. Fale com o suporte.",
             "amountMissing": "Falta o valor do saque.",

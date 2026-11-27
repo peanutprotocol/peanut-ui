@@ -117,10 +117,10 @@ export default function WithdrawCryptoPage() {
         [amountToWithdraw, spendableBalance, isMaxWithdrawal]
     )
 
-    // same copy as the bank withdraw amount step (useWithdrawRootFlow)
+    // own key, not the bank one: pt-BR "saque" means a Pix withdrawal (glossary.pt-br.md)
     const belowMinimumText = useCallback(
         (minUsd: number) =>
-            t(isFromSendFlow ? 'errors.minimumSend' : 'errors.minimumWithdrawal', {
+            t(isFromSendFlow ? 'errors.minimumSend' : 'errors.minimumCryptoWithdrawal', {
                 amount: formatBankAmount(minUsd, 'USD'),
             }),
         [t, isFromSendFlow]

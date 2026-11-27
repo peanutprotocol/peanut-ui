@@ -2604,6 +2604,7 @@
             "invalidAmount": "Ingresa un monto válido.",
             "minimumSend": "El monto mínimo de envío es {amount}.",
             "minimumWithdrawal": "El retiro mínimo es {amount}.",
+            "minimumCryptoWithdrawal": "El retiro mínimo a esta red es {amount}.",
             "countryUnresolved": "No pudimos determinar el país de esta cuenta. Contacta a soporte.",
             "setupFailed": "Algo salió mal al configurar tu retiro. Contacta a soporte.",
             "amountMissing": "Falta el monto del retiro.",
