@@ -2420,6 +2420,7 @@
             "title": "Your ID is verified",
             "titleBankReady": "Your bank is ready",
             "sub": "Add money to start paying with Peanut.",
+            "subBankReady": "{count, plural, one {Your {accounts} account is open.} other {Your {accounts} accounts are open.}} Add money to start.",
             "underReview": "Under review by {provider}. We’ll notify you.",
             "notApproved": "Not approved by {provider}",
             "actionNeeded": "Action needed",

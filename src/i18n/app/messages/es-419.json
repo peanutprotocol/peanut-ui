@@ -2420,6 +2420,7 @@
             "title": "Tu identidad está verificada",
             "titleBankReady": "Tu banco está listo",
             "sub": "Agrega dinero para empezar a pagar con Peanut.",
+            "subBankReady": "{count, plural, one {Tu cuenta en {accounts} está abierta.} other {Tus cuentas en {accounts} están abiertas.}} Agrega dinero para empezar.",
             "underReview": "En revisión por {provider}. Te avisaremos.",
             "notApproved": "No aprobado por {provider}",
             "actionNeeded": "Acción requerida",

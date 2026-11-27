@@ -2802,13 +2802,13 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Verified page once the accounts work: every row opens, the name chip has its green check.',
         responses: { 'GET /users/me': verifiedUser('AR', { ARS: { state: 'on' } }, { state: 'on' }) },
     },
-    // slice 5: the app opens on Home, an account opened since, no money added yet: Home hands over to the page
+    // slice 5: the page Home (and the bank_ready push) opens once an account opened later. Home only hands over
+    // when the device already holds a record (the first load only records), so its unit tests cover that part
     'verified-bank-ready': {
-        route: '/home',
-        landsOn: '/verified',
+        route: '/verified?variant=bank-ready',
         geoCountry: 'AR',
         balance: '0',
-        about: 'App opens on Home after an account opened, no money added yet: "Your bank is ready", once per account.',
+        about: 'Your bank is ready: the accounts that just opened by name, every row opens, the name chip has its check.',
         responses: {
             'GET /users/me': {
                 ...verifiedUser('AR', { ARS: { state: 'on' } }, { state: 'on' }),

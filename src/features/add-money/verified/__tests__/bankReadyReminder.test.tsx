@@ -52,6 +52,9 @@ describe('bankReadyReminder', () => {
     it('never shows in a task', () => {
         expect(bankReadyReminder({ ...base, ready: ['bank.USD'], inTask: true })).toEqual([])
     })
+    it('never shows on the first load, when nothing is recorded yet', () => {
+        expect(bankReadyReminder({ ...base, ready: ['bank.USD'], shown: undefined })).toEqual([])
+    })
 })
 
 describe('useBankReadyReminder', () => {
@@ -66,6 +69,31 @@ describe('useBankReadyReminder', () => {
         mockBusy = false
         mockInAppHistory = false
         mockReport = report({ USD: on })
+        // a person who already has a record on this device (a later load, or the verified page seen)
+        markBankReadyShown('u1', [])
+    })
+
+    it('first load since release: accounts ready already are recorded, not shown; a later one shows once', () => {
+        localStorage.clear()
+        renderHook(() => load()(false))
+        expect(mockReplace).not.toHaveBeenCalled()
+        expect(shownBankReady('u1')).toEqual(['bank.USD'])
+
+        mockReport = report({ USD: on }, { ARS: on })
+        renderHook(() => load()(false))
+        expect(mockReplace).toHaveBeenCalledTimes(1)
+        expect(shownBankReady('u1')).toEqual(['bank.USD', 'local.ARS'])
+    })
+
+    it('first load with nothing ready records an empty list, so the first account to open shows', () => {
+        localStorage.clear()
+        mockReport = report({ USD: opening })
+        renderHook(() => load()(false))
+        expect(shownBankReady('u1')).toEqual([])
+
+        mockReport = report({ USD: on })
+        renderHook(() => load()(false))
+        expect(mockReplace).toHaveBeenCalledWith('/verified?variant=bank-ready')
     })
 
     it('opens the page once for the first ready account, then never again for it', () => {

@@ -69,10 +69,13 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
 
     const report = capabilities.features
     const userId = user?.user.userId
+    const readyAccounts = readyAccountIds(report)
     // an account seen ready here, or from the bank_ready push, never opens the reminder again
     useEffect(() => {
         if (userId) markBankReadyShown(userId, readyAccountIds(report))
     }, [userId, report])
+    // "Your USD and EUR accounts are open": the accounts that take money now, by currency
+    const readyCurrencies = readyAccounts.map((id) => id.split('.')[1])
     const pixRoute = findPixRoute(capabilities.routes, 'deposit')
     const bank: Record<BankMethod, ReturnType<typeof verifiedRow>> = {
         ars: verifiedRow(report && accountEntry(report, 'local', 'ARS'), capabilities, settled),
@@ -195,7 +198,14 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
                                 <NameChip username={username} verified={anyBankReady(states)} className="mt-3" />
                             )}
                             <p className="mt-3 text-body-m text-foreground-primary signup-sm:mt-2 signup-sm:text-body-s">
-                                {t('sub')}
+                                {variant === 'bank-ready' && readyCurrencies.length
+                                    ? t('subBankReady', {
+                                          count: readyCurrencies.length,
+                                          accounts: new Intl.ListFormat(locale, { type: 'conjunction' }).format(
+                                              readyCurrencies
+                                          ),
+                                      })
+                                    : t('sub')}
                             </p>
                         </div>
                     }

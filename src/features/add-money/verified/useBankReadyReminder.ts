@@ -41,10 +41,18 @@ export function useBankReadyReminder(addedMoney: boolean | undefined) {
 
     const report = capabilities.features
     useEffect(() => {
-        if (!userId || addedMoney === undefined || !report) return
+        if (!userId || !report) return
+        const ready = readyAccountIds(report)
+        const shown = shownBankReady(userId)
+        // first load since this shipped: what is ready now was ready before, record it and announce nothing
+        if (!shown) {
+            markBankReadyShown(userId, ready)
+            return
+        }
+        if (addedMoney === undefined) return
         const accounts = bankReadyReminder({
-            ready: readyAccountIds(report),
-            shown: shownBankReady(userId),
+            ready,
+            shown,
             addedMoney,
             inTask: chance !== 'open' || busy,
         })
