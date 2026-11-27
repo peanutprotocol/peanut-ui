@@ -2541,6 +2541,227 @@ const SETUP_REDESIGN_FIXTURES: Record<string, Fixture> = {
     }),
 }
 
+/**
+ * TASK-25169: the card $10 step's add-money drawer, one state per fixture.
+ *
+ * Every state opens on the funding step with $3.20 spendable, so the card is
+ * $6.80 short. `balance: null` on the card overview keeps Rain collateral out of
+ * that sum. Each user brings its own capability block, so the demo user's
+ * Brazilian Pix routes never add a Pix row.
+ */
+const CARD_ADD_MONEY_ROUTE = '/card?card_step=funding'
+const CARD_ADD_MONEY_BALANCE = '3.20'
+const RHINO_STATUS = `GET /rhino/status/${DEMO_ADDRESS}`
+const verifiedResidence = (country: string) => ({
+    verified: { country, status: 'VERIFIED', updatedAt: null },
+    declared: null,
+    secondaryDeclaredCountry: null,
+})
+const US_ACH_RAILS = BRIDGE_BANK_RAILS.filter((rail) => rail.id === 'bridge.ach_us').map((rail) => ({
+    ...rail,
+    status: 'enabled',
+}))
+const BRIDGE_CO_RAIL = BRIDGE_CO_CAPABILITIES.rails[0]
+const UK_BANK_REFUSAL = {
+    code: 'uk_resident_blocked',
+    userMessage: 'Bank accounts are not available for UK residents yet.',
+}
+
+const cardAddMoney = (
+    about: string,
+    user: Record<string, unknown>,
+    depositAccounts: Record<string, unknown>,
+    extra: Partial<Fixture> = {}
+): Fixture => ({
+    route: CARD_ADD_MONEY_ROUTE,
+    about,
+    balance: CARD_ADD_MONEY_BALANCE,
+    ...extra,
+    responses: {
+        'GET /card': { isEligible: true, geoProhibited: false },
+        'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+        'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+        'GET /users/me': {
+            identityVerification: { status: 'verified' },
+            depositAccounts: { enabled: true },
+            ...user,
+        },
+        'GET /users/deposit-accounts': { depositAccounts: [], claimable: [], unavailable: [], ...depositAccounts },
+        // demo mode answers `pending` (a deposit on its way); the drawer reads the status at open, so
+        // nothing sent yet is `not_started` here
+        [RHINO_STATUS]: { status: 'not_started' },
+        ...extra.responses,
+    },
+})
+
+/** A verified US resident with the ACH rail on and no account held yet. */
+const CARD_US_USER = {
+    residence: verifiedResidence('US'),
+    capabilities: { rails: US_ACH_RAILS, nextActions: [], restrictions: [] },
+}
+
+/** A resident of Brazil whose Pix route is Avenia's, and the Pix page's own answers (quote and the rest). */
+const { 'GET /users/me': AVENIA_PIX_USER, ...AVENIA_PIX_PAGE_RESPONSES } = aveniaResponses('enabled')
+
+/** A verified UK resident: every bank rail refused for the residence. */
+const CARD_GB_REFUSED_USER = {
+    residence: verifiedResidence('GB'),
+    capabilities: {
+        rails: [...BRIDGE_BANK_RAILS, BRIDGE_CO_RAIL].map((rail) => ({
+            ...rail,
+            status: 'blocked',
+            reason: UK_BANK_REFUSAL,
+            resolved: { status: 'blocked', blocking: { ...UK_BANK_REFUSAL, selfHealable: false } },
+        })),
+        nextActions: [],
+        restrictions: [
+            {
+                ...UK_BANK_REFUSAL,
+                affectedRailIds: [...BRIDGE_BANK_RAILS, BRIDGE_CO_RAIL].map((rail) => rail.id),
+            },
+        ],
+    },
+}
+
+const CARD_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
+    'card-add-money-crypto': cardAddMoney(
+        'Card $10 step, add money in place: crypto, for the EVM, Solana and Tron address views ($3.20 spendable).',
+        CARD_US_USER,
+        {}
+    ),
+    'card-add-money-crypto-min': cardAddMoney(
+        'Card $10 step, crypto: the $6.80 gap is under the $10 network minimum, so the ask is raised to $10.',
+        CARD_US_USER,
+        {},
+        { responses: { 'POST /rhino/deposit': { minDepositLimitUsd: 10 } } }
+    ),
+    'card-add-money-crypto-gap-above-min': cardAddMoney(
+        'Card $10 step, crypto: $0 spendable and a $5 network minimum, so the ask is the full $10 gap.',
+        CARD_US_USER,
+        {},
+        { balance: '0', responses: { 'POST /rhino/deposit': { minDepositLimitUsd: 5 } } }
+    ),
+    'card-add-money-crypto-short': cardAddMoney(
+        'Card $10 step, crypto: a $4 deposit arrives below the $6.80 gap ($1 network minimum, so Rhino credits it); the balance reads $7.20 after it (wait ~15 s).',
+        CARD_US_USER,
+        {},
+        {
+            balanceAfterDeposit: '7.20',
+            responses: {
+                'POST /rhino/deposit': { minDepositLimitUsd: 1 },
+                [RHINO_STATUS]: { status: 'completed', amount: 4 },
+            },
+        }
+    ),
+    'card-add-money-crypto-still-landing': cardAddMoney(
+        'Card $10 step, crypto: Rhino already reports a $6.80 deposit completed at open, and the balance stays at $3.20, so after about a minute the drawer says it is still landing, with Send more (primary) and Contact support (secondary).',
+        CARD_US_USER,
+        {},
+        { responses: { [RHINO_STATUS]: { status: 'completed', amount: 6.8 } } }
+    ),
+    'card-add-money-funded': cardAddMoney(
+        'Card $10 step, crypto: a $10 deposit arrives and the balance reads $13.20, so the step is funded (wait ~15 s).',
+        CARD_US_USER,
+        {},
+        {
+            balanceAfterDeposit: '13.20',
+            responses: { [RHINO_STATUS]: { status: 'completed', amount: 10 } },
+        }
+    ),
+    'card-add-money-bank-one': cardAddMoney(
+        'Card $10 step, bank: one held USD account (ACH, active, complete details) shows in the drawer.',
+        CARD_US_USER,
+        { depositAccounts: [DEPOSIT_ACCOUNT_USD] }
+    ),
+    'card-add-money-bank-two': cardAddMoney(
+        'Card $10 step, bank: held EUR and USD accounts, a list of two before the details.',
+        {
+            ...CARD_US_USER,
+            capabilities: {
+                ...CARD_US_USER.capabilities,
+                rails: VA_READY_CAPABILITIES.rails.filter((rail) => ['USD', 'EUR'].includes(rail.currency)),
+            },
+        },
+        { depositAccounts: [DEPOSIT_ACCOUNT_USD, DEPOSIT_ACCOUNT_EUR] }
+    ),
+    'card-add-money-bank-ars': cardAddMoney(
+        'Card $10 step, bank: a resident of Argentina whose peso top-up is ready (ARS row).',
+        ARS_TOP_UP_RESIDENT,
+        {}
+    ),
+    // TASK-25444: two bank ways, so Bank opens the drawer's list, and ARS or Pix leads it
+    'card-add-money-bank-ars-two': cardAddMoney(
+        'Card $10 step, bank: a resident of Argentina with the peso top-up ready and a held USD account; the drawer lists ARS first.',
+        {
+            ...ARS_TOP_UP_RESIDENT,
+            capabilities: {
+                ...MANTECA_AR_CAPABILITIES,
+                rails: [...MANTECA_AR_CAPABILITIES.rails, ...US_ACH_RAILS],
+            },
+        },
+        { depositAccounts: [DEPOSIT_ACCOUNT_USD] }
+    ),
+    'card-add-money-bank-pix-two': cardAddMoney(
+        'Card $10 step, bank: a resident of Brazil on Avenia with a held USD account; the drawer lists Pix first.',
+        {
+            ...AVENIA_PIX_USER,
+            capabilities: {
+                ...AVENIA_PIX_USER.capabilities,
+                rails: [...AVENIA_PIX_USER.capabilities.rails, ...US_ACH_RAILS],
+            },
+        },
+        { depositAccounts: [DEPOSIT_ACCOUNT_USD] },
+        { responses: AVENIA_PIX_PAGE_RESPONSES }
+    ),
+    // a US resident: the peso rail being set up keeps the ARS row (its page takes the user through), as on
+    // the Add picker (TASK-25444), so the status shows for a rail with no row of its own
+    'card-add-money-bank-setting-up': cardAddMoney(
+        'Card $10 step, bank: a resident of the US whose ACH rail is still being set up.',
+        {
+            ...CARD_US_USER,
+            capabilities: {
+                ...CARD_US_USER.capabilities,
+                rails: CARD_US_USER.capabilities.rails.map((rail) => ({
+                    ...rail,
+                    status: 'pending',
+                    resolved: { status: 'pending' },
+                })),
+            },
+        },
+        {}
+    ),
+    'card-add-money-not-verified': cardAddMoney(
+        'Card $10 step, bank: identity not verified, every bank rail waits on it (Verify identity, or use crypto). Verify identity opens the US identity check on its first question.',
+        {
+            identityVerification: { status: 'not_started' },
+            residence: { verified: null, declared: { country: 'US', status: 'UNVERIFIED', updatedAt: null } },
+            capabilities: BLOCKED_BANK_CAPABILITIES,
+        },
+        {},
+        // the identity check's own answers, so /verify shows its questions instead of sending the user Home
+        { responses: PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-us'].responses }
+    ),
+    'card-add-money-under-review': cardAddMoney(
+        'Card $10 step, bank: verified, and the payment partner is reviewing every bank account (under review).',
+        {
+            residence: verifiedResidence('US'),
+            capabilities: BRIDGE_REVIEW_RESPONSE['GET /users/me'].capabilities,
+        },
+        {}
+    ),
+    'card-add-money-bank-not-offered': cardAddMoney(
+        'Card $10 step: a UK resident, every bank account refused, so only the crypto row shows.',
+        CARD_GB_REFUSED_USER,
+        {}
+    ),
+    'card-add-money-bank-waiting': cardAddMoney(
+        'Card $10 step: the same UK resident, but the residence rules never load, so the Bank row waits disabled with no badge (refusal or a step left cannot be told apart).',
+        CARD_GB_REFUSED_USER,
+        {},
+        { fails: ['GET /config/residence-restrictions'] }
+    ),
+}
+
 export const FIXTURES: Record<string, Fixture> = {
     ...SETUP_REDESIGN_FIXTURES,
     'setup-signup-reserved': {
@@ -4244,13 +4465,15 @@ export const FIXTURES: Record<string, Fixture> = {
             'POST /rain/cards': { status: 'terms-required', isUsResident: false },
         },
     },
-    // TASK-25444: the funding step shows the Add picker's rows, so ARS and Pix lead where they lead there.
+    ...CARD_ADD_MONEY_FIXTURES,
+    // TASK-25444: ARS and Pix lead the funding step's bank rows where they lead the Add picker; the step's
+    // Bank row opens them (TASK-25169)
     'card-funding-ars': {
-        capture: { expectSelector: '[data-testid="add-money-method-ars"]' },
+        capture: { expectSelector: '[data-testid="card-add-money-bank"]' },
         route: '/card?card_step=funding',
         balance: '0',
         geoCountry: 'AR',
-        about: 'Card onboarding: funding for a resident of Argentina. ARS leads, as on the Add picker.',
+        about: 'Card onboarding: funding for a resident of Argentina. Bank opens ARS first, as on the Add picker.',
         responses: {
             'GET /users/me': { ...ARS_TOP_UP_RESIDENT, user: { fullName: 'Lucía Gómez' } },
             'GET /card': { isEligible: true, geoProhibited: false },
@@ -4258,10 +4481,10 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'card-funding-pix': {
-        capture: { expectSelector: '[data-testid="add-money-method-pix"]' },
+        capture: { expectSelector: '[data-testid="card-add-money-bank"]' },
         route: '/card?card_step=funding',
         balance: '0',
-        about: 'Card onboarding: funding for a resident of Brazil on Avenia. Pix leads, as on the Add picker.',
+        about: 'Card onboarding: funding for a resident of Brazil on Avenia. Bank opens Pix first, as on the Add picker.',
         responses: {
             ...aveniaResponses('enabled'),
             'GET /card': { isEligible: true, geoProhibited: false },

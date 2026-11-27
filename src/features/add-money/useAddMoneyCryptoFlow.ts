@@ -1,20 +1,19 @@
 'use client'
 
 import type { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
 import { NETWORK_LABELS, CHAIN_LOGOS, TOKEN_LOGOS, type ChainName, type TokenName } from '@/constants/rhino.consts'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
 import { offerPushPrompt } from '@/hooks/useNotifications'
 import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
+import { captureCryptoDepositCompleted } from '@/features/add-money/captureCryptoDepositCompleted'
 import { useRhinoDepositAddress } from '@/features/add-money/useRhinoDepositAddress'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import type { DepositAddressStatusResponse, RhinoChainType } from '@/services/services.types'
 import { getExplorerUrl } from '@/utils/token.utils'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { useQueryState, parseAsStringEnum, parseAsString } from 'nuqs'
-import posthog from 'posthog-js'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 /** An EVM transaction hash, the only shape the history route keys a receipt on. */
@@ -77,16 +76,17 @@ export function useAddMoneyCryptoFlow() {
 
     const handleSuccess = useCallback(
         (amount: number, statusData?: DepositAddressStatusResponse) => {
-            posthog.capture(ANALYTICS_EVENTS.DEPOSIT_COMPLETED, {
+            const address = depositAddressData?.depositAddress
+            captureCryptoDepositCompleted(
                 amount,
-                chain_type: network,
-                method_type: 'crypto',
-                acquisition_source: user?.invitedBy ? 'referred' : 'organic',
-            })
+                network,
+                user?.invitedBy,
+                address ? { address, txHash: statusData?.txHash } : undefined
+            )
             setDepositResult(statusData ?? { status: 'completed', amount })
             setShowSuccessView(true)
         },
-        [network, user?.invitedBy]
+        [network, user?.invitedBy, depositAddressData?.depositAddress]
     )
 
     // build minimal transaction details for the receipt drawer

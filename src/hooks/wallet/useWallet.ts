@@ -346,6 +346,8 @@ export const useWallet = () => {
         balance,
         spendableBalance,
         spendableBalanceDecimal,
+        /** the LIVE spendable total that `hasSufficientSpendableBalance` gates on; undefined until both terms read */
+        availableSpendableBalance,
         formattedBalance,
         formattedSpendableBalance,
         hasSufficientSpendableBalance,

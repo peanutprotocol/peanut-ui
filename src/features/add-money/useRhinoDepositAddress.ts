@@ -7,8 +7,8 @@ import type { RhinoChainType } from '@/services/services.types'
 import { useQuery } from '@tanstack/react-query'
 
 /**
- * The user's own Rhino deposit address for one network, one query per network and user. Extracted
- * from the add-money crypto page so the card's add-money drawer (ui#4279) reads the same query.
+ * The user's own Rhino deposit address for one network. The add-money crypto page and the card's
+ * add-money drawer read the same query, so the address is created once per network and user.
  */
 export function useRhinoDepositAddress(network: RhinoChainType, enabled: boolean) {
     const { user } = useAuth()

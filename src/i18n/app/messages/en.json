@@ -2234,13 +2234,38 @@
             "addFunds": "Add money",
             "issuedTitle": "Meet your Peanut card.",
             "issuedBody": "It’s ready for online and contactless payments.",
-            "viewCard": "View card"
+            "viewCard": "View card",
+            "fundingBodyGap": "Your card needs {minimum} in your balance. You have {balance}, so add {gap}. The money stays yours."
         },
         "addressStep": {
             "required": "To continue your card application, add your home address.",
             "rejected": "Check your home address and send it again to continue your card application.",
             "in_review": "We are checking your address. You can continue your card application once it is accepted.",
             "unavailable": "We could not load the address step. Try again."
+        },
+        "addMoney": {
+            "pickNetwork": "Pick the network you send from. From an exchange, pick the network you withdraw on there.",
+            "networkOnlyTitle": "Send on {network} only",
+            "sendAsk": "Send {amount}",
+            "raisedToMinimum": "The minimum per transfer on {network} is {minimum}. The extra {extra} is added to your balance.",
+            "waiting": "Waiting for the deposit…",
+            "doneTitle": "Money added",
+            "stillLandingBody": "We received your deposit. It can take a few minutes to reach your balance.",
+            "sendMore": "Send more",
+            "stillLandingSupportMessage": "Hi! I sent a crypto deposit on {network} for my card, and it hasn't reached my balance yet. Can you check it?",
+            "shortReceived": "{received} received",
+            "shortStillNeeded": "{remaining} is still needed.",
+            "sendAbout": "Send about {amount}. The exact amount depends on the rate.",
+            "sendInCurrency": "Send {currency} from your bank. It arrives as dollars.",
+            "notVerifiedTitle": "No bank account ready yet",
+            "notVerifiedBody": "Verify your identity once to get bank details.",
+            "finishSetupTitle": "Bank transfer needs one more step",
+            "finishSetupBody": "Finish it on the bank page.",
+            "useCryptoInstead": "Add money with crypto instead",
+            "bankSentPending": "Your {amount} transfer is on the way. We'll let you know when it lands.",
+            "bankSentPendingNoAmount": "Your transfer is on the way. We'll let you know when it lands.",
+            "statusCheckFailedTitle": "We couldn't check this address",
+            "statusCheckFailedBody": "A deposit may be on its way. Try again before you send."
         }
     },
     "addMoney": {
@@ -2266,6 +2291,7 @@
             "bankTransfer": "Bank transfer",
             "bankDetails": "From your bank account",
             "kycRequired": "Verification required",
+            "bankTransferDescription": "From a bank account",
             "mercadoPagoOrBank": "Mercado Pago or Bank",
             "mercadoPago": "Mercado Pago",
             "pix": "Pix",
@@ -5190,7 +5216,7 @@
             "badgeReady": "Ready",
             "badgeActive": "Active",
             "badgeSetUp": "Set up",
-            "badgeVerifyId": "Verify",
+            "badgeVerifyId": "Verify ID",
             "badgeNotOffered": "Not available",
             "badgeRevoked": "Revoked",
             "accountCounter": "{used} of {cap} used",

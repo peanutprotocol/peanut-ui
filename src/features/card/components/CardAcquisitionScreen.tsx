@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { useReducedMotion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
@@ -16,16 +16,14 @@ import type { ShakeIntensity } from '@/hooks/useHoldToClaim'
 import { getShakeClass } from '@/utils/perk.utils'
 import { readStoredValue, writeStoredValue } from '@/utils/safe-storage'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
-import { AddMoneyMethodList } from '@/features/add-money/AddMoneyMethodList'
 import {
     captureCardGateAddFundsTapped,
     captureCardGateStepViewed,
     type CardGateStep,
 } from '@/features/card/card-gate-analytics'
+import { CardFundingStep } from './CardFundingStep'
 
 const STEPS = ['eligibility', 'looking-up', 'available', 'funding', 'entry'] as const
-/** where a deposit opened from the funding step goes back to */
-const CARD_FUNDING_PATH = '/card?card_step=funding'
 
 export function CardMilestoneScreen({
     issued = false,
@@ -94,6 +92,7 @@ export function CardAcquisitionScreen({
     fundingRequired,
     needsFundingBeforeApply = false,
     balanceKnown = true,
+    spendableUsd,
     onApply,
     onPrev,
     applyError,
@@ -105,13 +104,13 @@ export function CardAcquisitionScreen({
     needsFundingBeforeApply?: boolean
     /** False while the first balance read is in flight: `funded` is not yet true or false. */
     balanceKnown?: boolean
+    /** The spendable balance in dollars, undefined while unknown: the funding step names the gap from it. */
+    spendableUsd?: number
     onApply: () => void | Promise<void>
     onPrev: () => void
     applyError?: string | null
 }) {
     const t = useTranslations('card')
-    const tAdd = useTranslations('addMoney')
-    const tCommon = useTranslations('common')
     const [step, setStep] = useQueryState('card_step', parseAsStringEnum([...STEPS]))
     const seenKey = `card_anticipation_completed_v1:${userId}`
     const [seen] = useState(() => readStoredValue(seenKey) === '1')
@@ -120,6 +119,7 @@ export function CardAcquisitionScreen({
     const [revealing, setRevealing] = useState(false)
     const reducedMotion = useReducedMotion()
     const { triggerHaptic } = useAppHaptic()
+    const continueToEntry = useCallback(() => void setStep('entry', { history: 'replace' }), [setStep])
 
     useEffect(() => {
         if (currentStep !== 'looking-up') return
@@ -172,25 +172,14 @@ export function CardAcquisitionScreen({
 
     if (shownStep === 'funding') {
         return (
-            <PageStack>
-                <NavHeader title={t('onboarding.navTitle')} onPrev={onPrev} />
-                <h1 className="text-heading-s text-foreground-primary">{tAdd('title')}</h1>
-                <p className="text-body-m text-foreground-secondary">{t('onboarding.fundingBody')}</p>
-                <AddMoneyMethodList
-                    returnTo={CARD_FUNDING_PATH}
-                    onSelect={(method) => captureCardGateAddFundsTapped('funding', funded, method)}
-                />
-                <PageStack.Footer>
-                    <Button
-                        variant="primary"
-                        className="w-full"
-                        disabled={!funded}
-                        onClick={() => void setStep('entry', { history: 'replace' })}
-                    >
-                        {tCommon('continue')}
-                    </Button>
-                </PageStack.Footer>
-            </PageStack>
+            <CardFundingStep
+                userId={userId}
+                funded={funded}
+                balanceKnown={balanceKnown}
+                spendableUsd={spendableUsd}
+                onPrev={onPrev}
+                onContinue={continueToEntry}
+            />
         )
     }
 
