@@ -147,7 +147,6 @@ export function SendInputView() {
                             shadowSize="4"
                             className="w-full"
                             icon="arrow-down"
-                            iconSize={16}
                             onClick={addMoney.openAddMoney}
                             data-testid="send-add-money"
                         >
