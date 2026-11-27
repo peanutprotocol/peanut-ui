@@ -27,6 +27,9 @@ import AmountInput from '../../../Global/AmountInput'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { useAddMoneyAction } from '@/features/add-money/drawer/useAddMoneyAction'
+import { formatBankAmount } from '@/utils/currency'
 
 // Below the smallest fiat minimum the recipient loses every fiat claim rail
 // (bank / Pix / Mercado Pago all reject at claim time) and is left with only
@@ -42,6 +45,8 @@ const LinkSendInitialView = () => {
     const tLoading = useTranslations('loadingStates')
     const tErrors = useTranslations('errors')
     const tWithdraw = useTranslations('withdraw')
+    const tAdd = useTranslations('addMoney')
+    const tCard = useTranslations('card.addMoney')
     const toFriendlyError = useFriendlyError()
     const {
         attachmentOptions,
@@ -271,12 +276,23 @@ const LinkSendInitialView = () => {
         (errorState.errorCode === 'invalidAmount' || errorState.errorCode === 'notEnoughBalanceAddFunds')
     const isFlowError = !!errorState?.showError && !isFieldError
 
+    // a short balance adds the gap in place (TASK-25467), as on Send: the drawer comes back to this URL,
+    // amount in it. The gate's own error clears once the balance covers the amount, which turns Create link on.
+    const isShort = !!errorState?.showError && errorState.errorCode === 'notEnoughBalanceAddFunds'
+    const addMoney = useAddMoneyAction({
+        place: 'send_link',
+        targetUsd: enteredAmount || 0,
+        spendableUsd: spendableBalanceDecimal,
+        step: `link:${tokenValue ?? ''}`,
+    })
+    const bankSent = isShort ? addMoney.bankSent : undefined
+
     return (
         // ponytail: no wrapper — PageStack.Center's gap-4 owns the spacing
         <>
             <PeanutActionCard type="send" />
 
-            <Field error={isFieldError ? errorState?.errorMessage : undefined} errorTestId="error-alert">
+            <Field error={isFieldError && !bankSent ? errorState?.errorMessage : undefined} errorTestId="error-alert">
                 <AmountInput
                     initialAmount={tokenValue}
                     setPrimaryAmount={handleAmountChange}
@@ -300,11 +316,37 @@ const LinkSendInitialView = () => {
             )}
 
             <div className="flex flex-col gap-4">
+                {bankSent && (
+                    <div className="flex flex-col items-center gap-2">
+                        <Callout priority="info" className="w-full" data-testid="send-link-add-money-bank-sent">
+                            {bankSent.usd
+                                ? tCard('bankSentPending', { amount: formatBankAmount(bankSent.usd, 'USD') })
+                                : tCard('bankSentPendingNoAmount')}
+                        </Callout>
+                        <LinkButton onClick={addMoney.openAddMoney} data-testid="send-link-add-money-another-way">
+                            {tAdd('anotherWay')}
+                        </LinkButton>
+                    </div>
+                )}
                 {/* only a flow (submit-time) error flips the CTA to retry — a
-                    validation error keeps the primary Create link button */}
+                    validation error keeps the primary Create link button, and a short
+                    balance turns it into "Add $X" until a bank transfer is on its way */}
                 {isFlowError ? (
                     <Button shadowSize="4" icon="retry" onClick={handleOnNext} loading={isLoading} disabled={isLoading}>
                         {tCommon('retry')}
+                    </Button>
+                ) : isShort && !bankSent ? (
+                    <Button
+                        variant="primary"
+                        shadowSize="4"
+                        icon="arrow-down"
+                        iconSize={16}
+                        onClick={addMoney.openAddMoney}
+                        data-testid="send-link-add-money"
+                    >
+                        {addMoney.gapUsd
+                            ? tAdd('addAmount', { amount: formatBankAmount(addMoney.gapUsd, 'USD') })
+                            : tAdd('title')}
                     </Button>
                 ) : (
                     <Button
@@ -316,6 +358,7 @@ const LinkSendInitialView = () => {
                         {isLoading ? tLoading('creatingLink') : t('link.createLink')}
                     </Button>
                 )}
+                {addMoney.drawer}
                 {isFlowError && (
                     <Callout priority="error" data-testid="error-alert">
                         <CooldownErrorText message={errorState.errorMessage} />

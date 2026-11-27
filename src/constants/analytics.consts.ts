@@ -390,6 +390,13 @@ export const ANALYTICS_EVENTS = {
     SEND_ADD_MONEY_RAIL_PICKED: 'send_add_money_rail_picked',
     SEND_ADD_MONEY_VERIFY_TAPPED: 'send_add_money_verify_tapped',
     SEND_ADD_MONEY_CAME_BACK_FUNDED: 'send_add_money_came_back_funded',
+    // the same on Send a link's short balance (TASK-25467): the amount is the link's
+    SEND_LINK_ADD_MONEY_DRAWER_OPENED: 'send_link_add_money_drawer_opened',
+    SEND_LINK_ADD_MONEY_DRAWER_CLOSED: 'send_link_add_money_drawer_closed',
+    SEND_LINK_ADD_MONEY_NETWORK_PICKED: 'send_link_add_money_network_picked',
+    SEND_LINK_ADD_MONEY_RAIL_PICKED: 'send_link_add_money_rail_picked',
+    SEND_LINK_ADD_MONEY_VERIFY_TAPPED: 'send_link_add_money_verify_tapped',
+    SEND_LINK_ADD_MONEY_CAME_BACK_FUNDED: 'send_link_add_money_came_back_funded',
     // POST /rain/cards lifecycle. `outcome` ∈
     // pending|terms-required|incomplete|main-kyc-required|enabled|error|already-applied.
     CARD_APPLY_ATTEMPTED: 'card_apply_attempted',
