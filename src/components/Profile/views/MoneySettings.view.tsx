@@ -707,16 +707,16 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
                         ? tRegions('providerRejection.fixableTitle')
                         : providerRejectionForRegion.state === 'restart-identity'
                           ? restartCopy.title
-                          : tRegions('providerRejection.unavailableTitle')
+                          : // a final refusal is rarely about the region (TASK-24969)
+                            tKyc('initiate.titleBlocked')
                 }
                 description={
                     providerRejectionForRegion.state === 'fixable'
                         ? providerRejectionMessage || tRegions('providerRejection.fixableDescription')
                         : providerRejectionForRegion.state === 'restart-identity'
                           ? providerRejectionMessage || tRegions('providerRejection.restartDescription')
-                          : providerRejectionReasonKey
-                            ? tIdentity(providerRejectionReasonKey)
-                            : tRegions('providerRejection.unavailableDescription')
+                          : // the API's words for a code the app has no copy for (TASK-24969)
+                            providerRejectionMessage || tKyc('initiate.descriptionBlocked')
                 }
                 tone="error"
                 ctas={[

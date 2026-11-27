@@ -1,7 +1,7 @@
 'use client'
 
 import { formatFiniteDisplay } from '@/utils/currency'
-import { type FC, type ReactNode, useCallback, useState } from 'react'
+import { type FC, type ReactNode, useCallback, useRef, useState } from 'react'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Section } from '@/components/0_Bruddle/Section'
@@ -95,6 +95,10 @@ const YourCardScreen: FC<Props> = ({
     const router = useRouter()
     const [autoRenewDismissed, setAutoRenewDismissed] = useState(false)
     const [action, setAction] = useState<CardAction | null>(null)
+    // the lock sheet keeps its last mode through its close transition: read from
+    // `action`, an unfreeze turned into "Block card?" as it closed (TASK-23923)
+    const lockModeRef = useRef<'lock' | 'unlock'>('lock')
+    if (action === 'lock' || action === 'unlock') lockModeRef.current = action
     const { revealed, isLoading: isRevealing, error: revealError, toggle } = useCardReveal({ cardId: card.id })
     const walletPlatform = useWalletPlatform()
     const walletLabel =
@@ -107,7 +111,7 @@ const YourCardScreen: FC<Props> = ({
               : null
     const { triggerHaptic } = useAppHaptic()
     const toast = useToast()
-    const { nativeAvailable, alreadyInWallet, isChecking, isAdding, addToWallet } = usePushProvisioning({
+    const { nativeAvailable, pushDisabled, alreadyInWallet, isChecking, isAdding, addToWallet } = usePushProvisioning({
         id: card.id,
         last4: card.last4,
     })
@@ -119,20 +123,22 @@ const YourCardScreen: FC<Props> = ({
     const handleAddToWallet = useCallback(async () => {
         if (isAdding) return
         const result = await addToWallet()
+        if (result.canceled) return
         if (result.added || result.alreadyInWallet) {
             triggerHaptic()
             toast.success(walletAddedLabel ?? t('walletAddSuccess'))
-        } else if (!result.canceled) {
+        } else {
             toast.error(t('walletAddFailed'))
         }
     }, [isAdding, addToWallet, triggerHaptic, toast, t, walletAddedLabel])
 
-    // The official button replaces the manual row only where it starts the native add.
-    const walletButton = !nativeAvailable ? null : walletPlatform === 'android' ? (
-        <GoogleWalletButton isAdding={isAdding} onClick={() => void handleAddToWallet()} />
-    ) : walletPlatform === 'ios' ? (
-        <AppleWalletRow isAdding={isAdding} onClick={() => void handleAddToWallet()} />
-    ) : null
+    const showWalletControls = !isChecking && !alreadyInWallet
+    const walletButton =
+        !showWalletControls || !nativeAvailable || pushDisabled ? null : walletPlatform === 'android' ? (
+            <GoogleWalletButton isAdding={isAdding} onClick={() => void handleAddToWallet()} />
+        ) : walletPlatform === 'ios' ? (
+            <AppleWalletRow isAdding={isAdding} onClick={() => void handleAddToWallet()} />
+        ) : null
 
     const isLocked = card.status === 'LOCKED'
     // the limits page's own query: the row shows what that page will open on
@@ -287,8 +293,8 @@ const YourCardScreen: FC<Props> = ({
                         chevron
                         onClick={() => router.push('/card/limit')}
                     />
-                    {/* manual steps until the platform flag and native SDK show the wallet control below */}
-                    {walletLabel && !isChecking && !alreadyInWallet && !walletButton && (
+                    {/* Offer manual instructions when push provisioning is unavailable. */}
+                    {showWalletControls && walletLabel && !walletButton && (
                         <ListItem
                             title={walletLabel}
                             leading={<Icon name="wallet" size={24} />}
@@ -299,7 +305,7 @@ const YourCardScreen: FC<Props> = ({
                 </ListGroup>
             </Section>
 
-            {!alreadyInWallet && walletButton}
+            {walletButton}
 
             <Callout priority="info" title={t('payAsCreditTitle')}>
                 {t('payAsCreditBody')}
@@ -321,7 +327,7 @@ const YourCardScreen: FC<Props> = ({
 
             <LockCardModal
                 cardId={card.id}
-                mode={action === 'unlock' ? 'unlock' : 'lock'}
+                mode={lockModeRef.current}
                 isOpen={action === 'lock' || action === 'unlock'}
                 onClose={closeAction}
                 onStopAttempt={onStopAttempt}

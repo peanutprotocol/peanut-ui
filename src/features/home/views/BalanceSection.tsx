@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import { printableUsdc } from '@/utils/balance.utils'
@@ -14,15 +15,15 @@ import { homeDrawerOptions } from '../home-drawer-options'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
-import { AddMoneyPill } from './AddMoneyPill'
-import { showsAddMoneyPill } from '../addMoneyPill.utils'
+import { balanceBucket, showsAddMoneyPill } from '../addMoneyPill.utils'
+import Image from 'next/image'
+import sparkle from '@/assets/illustrations/sparkle.svg'
 
 interface BalanceSectionProps {
     addMoneyEntry?: 'picker' | 'drawer'
-    /** identity verified: with a balance under $10, Add renders as the labelled pill */
+    /** identity verified: with a balance under $10, Add (always the centre button) turns pink.
+     *  it reads "Add money" for returning users too: one label, no "Top up" (TASK-25341) */
     isVerified?: boolean
-    /** money came in before: the pill reads "Top up" */
-    hasFundedBefore?: boolean
     balance: bigint | undefined
     isFetching: boolean
     /** balance is the persisted last-known-good while the live sum is still
@@ -35,10 +36,11 @@ interface BalanceSectionProps {
 // home IA (figma section 17609:2334): add, send and request each open a bottom
 // drawer. request offers two ways to be paid — share a request link, or share
 // standing bank details. while only the link is offered it skips the drawer.
-// the grid keeps Send centred and Request at the end whatever width Add takes
+// Add is always the centre button, for every balance (Hugo, 25 Nov): under $10
+// it turns pink with a sparkle, but it never moves, so muscle memory holds.
 const SUBMENU_ACTIONS: Array<{ key: HomeDrawer; icon: IconName; slot: string }> = [
-    { key: 'add', icon: 'plus', slot: 'justify-self-start' },
-    { key: 'send', icon: 'arrow-up-right', slot: 'justify-self-center' },
+    { key: 'send', icon: 'arrow-up-right', slot: 'justify-self-start' },
+    { key: 'add', icon: 'plus', slot: 'justify-self-center' },
     { key: 'request', icon: 'arrow-down-left', slot: 'justify-self-end' },
 ]
 
@@ -50,7 +52,6 @@ const SUBMENU_ACTIONS: Array<{ key: HomeDrawer; icon: IconName; slot: string }> 
 export function BalanceSection({
     addMoneyEntry = 'picker',
     isVerified = false,
-    hasFundedBefore = false,
     balance,
     isFetching,
     isStale,
@@ -63,10 +64,20 @@ export function BalanceSection({
     const [openDrawer, setOpenDrawer] = useHomeDrawer()
     const depositAccounts = useDepositAccountsEnabled()
 
-    // a hidden balance keeps the round Add, so the pill does not reveal it is under $10
+    // a hidden balance keeps the plain Add, so the pink button does not reveal it is under $10
     const showPill = !isHidden && showsAddMoneyPill({ isVerified, balance, isFetching, isStale })
     const trackTap = (action: HomeDrawer) =>
         posthog.capture(ANALYTICS_EVENTS.HOME_SUBMENU_TAPPED, { action, add_cta_active: showPill })
+
+    useEffect(() => {
+        if (!showPill || balance === undefined) return
+        posthog.capture(ANALYTICS_EVENTS.HOME_ADD_CTA_SHOWN, {
+            balance_bucket: balanceBucket(balance),
+            label: 'add_money',
+        })
+        // once each time the pink button appears, not on every balance tick
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showPill])
 
     const openActionDrawer = (drawer: HomeDrawer) => {
         trackTap(drawer)
@@ -104,8 +115,7 @@ export function BalanceSection({
                     </button>
                 )}
             </div>
-            {/* px-10 pairs with AddMoneyPill's -ml-10: change both together */}
-            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start px-10">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-x-3 px-6">
                 {SUBMENU_ACTIONS.map((action) => {
                     // a drawer with one row is a pointless extra tap: link to
                     // that row's destination instead (request, while standing
@@ -117,27 +127,13 @@ export function BalanceSection({
                             : options.length === 1
                               ? options[0].href
                               : undefined
-                    if (action.key === 'add' && showPill && balance !== undefined) {
-                        return (
-                            <AddMoneyPill
-                                key={action.key}
-                                balance={balance}
-                                hasFundedBefore={hasFundedBefore}
-                                href={directHref}
-                                isDrawerOpen={openDrawer === action.key}
-                                onTap={() => {
-                                    // Button gives the haptic
-                                    trackTap(action.key)
-                                    if (!directHref) setOpenDrawer(action.key)
-                                }}
-                            />
-                        )
-                    }
+                    // pink fill, DS 4px shadow, press drops into it
+                    const isPinkAdd = action.key === 'add' && showPill
                     const inner = (
                         <>
                             <span
                                 className={twMerge(
-                                    'flex size-12 items-center justify-center rounded-full border border-border-default transition-colors duration-instant',
+                                    'relative flex size-12 items-center justify-center rounded-full border border-border-default transition-colors duration-instant',
                                     // pressed = action-primary per button board 17308:13973
                                     // ("buttons turn primary when pressed"); the submenu
                                     // board's ghost-hover binding resolves to the same pink
@@ -145,16 +141,31 @@ export function BalanceSection({
                                     // tint — see PR body token note
                                     !directHref && openDrawer === action.key
                                         ? 'border-border-button bg-action-primary'
-                                        : 'active:border-border-button active:bg-action-primary'
+                                        : 'active:border-border-button active:bg-action-primary',
+                                    // last, so its press colour wins over the ghost press above
+                                    isPinkAdd &&
+                                        'border-border-button bg-action-primary shadow-4 transition-[translate,box-shadow,background-color] active:translate-x-1 active:translate-y-1 active:bg-action-primary-press active:shadow-none'
                                 )}
                             >
                                 <Icon name={action.icon} size={24} className="text-foreground-primary" />
+                                {isPinkAdd && (
+                                    <Image
+                                        src={sparkle}
+                                        alt=""
+                                        aria-hidden
+                                        className="add-cta-sparkle pointer-events-none absolute -top-3 -right-4 h-4 w-auto"
+                                    />
+                                )}
                             </span>
+                            {/* one word in every locale, like Send and Request, so the label never wraps (Hugo, 25 Nov) */}
                             <span className="text-button-m text-foreground-primary">{tNav(action.key)}</span>
                         </>
                     )
                     const shared = {
-                        className: twMerge('flex w-14 cursor-pointer flex-col items-center gap-2', action.slot),
+                        className: twMerge(
+                            'flex min-w-14 cursor-pointer flex-col items-center gap-2 focus-visible:outline-[3px] focus-visible:outline-action-focus',
+                            action.slot
+                        ),
                         'data-testid': `home-submenu-${action.key}`,
                     }
                     return directHref ? (

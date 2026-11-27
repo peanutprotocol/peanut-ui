@@ -3,34 +3,45 @@ import { render, screen } from '@testing-library/react'
 import { isValidElement } from 'react'
 import { CreatorPageCta } from '../CreatorPageCta'
 import { CreatorPageShell } from '../CreatorPageShell'
+import type { Locale } from '@/i18n/types'
 import type { DeviceOs } from '../environment'
 import { creatorPageFixture } from '../preview-fixture'
 
-jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
-jest.mock('@/features/tracked-links/eligibility', () => ({ trackedLinkAnalyticsAllowed: () => false }))
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: jest.fn(), set_config: jest.fn(), config: {} },
+}))
+jest.mock('../consent', () => ({ creatorPageAnalyticsAllowed: () => false }))
 
 const labels = { ios: 'Abrir en el App Store', android: 'Abrir en Google Play', other: 'Bajar Peanut' }
 
-function shell(deviceOs: DeviceOs, liftCta = false) {
+function shell(deviceOs: DeviceOs, liftCta = false, locale: Locale = 'es-ar') {
     return CreatorPageShell({
-        page: { ...creatorPageFixture('juanacervio', 'g2'), deviceOs, liftCta },
-        lang: 'es-AR',
+        page: { ...creatorPageFixture('juanacervio', 'g2'), deviceOs, liftCta, locale },
         className: 'shell',
         children: <CreatorPageCta labels={labels} position="hero" />,
     })
 }
 
 describe('CreatorPageShell', () => {
-    it('returns its element at once: a promise here would hide the page on /go until a script runs', () => {
-        // The engine renders the page under <Suspense fallback={null}>.
+    it('returns its element at once: the page reads nothing from the request and waits for nothing', () => {
         expect(isValidElement(shell('ios'))).toBe(true)
     })
 
-    it('renders <main> in the page language', () => {
-        render(shell('ios'))
+    it.each([
+        ['es-ar', 'es-AR'],
+        ['es-419', 'es-419'],
+        ['en', 'en'],
+        ['pt-br', 'pt-BR'],
+    ] as const)('renders <main> and <html> in the page language %s', (locale, lang) => {
+        const { unmount } = render(shell('ios', false, locale))
         const main = screen.getByRole('main')
-        expect(main).toHaveAttribute('lang', 'es-AR')
+        expect(main).toHaveAttribute('lang', lang)
         expect(main).toHaveClass('shell')
+        // As on the localized landing pages (HtmlLang): corrected after hydration, restored on unmount.
+        expect(document.documentElement.lang).toBe(locale)
+        unmount()
+        expect(document.documentElement.lang).not.toBe(locale)
     })
 
     it('marks <main> for the pages to lift their bottom buttons, and only when asked', () => {

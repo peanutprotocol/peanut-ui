@@ -142,7 +142,7 @@ describe('PixQrDeposit', () => {
     it('shows a received deposit, and no new-deposit offer while the Pix is processing', () => {
         state('completed', read({ status: 'COMPLETED', codePayable: false }))
         const { unmount } = renderScreen()
-        expect(screen.getByText(en.addMoney.pix.depositReceived)).toBeInTheDocument()
+        expect(screen.getByText(en.addMoney.depositReceived)).toBeInTheDocument()
         unmount()
         state('processing', read({ status: 'PROCESSING', pixReceived: true, codePayable: false }))
         renderScreen()

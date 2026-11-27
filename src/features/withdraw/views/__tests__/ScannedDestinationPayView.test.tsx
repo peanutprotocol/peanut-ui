@@ -427,10 +427,10 @@ describe('ScannedDestinationPayView (TASK-23974)', () => {
     it('is disabled while the amount cannot go, and says why under the field', async () => {
         const { onContinue } = renderView({
             continueDisabled: true,
-            amountError: 'Not enough balance. Add funds to continue.',
+            amountError: 'Not enough balance. Add money to continue.',
         })
         expect(await ctaReady()).toBeDisabled()
-        expect(screen.getByText('Not enough balance. Add funds to continue.')).toBeInTheDocument()
+        expect(screen.getByText('Not enough balance. Add money to continue.')).toBeInTheDocument()
         fireEvent.click(cta())
         expect(onContinue).not.toHaveBeenCalled()
     })

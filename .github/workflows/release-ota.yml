@@ -1,10 +1,13 @@
 name: App Release OTA
 
 # Every compatible main push publishes an OTA from that exact main commit,
-# independently of the native store build. A push that only moves the
-# src/content pointer starts no release. A changed native contract stops at
-# the floor guard; completion still triggers the native build, while the later
-# OTA cutover waits until the new binaries are available.
+# independently of the native store build. A push that changes only web-only
+# paths (src/content pointer, /go/ map, creator pages) starts no release. A
+# changed native contract stops at the floor guard; completion still triggers
+# the native build, while the later OTA cutover waits until the new binaries
+# are available. A push whose built bundle production already serves stops
+# after the build, before any version, upload, tag or store build ("Compare the
+# bundle with production"); on any doubt it releases.
 # Only the first run from a main push may publish a production OTA.
 # The source must contain the newest attested native release and pass native
 # compatibility checks. It uploads
@@ -24,12 +27,48 @@ name: App Release OTA
 on:
     push:
         branches: [main]
-        # A content publish (content-publish-automerge.yml) only moves this
-        # submodule pointer. It reaches the web through Vercel and needs no OTA
-        # and no store build: each one used a version number and replaced the
-        # release candidate (Release 164). The main-tip guards below let a
-        # running release continue past such a push.
-        paths-ignore: ['src/content']
+        # Web-only paths: no app bundle contains them, so a push that changes
+        # only these reaches users through Vercel and needs no OTA and no store
+        # build. Each such run used a version number and replaced the release
+        # candidate (Release 164). A push that also changes any other file still
+        # runs. GitHub reads only the first 3,000 changed files of a push for
+        # path filters; a release merge is far below that.
+        # scripts/release-web-only-paths.json holds the same list for the
+        # main-tip guards below, which let a running release continue past such
+        # a push; release-source-guard.test.js keeps the two equal.
+        # - src/content: content publishes (content-publish-automerge.yml).
+        # - /go/ redirect map and creator landing pages (/c/): the native build
+        #   removes their routes and the exported public/creator-pages images
+        #   (scripts/native-build.js). ESLint and release-web-only-paths.test.js
+        #   keep app code from referencing the feature folders.
+        # - Marketing, legal and landing routes the native build removes
+        #   (ITEMS_TO_DISABLE): a landing-page edit cut a new OTA, version and
+        #   store build for an unchanged app (7 tester builds 23-25 Nov). Only
+        #   the route folders are listed; components they share with the app
+        #   still release. [locale] is escaped (\[locale\]): a bare bracket is a glob class.
+        paths-ignore:
+            - 'src/content'
+            - 'src/app/go/**'
+            - 'src/features/go-links/**'
+            - 'src/app/c/**'
+            - 'src/features/creator-pages/**'
+            - 'public/creator-pages/**'
+            - 'src/app/q/**'
+            - 'src/app/es-419/**'
+            - 'src/app/es-ar/**'
+            - 'src/app/pt-br/**'
+            - 'src/app/invite/**'
+            - 'src/app/exchange/**'
+            - 'src/app/privacy/**'
+            - 'src/app/terms/**'
+            - 'src/app/careers/**'
+            - 'src/app/lp/**'
+            - 'src/app/us-europe-accounts/**'
+            - 'src/app/qr-payments/**'
+            - 'src/app/peanut-card/**'
+            - 'src/app/request-links/**'
+            - 'src/app/self-custody/**'
+            - 'src/app/\[locale\]/**'
     # Retry a failed OTA without a new main push. The run publishes the current
     # main tip only; the SHA input makes the operator name it.
     workflow_dispatch:
@@ -217,6 +256,8 @@ jobs:
             ANDROID_BRIDGE_BEFORE: ${{ needs.resolve.outputs.android_bridge_before }}
         outputs:
             native_incompatible: ${{ steps.native_incompatible.outputs.found }}
+            bundle_unchanged: ${{ steps.unchanged.outputs.skip }}
+            bundle_digest: ${{ steps.unchanged.outputs.digest }}
         defaults:
             run:
                 working-directory: app
@@ -301,10 +342,12 @@ jobs:
             - name: Resolve per-platform OTA floors
               id: ota_floors
               run: |
-                  # Before each bridge, installed old clients use a numeric
-                  # gate; do not claim delivery to them from a newer lane.
+                  # with no bridge, one shared floor at the last native change,
+                  # not the newest tag: release-native tags a store version
+                  # after every OTA, even one that never reaches the stores
+                  # (TASK-25355).
                   if [ "$BRIDGE_ACTIVE" != active ] && [ "$ANDROID_BRIDGE_ACTIVE" != active ]; then
-                    ANDROID="$(node ../release-tooling/scripts/release-version.mjs native-floor --root "$PWD")"
+                    ANDROID="$(node ../release-tooling/scripts/ota-platform-floor.mjs --shared --root "$PWD")"
                     IOS="$ANDROID"
                   else
                     ANDROID="$(node ../release-tooling/scripts/ota-platform-floor.mjs --platform android --root "$PWD")"
@@ -385,7 +428,64 @@ jobs:
                   test -d out && test -f out/index.html || (echo "ERROR: out/ directory missing or incomplete" && exit 1)
                   echo "Bundle ready. File count: $(find out -type f | wc -l)"
 
+            # A push whose bundle production already serves ships nothing: no
+            # OTA, version, tag or store build (7 tester builds of an unchanged
+            # app, 23-25 Nov 2026). Two builds of one commit never match byte for
+            # byte (build id, commit, display version and Sentry debug ids are
+            # baked in), so Capgo's zip checksum cannot tell; the digest blanks
+            # those values (scripts/ota-bundle-digest.mjs) and the tag job
+            # records it for the next push. This step fails open: it cannot fail
+            # the job, and only its last line marks the skip, so an error or an
+            # unreadable channel releases as before. A dispatch, a cutover and a
+            # bridge bootstrap always release.
+            - name: Compare the bundle with production
+              id: unchanged
+              continue-on-error: true
+              # A slow digest must not hold the release; a timeout releases.
+              timeout-minutes: 5
+              env:
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+                  OTA_DISPLAY_VERSION: ${{ needs.resolve.outputs.version }}
+              run: |
+                  DIGEST="$(node ../release-tooling/scripts/ota-bundle-digest.mjs digest out "$(cat .next/BUILD_ID)" "$(git rev-parse --short=7 HEAD)" "$OTA_DISPLAY_VERSION")"
+                  echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+                  echo "Bundle digest $DIGEST"
+                  if [ "$GITHUB_EVENT_NAME" != push ] || [ "$MIGRATION_CUTOVER" = true ] ||
+                     [ "$IOS_BRIDGE_PREVIOUS" != active ] || [ "$ANDROID_BRIDGE_PREVIOUS" != active ]; then
+                      echo "Releasing: a dispatch, a cutover or a bridge bootstrap always releases"
+                      exit 0
+                  fi
+                  LIVE_IOS="$(PLATFORM=ios node ../release-tooling/scripts/capgo-release-guard.mjs live-source)"
+                  LIVE_ANDROID="$(PLATFORM=android node ../release-tooling/scripts/capgo-release-guard.mjs live-source)"
+                  if ! node ../release-tooling/scripts/ota-bundle-digest.mjs compare "$DIGEST" "$LIVE_IOS" "$LIVE_ANDROID"; then
+                      exit 0
+                  fi
+                  mkdir -p "$RUNNER_TEMP/ota-bundle-unchanged"
+                  printf '%s\n' "$OTA_SOURCE_SHA" > "$RUNNER_TEMP/ota-bundle-unchanged/head.sha"
+                  {
+                    echo "## OTA skipped: bundle unchanged"
+                    echo "- **Main commit:** ${OTA_SOURCE_SHA:0:7}"
+                    echo "- **Production serves:** iOS ${LIVE_IOS:0:7}, Android ${LIVE_ANDROID:0:7}"
+                    echo "- **Bundle digest:** $DIGEST"
+                    echo "No OTA, version number, tag or store build."
+                  } >> "$GITHUB_STEP_SUMMARY"
+                  echo "::notice::production already serves this bundle ($DIGEST); no OTA, version, tag or store build"
+                  echo "skip=true" >> "$GITHUB_OUTPUT"
+
+            # release-native.yml reads this marker and builds nothing for the
+            # run. If the upload fails, the store build runs as before.
+            - name: Record unchanged-bundle OTA
+              if: steps.unchanged.outputs.skip == 'true'
+              continue-on-error: true
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ota-bundle-unchanged-${{ github.run_id }}
+                  path: ${{ runner.temp }}/ota-bundle-unchanged/head.sha
+                  if-no-files-found: error
+                  retention-days: 7
+
             - name: Resolve bundle version
+              if: steps.unchanged.outputs.skip != 'true'
               id: version
               env:
                   VERSION: ${{ needs.resolve.outputs.version }}
@@ -407,6 +507,7 @@ jobs:
             # visible. The bundle must target the newest native shell it can safely
             # run on.
             - name: Resolve native floor
+              if: steps.unchanged.outputs.skip != 'true'
               id: native_floor
               run: |
                   FLOOR="$(node ../release-tooling/scripts/release-version.mjs native-floor --root "$PWD")"
@@ -416,6 +517,7 @@ jobs:
             # A bundle's version says nothing about the native surface it needs, so
             # verify that the JS being published still matches the released binary.
             - name: Check the native surface still matches that binary
+              if: steps.unchanged.outputs.skip != 'true'
               env:
                   FLOOR: ${{ steps.native_floor.outputs.name }}
               run: |
@@ -428,11 +530,13 @@ jobs:
                   node ../release-tooling/scripts/check-native-ota-surface.mjs "v$FLOOR" --platform ios --root "$PWD"
 
             - name: Prepare disabled candidate channel
+              if: steps.unchanged.outputs.skip != 'true'
               env:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
               run: node ../release-tooling/scripts/capgo-release-guard.mjs prepare-candidate
 
             - name: Upload bundles to Capgo
+              if: steps.unchanged.outputs.skip != 'true'
               env:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   CAPGO_PRIVATE_KEY: ${{ secrets.CAPGO_PRIVATE_KEY }}
@@ -470,6 +574,7 @@ jobs:
             # Both fresh uploads and exact artifact checks must succeed before
             # either production channel moves. Collisions never count as success.
             - name: Verify the floors reached the bundles
+              if: steps.unchanged.outputs.skip != 'true'
               env:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   RELEASE_VERSION: ${{ steps.version.outputs.name }}
@@ -492,6 +597,7 @@ jobs:
                   done
 
             - name: Promote verified bundles to platform production
+              if: steps.unchanged.outputs.skip != 'true'
               env:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   RELEASE_VERSION: ${{ steps.version.outputs.name }}
@@ -573,6 +679,7 @@ jobs:
                   done
 
             - name: Deployment summary
+              if: steps.unchanged.outputs.skip != 'true'
               run: |
                   {
                     echo "## OTA Deployment"
@@ -584,7 +691,7 @@ jobs:
 
     tag:
         needs: [resolve, deploy]
-        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && github.run_attempt == 1 }}
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && github.run_attempt == 1 && needs.deploy.outputs.bundle_unchanged != 'true' }}
         runs-on: ubuntu-latest
         permissions:
             contents: write
@@ -603,6 +710,7 @@ jobs:
               env:
                   VERSION: ${{ needs.resolve.outputs.version }}
                   SOURCE_SHA: ${{ needs.resolve.outputs.source_sha }}
+                  BUNDLE_DIGEST: ${{ needs.deploy.outputs.bundle_digest }}
               run: |
                   if [ "$(git rev-parse HEAD)" != "$SOURCE_SHA" ]; then
                       echo "::error::tag checkout does not match the shipped main commit" >&2
@@ -610,7 +718,11 @@ jobs:
                   fi
                   git config user.name "github-actions[bot]"
                   git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-                  git tag -a "ota-$VERSION" -m "OTA release $VERSION"
+                  # The next push compares its bundle with this digest. A tag
+                  # without one only means that push releases.
+                  DIGEST_NOTE=()
+                  if [ -n "$BUNDLE_DIGEST" ]; then DIGEST_NOTE=(-m "bundle-digest: $BUNDLE_DIGEST"); fi
+                  git tag -a "ota-$VERSION" -m "OTA release $VERSION" "${DIGEST_NOTE[@]}"
                   git push origin "ota-$VERSION"
                   echo "Tagged ota-$VERSION at ${SOURCE_SHA:0:7}"
 

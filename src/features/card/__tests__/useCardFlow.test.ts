@@ -466,8 +466,37 @@ describe('useCardFlow', () => {
             authorizationAccepted: true,
             authorizationText: 'I authorize transfers according to the Real-Time Funding Terms.',
         }
+        // Rain approved the card account and deployed its collateral contract.
+        const COLLATERAL_READY = {
+            status: { hasApplication: true, railStatus: 'ENABLED', contractAddress: '0xcollateral' },
+            cards: [],
+        }
+
+        it.each([
+            ['a first-time applicant (no application yet)', { status: { hasApplication: false }, cards: [] }],
+            [
+                'an application Rain has not approved',
+                { status: { hasApplication: true, railStatus: 'PENDING' }, cards: [] },
+            ],
+            [
+                'an approved account whose collateral is not deployed yet',
+                { status: { hasApplication: true, railStatus: 'ENABLED' }, cards: [] },
+            ],
+        ])('never grants before the collateral is ready: %s', async (_name, overview) => {
+            mockOverview = overview
+            mockApplyForCard.mockResolvedValue({ status: 'pending', rainUserId: 'ru-1', message: 'submitted' })
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleAcceptTerms(CONSENT)
+            })
+            // the application still goes through; the card screen asks for funding once Rain deploys the collateral
+            expect(mockApplyForCard).toHaveBeenCalledTimes(1)
+            expect(mockGrantFunding).not.toHaveBeenCalled()
+            expect(result.current.applyError).toBeNull()
+        })
 
         it('applies first, then grants with the boxes the person ticked — and sends no serializedApproval', async () => {
+            mockOverview = COLLATERAL_READY
             const order: string[] = []
             mockGrantFunding.mockImplementation(async () => {
                 order.push('grant')
@@ -489,6 +518,7 @@ describe('useCardFlow', () => {
         })
 
         it('a cancelled or failed grant leaves the issued card and shows no card error', async () => {
+            mockOverview = COLLATERAL_READY
             mockGrantFunding.mockResolvedValue({ ok: false, error: { kind: 'user-cancelled' } })
             mockApplyForCard.mockResolvedValue({ status: 'pending', rainUserId: 'ru-1', message: 'submitted' })
             const { result } = renderHook(() => useCardFlow())
@@ -526,6 +556,7 @@ describe('useCardFlow', () => {
         })
 
         it('a managed account finishes on the managed path even when new enrollment is closed', async () => {
+            mockOverview = COLLATERAL_READY
             mockGetFundingAccess.mockResolvedValue({ fundingMode: 'managed', enrollmentAllowed: false })
             mockApplyForCard.mockResolvedValue({ status: 'pending', rainUserId: 'ru-1', message: 'submitted' })
             const { result } = renderHook(() => useCardFlow())

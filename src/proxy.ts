@@ -7,8 +7,10 @@ import { shouldBlockDevRoute } from '@/constants/dev-tools.consts'
 import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
 import { APP_ENTRY_QUERY_PARAM } from '@/constants/migration.consts'
 import { marketingQrHandoffUrl } from '@/features/marketing-qr/contract'
-import { LOCALE_COOKIE, toAppLocale, toMarketingLocale, withCountry } from '@/i18n/localeBridge'
-import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
+import { legacyCreatorInvitePath } from '@/features/tracked-links/contract'
+import { COUNTRY_HEADER, landingLocale } from '@/i18n/landingLocale'
+import { LOCALE_COOKIE, toAppLocale } from '@/i18n/localeBridge'
+import { DEFAULT_LOCALE } from '@/i18n/types'
 
 export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl
@@ -32,11 +34,19 @@ export function proxy(request: NextRequest) {
     const marketingQrHandoff = marketingQrHandoffUrl(new URL(request.url))
     if (marketingQrHandoff) return NextResponse.redirect(marketingQrHandoff, 307)
 
+    // Retired creator links had their own store screen on /app. A browser now gets the
+    // creator's invite page; the installed app never asks the server and reads them itself.
+    const isAppEntry = pathname === '/home' && request.nextUrl.searchParams.get(APP_ENTRY_QUERY_PARAM) === '1'
+    if (isAppEntry || pathname === '/app' || pathname === '/app/') {
+        const invitePath = legacyCreatorInvitePath(request.nextUrl.searchParams)
+        if (invitePath) return NextResponse.redirect(new URL(invitePath, request.url), 307)
+    }
+
     // QR downloads enter through /home because that path is already claimed by
     // every released native shell. A browser has no App Link interception, so
     // route it to the web-only smart-store page while preserving the deferred
     // handoff. Remove the routing marker so /app can never loop back here.
-    if (pathname === '/home' && request.nextUrl.searchParams.get(APP_ENTRY_QUERY_PARAM) === '1') {
+    if (isAppEntry) {
         const target = request.nextUrl.clone()
         target.pathname = '/app'
         target.searchParams.delete(APP_ENTRY_QUERY_PARAM)
@@ -69,27 +79,18 @@ export function proxy(request: NextRequest) {
         return NextResponse.redirect(redirectUrl)
     }
 
-    // Send a visitor to the landing page in their language. The cookie (an
-    // explicit choice) wins; a first-time visitor falls back to
-    // Accept-Language, with the CDN's country header breaking ties inside
-    // Spanish (see withCountry — es-419 is an exact match for the Chrome build
-    // shipped across Latin America, so nothing else distinguishes an Argentine
-    // visitor). Crawlers are exempt: Google's localized-versions
-    // guidance warns against language-sniffing redirects because crawlers
-    // arrive from US IPs sending `en` and would never reach the localized
-    // pages — so bots always get the English `/` and hreflang keeps routing
-    // them. Placed after the auth check so signed-in users still go to /home.
+    // Send a visitor to the landing page in their language: the shared landing-page rule
+    // (landingLocale: cookie, then Accept-Language with the country as a Spanish tiebreaker;
+    // crawlers stay on the English `/`, and hreflang keeps routing them). Placed after the auth
+    // check so signed-in users still go to /home.
     if (request.nextUrl.pathname === '/') {
         const stored = request.cookies.get(LOCALE_COOKIE)?.value
-        const fromCookie = stored ? toMarketingLocale(stored) : null
-        const locale =
-            fromCookie ??
-            (isCrawler(request)
-                ? DEFAULT_LOCALE
-                : withCountry(
-                      preferredLocale(request.headers.get('accept-language')),
-                      request.headers.get(COUNTRY_HEADER)
-                  ))
+        const locale = landingLocale({
+            storedLocale: stored,
+            acceptLanguage: request.headers.get('accept-language'),
+            country: request.headers.get(COUNTRY_HEADER),
+            userAgent: request.headers.get('user-agent'),
+        })
         if (locale !== DEFAULT_LOCALE) {
             // 307, not 308: `/` stays the canonical English URL.
             const target = new URL(`/${locale}`, request.url)
@@ -129,43 +130,6 @@ export function proxy(request: NextRequest) {
     return response
 }
 
-// Vercel's edge geolocation header. Absent locally and in tests, which simply
-// means no tiebreaker — the language-only resolution stands.
-const COUNTRY_HEADER = 'x-vercel-ip-country'
-
-const CRAWLER_UA =
-    /bot|crawler|spider|crawling|slurp|bingpreview|facebookexternalhit|whatsapp|telegram|linkedinbot|embedly|quora link preview|pinterest|vkshare|redditbot|applebot|semrush|ahrefs|screaming frog/i
-
-function isCrawler(request: NextRequest): boolean {
-    const ua = request.headers.get('user-agent')
-    // No UA at all is not a browser either — treat as a bot, never redirect.
-    return !ua || CRAWLER_UA.test(ua)
-}
-
-/**
- * Highest-quality Accept-Language range that maps onto a supported locale.
- * An explicit English range wins at its own position, so `en;q=1, es;q=0.5`
- * stays English rather than being dragged to the first non-default match.
- */
-function preferredLocale(header: string | null): Locale {
-    if (!header) return DEFAULT_LOCALE
-    const ranges = header
-        .split(',')
-        .map((part) => {
-            const [tag, ...params] = part.trim().split(';')
-            const q = params.map((p) => p.trim()).find((p) => p.startsWith('q='))
-            return { tag: tag.trim().toLowerCase(), quality: q ? Number.parseFloat(q.slice(2)) : 1 }
-        })
-        .filter((range) => range.tag && Number.isFinite(range.quality) && range.quality > 0)
-        .sort((a, b) => b.quality - a.quality)
-    for (const { tag } of ranges) {
-        if (tag === 'en' || tag.startsWith('en-') || tag === '*') return DEFAULT_LOCALE
-        const locale = toMarketingLocale(tag)
-        if (locale !== DEFAULT_LOCALE) return locale
-    }
-    return DEFAULT_LOCALE
-}
-
 const isPromoLink = (url: URL) => {
     const linkChainId = url.searchParams.get('promo')
     const linkVersion = url.searchParams.get('id')
@@ -180,6 +144,7 @@ export const config = {
     matcher: [
         '/',
         '/home',
+        '/app',
         '/claim/:path*',
         '/api/:path*',
         '/home/:path*',

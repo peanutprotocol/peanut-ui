@@ -367,7 +367,8 @@ export function formatTokenAmount(amount?: number | string, maxFractionDigits?: 
         const m = s.match(/^(\d*)(?:\.(\d*))?$/)
         if (!m) return '' // invalid → empty
         if (s !== '.' && parseFiniteNumber(s) === null) return ''
-        const whole = m[1] ?? ''
+        // "00.1" and "007" are 0.1 and 7: the field shows them that way (TASK-25353)
+        const whole = (m[1] ?? '').replace(/^0+(?=\d)/, '')
         const fracRaw = m[2] // undefined ⇒ no dot; '' ⇒ dot present with no digits
         if (fracRaw === undefined) return whole
         if (maxFractionDigits === 0) return whole

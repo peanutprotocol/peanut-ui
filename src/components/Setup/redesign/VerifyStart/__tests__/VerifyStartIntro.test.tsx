@@ -8,6 +8,8 @@ import { markVerifySource, verifySourceProperty } from '@/features/paperwork-ver
 import { IntlProvider, msg } from '@/components/Setup/redesign/Landing/__tests__/redesign-harness'
 import { VerifyStartIntro } from '../VerifyStartIntro'
 
+const mockRemindLater = jest.fn()
+jest.mock('@/components/Setup/redesign/VerifyStart/useRemindLater', () => ({ useRemindLater: () => mockRemindLater }))
 jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 let mockRestrictions = { banking: false, card: false }
@@ -70,12 +72,14 @@ describe('VerifyStartIntro', () => {
         expect(screen.queryByText(msg('setupRedesign.verifyStart.sub'))).toBeNull()
     })
 
-    it('goes on with Verify now and back with Remind me later', () => {
+    it('goes on with Verify now, and back with Remind me later, which schedules the reminder', () => {
         const { onVerify, onLater } = renderIntro(true)
         fireEvent.click(screen.getByRole('button', { name: msg('setupRedesign.verifyStart.remindLater') }))
         expect(onLater).toHaveBeenCalledTimes(1)
+        expect(mockRemindLater).toHaveBeenCalledTimes(1)
         fireEvent.click(screen.getByTestId('setup-redesign-verify-now'))
         expect(onVerify).toHaveBeenCalledTimes(1)
+        expect(mockRemindLater).toHaveBeenCalledTimes(1)
     })
 
     it('keeps the shell footer inside the shell: its z-40 cannot draw over an overlay such as the ID-check intro', () => {

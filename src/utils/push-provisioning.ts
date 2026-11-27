@@ -39,6 +39,8 @@ export interface AddCardToWalletResult {
     canceled?: boolean
     alreadyInWallet?: boolean
     error?: string
+    code?: string
+    mppErrorCode?: number
     last4?: string
 }
 
@@ -108,6 +110,9 @@ export async function addCardToWallet(args: AddCardToWalletArgs): Promise<AddCar
     return PushProvisioning.call('addCard', args, (error) => ({
         added: false,
         error: error instanceof Error ? error.message : 'unavailable',
+        ...(error && typeof error === 'object' && 'code' in error && typeof error.code === 'string'
+            ? { code: error.code }
+            : {}),
     }))
 }
 

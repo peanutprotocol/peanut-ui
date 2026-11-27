@@ -1,8 +1,9 @@
-import type { CreatorPageProps } from '@/features/tracked-links/contract'
+import type { Locale } from '@/i18n/types'
 import type { DeviceOs } from './environment'
+import type { CreatorPageProps } from './types'
 
 /**
- * What a variant component gets: the engine's props, plus what `selectCreatorPage` read from the
+ * What a variant component gets: the route's props, plus what `selectCreatorPage` read from the
  * request. The variant passes all of it to CreatorPageShell as `page`.
  */
 export type CreatorPageVariantProps = CreatorPageProps & {
@@ -10,4 +11,6 @@ export type CreatorPageVariantProps = CreatorPageProps & {
     deviceOs: DeviceOs
     /** The in-app browser covers the bottom of the page (`coversPageBottom`): the page lifts its bottom button. */
     liftCta: boolean
+    /** The page language, by the landing-page rule (`creatorPageLocale`). Presentation only. */
+    locale: Locale
 }

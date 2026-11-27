@@ -1,6 +1,10 @@
 import { friendlyError, rainCollateralErrorMessage, type FriendlyErrorCode } from '../friendly-error.utils'
 import { ApiError } from '@/services/api-error'
 import en from '@/i18n/app/messages/en.json'
+import { loadMessages } from '@/i18n/app/messages'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
+import { renderHook } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
 
 describe('friendlyError', () => {
     describe('viem transport timeout (ZeroDev paymaster/bundler)', () => {
@@ -181,6 +185,7 @@ describe('friendly error copy catalog', () => {
         'rainCooldownRetryShortly',
         'cardRateLimited',
         'linkTransactionHashFetch',
+        'belowMinBridgeAmount',
     ]
 
     const errors: Record<string, string> = en.errors
@@ -312,6 +317,26 @@ describe('backend wire codes', () => {
             code: 'BANK_ACCOUNT_NOT_USABLE',
         })
         expect(friendlyError(err)).toEqual({ kind: 'code', code: 'bankAccountNotUsable' })
+    })
+
+    test('a sub-minimum bridge maps to localized copy, not the English backend sentence', async () => {
+        const err = new ApiError('Amount ($2.00) is below the $5 minimum to bridge to ETHEREUM.', {
+            status: 400,
+            code: 'BELOW_MIN_BRIDGE_AMOUNT',
+        })
+        expect(friendlyError(err)).toEqual({ kind: 'code', code: 'belowMinBridgeAmount' })
+
+        const messages = await loadMessages('pt-BR')
+        const { result } = renderHook(() => useFriendlyError(), {
+            wrapper: ({ children }) => (
+                <NextIntlClientProvider locale="pt-BR" messages={messages} timeZone="UTC">
+                    {children}
+                </NextIntlClientProvider>
+            ),
+        })
+        expect(result.current(err)).toBe(
+            'Este valor está abaixo do mínimo para esta rede. Tente um valor maior ou outra rede.'
+        )
     })
 
     test('a wire-coded stale approval maps to localized copy instead of passthrough', () => {

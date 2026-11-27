@@ -1,27 +1,16 @@
 'use client'
 
-import PIX from '@/assets/payment-apps/pix.svg'
-import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
-import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import NavHeader from '@/components/Global/NavHeader'
-import { useAddMoneyReadiness } from './useAddMoneyReadiness'
-import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
+import { AddMoneyMethodList } from './AddMoneyMethodList'
 import { withReturnTo } from '@/utils/return-to.utils'
-import Image from 'next/image'
 import { useTranslations } from 'next-intl'
-import { useRouter } from 'next/navigation'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { trackAddMoney } from './analytics'
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef } from 'react'
 
 export function AddMoneyPicker({ onBack, origin }: { onBack: () => void; origin: string | null }) {
-    const t = useTranslations('addMoney.methods')
     const title = useTranslations('navigation')
-    const router = useRouter()
-    const readiness = useAddMoneyReadiness(false)
     const picker = origin ? withReturnTo('/add-money', origin) : '/add-money'
     const viewed = useRef(false)
     useEffect(() => {
@@ -29,30 +18,6 @@ export function AddMoneyPicker({ onBack, origin }: { onBack: () => void; origin:
         viewed.current = true
         trackAddMoney(ANALYTICS_EVENTS.ADD_MONEY_VIEWED)
     }, [])
-    // the rows in the order the methods resolve: Pix leads where the route offers it on Avenia
-    const rowFor: Record<string, { title: string; description: string; icon: ReactNode }> = {
-        account: {
-            title: t('openAccount'),
-            description: t('accountDetails'),
-            icon: <IconBubble {...CONCEPT_ICONS.bankAccount} size="s" />,
-        },
-        transfer: {
-            title: t('oneTimeTransfer'),
-            description: t('oneTimeDetails'),
-            icon: <IconBubble {...CONCEPT_ICONS.bank} size="s" />,
-        },
-        pix: {
-            title: t('pix'),
-            description: t('pixDetails'),
-            icon: <Image src={PIX} alt="" width={32} height={32} />,
-        },
-        crypto: {
-            title: t('crypto'),
-            description: t('cryptoDetails'),
-            icon: <IconBubble {...CONCEPT_ICONS.crypto} size="s" />,
-        },
-    }
-    const rows = readiness.pickerMethods.flatMap((key) => (rowFor[key] ? [{ key, ...rowFor[key] }] : []))
     return (
         <PageStack>
             <NavHeader
@@ -62,32 +27,9 @@ export function AddMoneyPicker({ onBack, origin }: { onBack: () => void; origin:
                     onBack()
                 }}
             />
-            <ListGroup>
-                {rows.map((row) => (
-                    <ListItem
-                        key={row.key}
-                        title={row.title}
-                        body={row.description}
-                        bodyWrap
-                        leading={row.icon}
-                        chevron
-                        data-testid={`add-money-method-${row.key}`}
-                        onClick={() =>
-                            router.push(
-                                withReturnTo(
-                                    // Pix has one currency, so it opens the Pix deposit, not a chooser of one row
-                                    row.key === 'crypto'
-                                        ? '/add-money/crypto'
-                                        : row.key === 'pix'
-                                          ? PIX_ADD_MONEY_PATH
-                                          : `/add-money/options?method=${row.key}`,
-                                    picker
-                                )
-                            )
-                        }
-                    />
-                ))}
-            </ListGroup>
+            {/* the bank hub shares this page's path, so it cannot return to the picker; it returns where the
+                picker would */}
+            <AddMoneyMethodList returnTo={picker} bankReturnTo={origin} />
         </PageStack>
     )
 }

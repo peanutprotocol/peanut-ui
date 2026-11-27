@@ -1,22 +1,22 @@
-import type { CreatorPageProps } from '@/features/tracked-links/contract'
-import { goVisitPosthogProperties } from '@/features/tracked-links/visit-properties'
 import type { DeviceOs, InAppBrowser } from './environment'
+import type { CreatorPageProps } from './types'
+
+// Read-out: mono engineering/ui/creator-pages.md
+export const CREATOR_PAGE_EVENTS = {
+    VIEWED: 'creator_page_viewed',
+    CTA_CLICKED: 'creator_page_cta_clicked',
+} as const
 
 export type CreatorPageEnvironment = { deviceOs: DeviceOs; inAppBrowser: InAppBrowser }
 
 export type CtaPosition = 'hero' | 'sticky' | 'footer'
 
-/**
- * Properties of creator_page_cta_clicked. The engine's helper supplies the labels of its
- * tracked_link_visit under the same names (link_id, signup_journey_id, page_variant and
- * page_experiment are the join), so one breakdown reads views and taps. Only the last three keys
- * are ours. The helper reads the sign-up journey: call this after `trackedLinkAnalyticsAllowed()`.
- * Read-out: mono engineering/ui/creator-pages.md.
- */
+/** The properties both events share. The tap adds `cta_position`. */
 export function creatorPageEventProperties(page: CreatorPageProps, environment: CreatorPageEnvironment) {
     return {
-        ...goVisitPosthogProperties(page),
-        creator_username: page.creator.username,
+        creator_username: page.username,
+        experiment_id: page.experimentId,
+        variant: page.variant,
         device_os: environment.deviceOs,
         in_app_browser: environment.inAppBrowser,
     }

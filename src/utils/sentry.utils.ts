@@ -80,6 +80,11 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[]; erro
     // to the user via the cooldown modal + floating timer. Normal UX state,
     // not an error; would otherwise flood Sentry on every retry.
     { pattern: /\/rain\/cards\/withdraw\/prepare/, statuses: [425] },
+    // /rain/cards/funding 409 collateral_not_deployed: Rain has not deployed the
+    // card's collateral contract yet (it follows the application's approval).
+    // Funding is set up later from the card screen or Home; nothing is lost.
+    // collateral_unavailable and every other 409 here still report.
+    { pattern: /\/rain\/cards\/funding(?:[?#]|$)/, statuses: [409], errorCodes: ['collateral_not_deployed'] },
     // /send-links/{pubKey} 404 = link not yet indexed (DB replication lag) or a
     // mistyped/withdrawn link — both expected, surfaced by the polling/claim UI.
     // The claim-success poller hits this every second until the claim lands.
@@ -373,18 +378,19 @@ function findSkipRule(url: string, status: number): (typeof SKIP_REPORTING)[numb
 }
 
 /**
- * Does the response body carry one of the rule's `errorCodes`? The backend
- * sends `{ error, message }`, so the code is `error`; a body that failed to
- * parse as JSON arrives here as text and is matched whole.
+ * Does the response body carry one of the rule's `errorCodes`? Most routes
+ * send `{ error, message }` with the code in `error`; the Rain funding routes
+ * send `{ error, code }` with the code in `code`. A body that failed to parse
+ * as JSON arrives here as text and is matched whole.
  */
 function bodyCarriesSkippedCode(codes: string[], body: JSONValue): boolean {
-    const code =
+    const fields =
         typeof body === 'string'
-            ? body
-            : typeof body === 'object' && body !== null && 'error' in body
-              ? String((body as { error: unknown }).error)
-              : ''
-    return codes.some((skipped) => code.includes(skipped))
+            ? [body]
+            : typeof body === 'object' && body !== null && !Array.isArray(body)
+              ? [body.error, body.code].filter((field) => field != null).map(String)
+              : []
+    return codes.some((skipped) => fields.some((field) => field.includes(skipped)))
 }
 
 /**

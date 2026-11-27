@@ -1,12 +1,11 @@
-import { NITA_A1_COPY as copy } from '../nita-a1.copy'
 import styles from '../NitaA1.module.css'
 
-/** "Con la invitación de Nita" under a store button. */
-export function A1InviteLine() {
+/** "With Nita's invite" under a store button: `lead`, then `name` in bold. */
+export function A1InviteLine({ lead, name }: { lead: string; name: string }) {
     return (
         <p className={styles.inv}>
-            {copy.inviteLead}
-            <b>{copy.inviteName}</b>
+            {lead}
+            <b>{name}</b>
         </p>
     )
 }

@@ -53,11 +53,12 @@ describe('depositRuleLines', () => {
         expect(keysOf(restricted, undefined)).toEqual(['ownName'])
     })
 
-    it('EUR: own account and a business on one line, another person capped like the US rail, with a floor', () => {
+    // the API sends EUR individuals as unavailable until Bridge enables them
+    // (api EUR_INDIVIDUAL_VOLUME_AGREED, false on origin/dev 2026-11-23)
+    it('EUR: own account and a business on one line, another person not yet, with a floor', () => {
         const { sender, rules } = DEPOSIT_RAIL_POLICY.SEPA_EU
         const lines = depositRuleLines(matching({ sender }), rules, money)
-        expect(lines.map((l) => l.key)).toEqual(['ownOrBusinessAny', 'individualCap', 'individualCapFamily', 'minimum'])
-        expect(lines.find((l) => l.key === 'individualCap')?.values).toEqual({ cap: 'EUR 4000' })
+        expect(lines.map((l) => l.key)).toEqual(['ownOrBusinessAny', 'individualNotYet', 'minimum'])
     })
 
     it('GBP: the same shape, with the sterling floor', () => {

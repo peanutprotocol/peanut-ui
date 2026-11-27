@@ -28,8 +28,17 @@ describe('saved-address.utils', () => {
     })
 
     it('counts whole days since the last use', () => {
-        const now = new Date('2026-08-26T12:00:00Z')
-        expect(daysSince('2026-08-26T01:00:00Z', now)).toBe(0)
-        expect(daysSince('2026-08-20T12:00:00Z', now)).toBe(6)
+        const now = new Date(2026, 7, 26, 12, 0)
+        expect(daysSince(new Date(2026, 7, 26, 1, 0).toISOString(), now)).toBe(0)
+        expect(daysSince(new Date(2026, 7, 20, 12, 0).toISOString(), now)).toBe(6)
+    })
+
+    // TASK-23927: 46 hours read "used yesterday" for a use two calendar days back.
+    // Local constructors keep the cases true in any TZ, as in dateGrouping.utils.test.ts.
+    it('counts calendar days in the local time zone, not 24-hour blocks', () => {
+        const now = new Date(2026, 9, 21, 12, 0)
+        expect(daysSince(new Date(2026, 9, 19, 14, 0).toISOString(), now)).toBe(2)
+        expect(daysSince(new Date(2026, 9, 21, 0, 30).toISOString(), new Date(2026, 9, 21, 23, 30))).toBe(0)
+        expect(daysSince(new Date(2026, 9, 20, 23, 30).toISOString(), new Date(2026, 9, 21, 0, 30))).toBe(1)
     })
 })

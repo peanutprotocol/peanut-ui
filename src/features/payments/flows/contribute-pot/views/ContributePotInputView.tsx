@@ -120,7 +120,7 @@ export function ContributePotInputView() {
                         {...(recipient.person
                             ? { recipientType: 'USERNAME' as const, person: recipient.person }
                             : { recipientType: 'ADDRESS' as const })}
-                        isVerified={!!recipient.userId}
+                        isVerified={recipient.isVerified}
                         message={request?.reference || ''}
                         fileUrl={request?.attachmentUrl || ''}
                         amount={totalAmount}

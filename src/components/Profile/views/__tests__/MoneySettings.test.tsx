@@ -760,7 +760,10 @@ describe('MoneySettings', () => {
         mockFlowCooldown = { retryAt: '2026-09-08T18:57:00Z' }
         render()
         expect(screen.getByText('Give it a little time')).toBeInTheDocument()
-        expect(screen.getByText(/You can try again after/)).toHaveTextContent(/Sep 8/)
+        expect(screen.getByText(/You can try again after/)).toHaveTextContent(
+            // the modal shows the local date, so derive it the same way or the day shifts by timezone
+            new Date('2026-09-08T18:57:00Z').toLocaleString('en-US', { month: 'short', day: 'numeric' })
+        )
         expect(screen.queryByText('Try again')).not.toBeInTheDocument()
         expect(screen.queryByText('Contact support')).not.toBeInTheDocument()
         expect(screen.queryByText('Too many requests')).not.toBeInTheDocument()
@@ -1245,6 +1248,39 @@ describe('MoneySettings', () => {
             expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(true)
             expect(mockFixableRejection).not.toHaveBeenCalled()
             expect(mockRestartIdentity).not.toHaveBeenCalled()
+        })
+
+        // TASK-24969: a final refusal read "Region unavailable" with the region
+        // body, and dropped the API's message for a code the app has no words for
+        it('names a final refusal without blaming the region, in the API words when the app has none', () => {
+            const words = 'Your information could not be verified.'
+            mockRails = [
+                {
+                    ...parked('some_code_without_app_copy', {
+                        status: 'blocked',
+                        blocking: {
+                            code: 'some_code_without_app_copy',
+                            userMessage: words,
+                            selfHealable: false,
+                            selfHealKind: 'contact-support',
+                        },
+                        nextAction: {
+                            key: 'contact-support',
+                            kind: 'contact-support',
+                            purpose: 'some_code_without_app_copy',
+                        },
+                    }),
+                    reason: { code: 'some_code_without_app_copy', userMessage: words },
+                },
+            ]
+            mockIsKycApproved = true
+            mockIdentity = { status: 'verified' }
+            render()
+            fireEvent.click(screen.getByText('EUR'))
+
+            expect(screen.getByText("We couldn't unlock this")).toBeInTheDocument()
+            expect(screen.getByText(words)).toBeInTheDocument()
+            expect(screen.queryByText('Region unavailable')).not.toBeInTheDocument()
         })
     })
 

@@ -7,13 +7,12 @@ import { parseUnits } from 'viem'
 import MantecaWithdrawFlow from '../page'
 
 const mockPush = jest.fn()
-let mockParams = 'country=argentina&method=bank-transfer&account=acct-qa'
+let mockParams = 'country=argentina&method=bank-transfer&account=qa-ar-1'
 let mockBalance: bigint | undefined = parseUnits('10', 6)
 // The first-use activation has its own tests; the amount screen behind it is what these cover.
-// the saved account the withdraw URL names by id; its alias never rides in the URL
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
-        user: { user: { userId: 'user-1' }, accounts: [{ id: 'acct-qa', type: 'manteca', identifier: 'qa.account' }] },
+        user: { user: { userId: 'user-1' }, accounts: [{ id: 'qa-ar-1', type: 'manteca', identifier: 'qa.account' }] },
         isAuthed: true,
         fetchUser: jest.fn(),
     }),
@@ -82,7 +81,7 @@ jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({ useResidence
 jest.mock('@/features/withdraw/views/PixKeySendView', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/services/manteca', () => ({ mantecaApi: {} }))
 
-const ARS_PARAMS = 'country=argentina&method=bank-transfer&account=acct-qa'
+const ARS_PARAMS = 'country=argentina&method=bank-transfer&account=qa-ar-1'
 const MINIMUM_ERROR = /withdraw amount must be at least/i
 const scrollIntoView = jest.fn()
 const originalScrollIntoView = Element.prototype.scrollIntoView

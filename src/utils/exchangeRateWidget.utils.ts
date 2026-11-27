@@ -1,5 +1,6 @@
 import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
-import { countryData } from '@/components/AddMoney/consts'
+import { COUNTRY_SPECIFIC_METHODS, countryData } from '@/components/AddMoney/consts'
+import { DEPOSIT_RAIL_ORDER, DEPOSIT_RAILS, isClaimable } from '@/features/deposit-accounts/rails'
 import { addMoneyCountryUrl, withdrawCountryUrl } from '@/utils/native-routes'
 
 // Representative country per multi-country currency's region (e.g. EUR has no
@@ -46,6 +47,22 @@ const addMoneyCountryForCurrencyHint = (
     }
 
     return undefined
+}
+
+// A country page whose bank deposit reads "Soon" while the deposit hub opens an
+// account in that currency contradicted the hub: Colombia (TASK-23925). Its
+// account screen answers instead; it shows the hub list when the user cannot open one.
+const addMoneyLandingUrl = (countryPath: string, native?: boolean): string => {
+    const country = countryData.find((item) => item.type === 'country' && item.path === countryPath)
+    const bank = country && COUNTRY_SPECIFIC_METHODS[country.id]?.add.find((m) => m.id === 'bank-transfer-add')
+    const corridor = bank?.isSoon
+        ? DEPOSIT_RAIL_ORDER.find(
+              (c) => DEPOSIT_RAILS[c].currency === country?.currency && isClaimable(DEPOSIT_RAILS[c])
+          )
+        : undefined
+    return corridor
+        ? `/add-money?method=bank&corridor=${corridor}&step=details`
+        : addMoneyCountryUrl(countryPath, native)
 }
 
 export const getExchangeRateWidgetRedirectRoute = (
@@ -98,7 +115,7 @@ export const getExchangeRateWidgetRedirectRoute = (
     // destination currency legitimately picks the country there.
     if (route === '/add-money' && unlockedRegionPaths) {
         const landing = addMoneyCountryForCurrencyHint(sourceCurrency, destinationCurrency, unlockedRegionPaths)
-        return landing ? addMoneyCountryUrl(landing, native) : '/add-money'
+        return landing ? addMoneyLandingUrl(landing, native) : '/add-money'
     }
 
     if (!countryPath) {
@@ -110,5 +127,5 @@ export const getExchangeRateWidgetRedirectRoute = (
     // non-existent route and the app hangs. The helpers emit `?country=` there.
     return route === '/withdraw'
         ? withdrawCountryUrl(countryPath, undefined, native)
-        : addMoneyCountryUrl(countryPath, native)
+        : addMoneyLandingUrl(countryPath, native)
 }

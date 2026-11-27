@@ -3,8 +3,11 @@ import { act, render } from '@testing-library/react'
 import { NitaA1 } from '../pages/juanacervio/NitaA1'
 import { creatorPageFixture } from '../preview-fixture'
 
-jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
-jest.mock('@/features/tracked-links/eligibility', () => ({ trackedLinkAnalyticsAllowed: () => false }))
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: jest.fn(), set_config: jest.fn(), config: {} },
+}))
+jest.mock('../consent', () => ({ creatorPageAnalyticsAllowed: () => false }))
 
 /** Stands in for the browser's observer: the test says how much of each button is on screen (0 to 1). */
 class FakeIntersectionObserver {
@@ -47,7 +50,9 @@ afterEach(() => {
 })
 
 function renderA1() {
-    const view = render(<NitaA1 {...creatorPageFixture('juanacervio', 'a1')} deviceOs="ios" liftCta={false} />)
+    const view = render(
+        <NitaA1 {...creatorPageFixture('juanacervio', 'a1')} deviceOs="ios" liftCta={false} locale="es-ar" />
+    )
     const stickyButton = view.container.querySelector('[data-cta-position="sticky"]')!
     const bar = stickyButton.parentElement!
     const hero = view.container.querySelector('[data-cta-position="hero"]')!

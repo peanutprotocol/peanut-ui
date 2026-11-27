@@ -20,6 +20,8 @@ import { copy, copyRx, footer, renderRedesign, setupState, textMatch } from '../
 const mockReplace = jest.fn()
 const mockPush = jest.fn()
 let mockRedirectUri: string | null = null
+const mockRemindLater = jest.fn()
+jest.mock('@/components/Setup/redesign/VerifyStart/useRemindLater', () => ({ useRemindLater: () => mockRemindLater }))
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ replace: mockReplace, push: mockPush }),
     useSearchParams: () => ({ get: (key: string) => (key === 'redirect_uri' ? mockRedirectUri : null) }),
@@ -351,9 +353,10 @@ describe('12 Celebration and the one verify screen (a default sign-up)', () => {
         expect(mockReplace).toHaveBeenCalledWith('/home')
     })
 
-    it('VS-5 Celebration Remind me later goes Home without starting the check', () => {
+    it('VS-5 Celebration Remind me later schedules the reminder and goes Home without starting the check', () => {
         const { container } = renderStep()
         fireEvent.click(later())
+        expect(mockRemindLater).toHaveBeenCalledTimes(1)
         expect(mockReplace).toHaveBeenCalledWith('/home')
         expect(mockReplace).toHaveBeenCalledTimes(1)
         expect(setupState(container)).toBe('buttons')

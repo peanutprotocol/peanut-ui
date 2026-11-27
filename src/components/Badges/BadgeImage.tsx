@@ -9,7 +9,7 @@ import { getBadgeIcon } from './badge.utils'
  * visible when that remote asset is missing or temporarily unavailable by
  * swapping only the failed image to generic Peanut artwork.
  */
-export const BadgeImage = ({ src, onError, unoptimized = true, ...props }: ImageProps) => {
+export const BadgeImage = ({ src, onError, unoptimized = true, style, ...props }: ImageProps) => {
     const [resolvedSrc, setResolvedSrc] = useState<ImageProps['src']>(src)
     const genericSrc = getBadgeIcon()
 
@@ -18,6 +18,11 @@ export const BadgeImage = ({ src, onError, unoptimized = true, ...props }: Image
     return (
         <Image
             {...props}
+            // a long press on badge art froze the iOS app (TASK-25259): the
+            // app-no-callout rule covers anchors and buttons only, so the image
+            // still got the OS image preview and drag lift
+            draggable={false}
+            style={{ WebkitTouchCallout: 'none', ...style }}
             src={resolvedSrc}
             unoptimized={unoptimized}
             onError={(event) => {

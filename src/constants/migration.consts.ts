@@ -91,6 +91,7 @@ export const MIGRATION_SURFACES = {
     LANDING_DOOR: 'landing_door',
     // the six star-feature landing pages (/peanut-card, /request-links, …)
     STAR_LP: 'star_lp',
+    CREATOR_PAGE: 'creator_page', // /c/<username> creator landing pages
 } as const
 
 export type MigrationSurface = (typeof MIGRATION_SURFACES)[keyof typeof MIGRATION_SURFACES]

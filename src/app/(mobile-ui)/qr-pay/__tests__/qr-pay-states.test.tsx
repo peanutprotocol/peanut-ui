@@ -352,6 +352,8 @@ jest.mock('@/utils/general.utils', () => ({
     isTxReverted: jest.fn(() => false),
     saveRedirectUrl: jest.fn(),
     formatCurrency: jest.fn((v: any) => v?.toString() ?? ''),
+    // real: Add money builds its returnTo through it
+    sanitizeRedirectURL: jest.requireActual('@/utils/cookie-url.utils').sanitizeRedirectURL,
 }))
 
 jest.mock('@/utils/perk.utils', () => ({
@@ -398,7 +400,15 @@ jest.mock('@/features/kill-switches/kill-switches-store', () => {
 const mockToastError = jest.fn()
 jest.mock('@/components/0_Bruddle/Toast', () => ({
     ...jest.requireActual('@/components/0_Bruddle/Toast'),
-    useToast: () => ({ error: mockToastError, success: jest.fn(), info: jest.fn(), attention: jest.fn() }),
+    useToast: () => ({
+        error: mockToastError,
+        success: jest.fn(),
+        info: jest.fn(),
+        attention: jest.fn(),
+        // the card cool-down pill (RainCooldownProvider)
+        toast: jest.fn(),
+        dismiss: jest.fn(),
+    }),
 }))
 
 jest.mock('@/context/ModalsContext', () => ({
@@ -542,6 +552,8 @@ jest.mock('@/services/services.types', () => ({
 // ---------- import component under test AFTER all mocks ----------
 import QRPayPage from '../page'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
+import { RainCooldownProvider } from '@/context/RainCooldownContext'
+import { SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
 
 // ---------- helpers ----------
 
@@ -679,7 +691,10 @@ function renderQrPay(params: Record<string, string> = {}) {
             <IntlWrapper>
                 <QueryClientProvider client={queryClient}>
                     <LoadingProvider>
-                        <QRPayPage />
+                        {/* the app mounts it above every route: it runs the card cool-down clock */}
+                        <RainCooldownProvider>
+                            <QRPayPage />
+                        </RainCooldownProvider>
                     </LoadingProvider>
                 </QueryClientProvider>
             </IntlWrapper>
@@ -1172,7 +1187,7 @@ describe('GROUP 2: Payment Form States', () => {
             fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
         })
 
-        await waitFor(() => expect(screen.getByText('Payment is processing')).toBeInTheDocument())
+        await waitFor(() => expect(screen.getByText('Payment pending')).toBeInTheDocument())
         expect(mockMantecaApi.savePixKey).not.toHaveBeenCalled()
     })
 
@@ -1223,7 +1238,7 @@ describe('GROUP 2: Payment Form States', () => {
             fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
         })
 
-        await waitFor(() => expect(screen.getByText('Payment is processing')).toBeInTheDocument())
+        await waitFor(() => expect(screen.getByText('Payment pending')).toBeInTheDocument())
         expect(mockMantecaApi.savePixKey).toHaveBeenCalledWith(pixKey, 'MARIA DA SILVA')
     })
 
@@ -1255,7 +1270,7 @@ describe('GROUP 2: Payment Form States', () => {
         expect(screen.getByRole('button', { name: 'Pay' })).toBeInTheDocument()
     })
 
-    test('Insufficient balance shows pay button disabled + error', async () => {
+    test('Insufficient balance shows the error and Add money in place of Pay', async () => {
         // Payment needs ~$18.4 but the displayed spendable is only $5, so the gate
         // (hasSufficientSpendableBalance) returns false. Revived from skip once the
         // gate moved onto the shared hook predicate (the original mock-shape drift).
@@ -1280,7 +1295,10 @@ describe('GROUP 2: Payment Form States', () => {
             expect(errorAlert).toBeInTheDocument()
             expect(errorAlert).toHaveTextContent('Your balance is $13.40 short. Add money to continue.')
         })
-        expect(screen.getByRole('button', { name: 'Pay' })).toBeDisabled()
+        // TASK-25444: the balance is the one blocker, so the way on is Add money, back to this scan
+        expect(screen.queryByRole('button', { name: 'Pay' })).toBeNull()
+        fireEvent.click(screen.getByRole('button', { name: 'Add money' }))
+        expect(mockRouterPush).toHaveBeenCalledWith(expect.stringMatching(/^\/add-money\?returnTo=/))
     })
 
     test.skip('Below minimum amount shows ErrorAlert', async () => {
@@ -1407,12 +1425,12 @@ describe('GROUP 2: Payment Form States', () => {
         await act(async () => {
             fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
         })
-        await waitFor(() => expect(screen.getByText('Payment is processing')).toBeInTheDocument())
+        await waitFor(() => expect(screen.getByText('Payment pending')).toBeInTheDocument())
 
         try {
             act(() => setBrazilPaused(true))
 
-            expect(screen.getByText('Payment is processing')).toBeInTheDocument()
+            expect(screen.getByText('Payment pending')).toBeInTheDocument()
             expect(screen.queryByText(en.brazilPause.title)).not.toBeInTheDocument()
             expect(screen.queryByText('Service Temporarily Unavailable')).not.toBeInTheDocument()
         } finally {
@@ -1604,8 +1622,8 @@ describe('GROUP 4: Success States', () => {
         ['CANCELLED', 'Payment cancelled', 'cancelled'],
         ['REFUNDED', 'Payment refunded', 'refunded'],
         ['FAILED', 'Payment did not complete', 'failed'],
-        ['ACTIVE', 'Payment is processing', 'processing'],
-        ['UNRECOGNIZED', 'Payment is processing', 'processing'],
+        ['ACTIVE', 'Payment pending', 'processing'],
+        ['UNRECOGNIZED', 'Payment pending', 'processing'],
     ])('a 200 %s result cannot show payment success', async (status, title, receiptStatus) => {
         await completeMantecaPayment({ status, perk: { eligible: true, amountSponsored: 5 } })
         await waitFor(() => expect(screen.getByText(title)).toBeInTheDocument())
@@ -3216,4 +3234,207 @@ test('cooldown replaces the QR provider prompt and dismissal leaves the flow', (
     fireEvent.click(screen.getByText("I'll try later"))
     expect(mockRouterReplace).toHaveBeenCalledWith('/home')
     expect(mockDismissCooldown).toHaveBeenCalledTimes(1)
+})
+
+/*
+ * Rain allows one collateral withdrawal signature at a time, so a second spend soon after the first
+ * gets a 425 (TASK-25316). Pay waits while the cool-down clock runs and works again once it ends, as
+ * on the other spend screens. Before, Pay stayed disabled and only a new scan got the user out.
+ */
+describe('card cool-down on Pay (TASK-25316)', () => {
+    beforeEach(() => jest.useFakeTimers({ advanceTimers: true }))
+    afterEach(() => jest.useRealTimers())
+
+    /** What `rainRequest` does on that 425: it starts the shared clock when Rain names the wait, then throws. */
+    function failNextSignWithCooldown(retryAfterSec: number | null) {
+        mockSignSpend.mockImplementationOnce(async () => {
+            if (retryAfterSec !== null) {
+                window.dispatchEvent(
+                    new CustomEvent('rain:cooldown', { detail: { retryAfterSec, message: 'cooling down' } })
+                )
+            }
+            throw Object.assign(new Error('A previous withdrawal is still active for this card. Try again shortly.'), {
+                name: 'RainCooldownError',
+                code: 'WITHDRAWAL_COOLDOWN_ACTIVE',
+                retryAfterSec,
+            })
+        })
+    }
+
+    async function tapPay() {
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+    }
+
+    async function payIntoCooldown(retryAfterSec: number | null) {
+        failNextSignWithCooldown(retryAfterSec)
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await tapPay()
+        await waitFor(() => expect(screen.getByTestId('error-alert')).toBeInTheDocument())
+    }
+
+    async function waitOutCooldown() {
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(31_000)
+        })
+    }
+
+    test('Pay stays disabled while the clock runs, under the live countdown', async () => {
+        await payIntoCooldown(30)
+        expect(screen.getByTestId('error-alert')).toHaveTextContent('Try again in 0:30.')
+        expect(screen.getByRole('button', { name: 'Pay' })).toBeDisabled()
+
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(10_000)
+        })
+        expect(screen.getByTestId('error-alert')).toHaveTextContent('Try again in 0:20.')
+        expect(screen.getByRole('button', { name: 'Pay' })).toBeDisabled()
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+    })
+
+    test('once the clock ends Pay works, and the tap is a new attempt without the old error', async () => {
+        await payIntoCooldown(30)
+        await waitOutCooldown()
+        expect(screen.getByTestId('error-alert')).toHaveTextContent(en.errors.rainCooldownRetryNow)
+        expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled()
+
+        // read the screen while the new attempt still waits for its signature
+        mockSignSpend.mockImplementationOnce(() => new Promise(() => {}))
+        await tapPay()
+        await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(2))
+        expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument()
+        // the lock is still live: it is signed again, not re-quoted
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+    })
+
+    test('a quote that expired during the cool-down is re-quoted on the tap, never signed', async () => {
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({ ...reconnectLock, expiresInMs: 20_000 })
+        await payIntoCooldown(30)
+        await waitOutCooldown()
+        expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled()
+
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({ ...reconnectLock, code: 'LOCK-FRESH' })
+        await tapPay()
+
+        await waitFor(() =>
+            expect(screen.getByTestId('quote-updated-notice')).toHaveTextContent(en.qrPay.reviewUpdatedQuote)
+        )
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2)
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+        expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument()
+        // the user confirms the new terms with one more tap
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+    })
+
+    test('a cool-down that names no wait leaves Pay usable at once', async () => {
+        await payIntoCooldown(null)
+        expect(screen.getByTestId('error-alert')).toHaveTextContent(en.errors.rainCooldownRetryShortly)
+        expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled()
+
+        await tapPay()
+        await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(2))
+    })
+})
+
+/*
+ * A typed amount gets its own lock on the Pay tap. Storing that lock re-ran the scan effect, which set
+ * the loading state back to Idle: Pay looked active for 1.6 to 3 s while the first tap was still
+ * preparing the signature (TASK-25316).
+ */
+test('a typed amount keeps Pay loading from its quote until the signature', async () => {
+    mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({ ...reconnectLock, code: '' })
+    renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+    await waitFor(() => expect(screen.getByText(reconnectLock.paymentRecipientName)).toBeInTheDocument())
+    await act(async () => {
+        fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '5' } })
+    })
+
+    // the tap's own quote arrives, and the signature is still being prepared
+    mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({ ...reconnectLock, code: 'LOCK-TYPED' })
+    mockSignSpend.mockImplementationOnce(() => new Promise(() => {}))
+    await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+    })
+    await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(1))
+
+    const pay = screen.getByTestId('qr-pay-confirm')
+    expect(pay).toHaveTextContent(en.loadingStates.preparingTransaction)
+    expect(pay).toBeDisabled()
+})
+
+/*
+ * An error that leaves Pay usable belongs to the attempt that set it. The next tap starts a new
+ * attempt, so the old banner goes at once instead of staying next to a loading Pay (TASK-25316).
+ */
+describe("the next Pay tap clears the last attempt's retryable error (TASK-25316)", () => {
+    async function tapPay() {
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+    }
+
+    async function failFirstTap(error: unknown) {
+        mockSignSpend.mockRejectedValueOnce(error)
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await tapPay()
+        await waitFor(() => expect(screen.getByTestId('error-alert')).toBeInTheDocument())
+    }
+
+    test.each([
+        ['a cancelled passkey', new Error('User action is not allowed'), en.qrPay.errors.confirmTransaction],
+        ['a failure before the signature', new Error('rain prepare unavailable'), en.qrPay.errors.preparationFailed],
+    ])('%s: the next tap shows no old banner while it prepares', async (_case, error, copy) => {
+        await failFirstTap(error)
+        expect(screen.getByTestId('error-alert')).toHaveTextContent(copy)
+
+        mockSignSpend.mockImplementationOnce(() => new Promise(() => {}))
+        await tapPay()
+        await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(2))
+        expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument()
+        const pay = screen.getByTestId('qr-pay-confirm')
+        expect(pay).toHaveTextContent(en.loadingStates.preparingTransaction)
+        expect(pay).toBeDisabled()
+    })
+
+    test('a second failure shows its own error, and Pay is usable again', async () => {
+        await failFirstTap(new Error('User action is not allowed'))
+        mockSignSpend.mockRejectedValueOnce(new Error('rain prepare unavailable'))
+        await tapPay()
+        await waitFor(() =>
+            expect(screen.getByTestId('error-alert')).toHaveTextContent(en.qrPay.errors.preparationFailed)
+        )
+        expect(screen.getByTestId('error-alert')).not.toHaveTextContent(en.qrPay.errors.confirmTransaction)
+        expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled()
+    })
+
+    test('a failed re-quote: the tap that asks for the quote again clears its error', async () => {
+        mockSignSpend.mockRejectedValueOnce(new SpendRecoveryQuoteReviewError(new Error('controller rotated')))
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        mockMantecaApi.initiateQrPayment.mockRejectedValueOnce(new Error('init unavailable'))
+        await tapPay()
+        await waitFor(() => expect(screen.getByTestId('error-alert')).toBeInTheDocument())
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+
+        mockMantecaApi.initiateQrPayment.mockImplementationOnce(() => new Promise(() => {}))
+        await tapPay()
+        await waitFor(() => expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(3))
+        expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument()
+        expect(screen.getByTestId('qr-pay-confirm')).toBeDisabled()
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+    })
+
+    test('a blocking error stays: Pay is disabled and a tap starts nothing', async () => {
+        await failFirstTap(new SessionKeyGrantRequiredError({ kind: 'no-card' }))
+        expect(screen.getByTestId('error-alert')).toHaveTextContent(en.qrPay.errors.cardAuthNeeded)
+        expect(screen.getByRole('button', { name: 'Pay' })).toBeDisabled()
+
+        await tapPay()
+        expect(screen.getByTestId('error-alert')).toHaveTextContent(en.qrPay.errors.cardAuthNeeded)
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+    })
 })

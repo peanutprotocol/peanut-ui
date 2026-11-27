@@ -23,7 +23,8 @@ const APP_DIR = path.join(__dirname, '..', 'src', 'app')
 // everything else (marketing, blog, locale pages) is web-only.
 const ITEMS_TO_DISABLE = [
     { path: 'api', type: 'dir' },
-    { path: 'go', type: 'dir' }, // web resolver; native uses exported /app bootstrap
+    { path: 'go', type: 'dir' }, // web-only redirect map
+    { path: 'c', type: 'dir' }, // web-only creator landing pages
     { path: 'q', type: 'dir' }, // marketing QR handoff is web-only
     { path: 'sitemap.ts', type: 'file' },
     { path: 'robots.ts', type: 'file' },
@@ -46,7 +47,7 @@ const ITEMS_TO_DISABLE = [
     { path: 'peanut-card', type: 'dir' }, // star-feature LP (web-only)
     { path: 'request-links', type: 'dir' }, // star-feature LP (web-only)
     { path: 'self-custody', type: 'dir' }, // star-feature LP (web-only)
-    { path: 'maintenance', type: 'dir' }, // maintenance page
+    // maintenance stays: full maintenance sends native users to /maintenance (TASK-24130)
     { path: 'not-found.tsx', type: 'file' }, // custom 404 (not needed in native)
     { path: 'crisp-proxy', type: 'dir' }, // crisp iframe proxy (handled differently in native)
     { path: 'receipt', type: 'dir' }, // receipt pages (server component, not needed in native)
@@ -68,9 +69,6 @@ const ITEMS_TO_DISABLE = [
     // Team-only desktop web tool. force-dynamic cannot be statically exported, and
     // pruneExportedAssets() deletes /dev from the export anyway, so building it is waste.
     { path: '(mobile-ui)/dev/payment-graph', type: 'dir' },
-    // Web-only preview of the /go creator pages. A dynamic route without generateStaticParams
-    // cannot be statically exported.
-    { path: 'dev/creator-pages', type: 'dir' },
 ]
 
 module.exports = { ITEMS_TO_DISABLE }
@@ -754,6 +752,8 @@ function pruneExportedAssets() {
     // public/ is copied wholesale, so the press kit rides along (~14 MB of team
     // photos, brand PDF and EPS) even though /[locale]/press is disabled here.
     targets.push(path.join(outDir, 'press'))
+    // The images of the web-only /c creator pages.
+    targets.push(path.join(outDir, 'creator-pages'))
 
     for (const target of targets) {
         if (fs.existsSync(target)) {

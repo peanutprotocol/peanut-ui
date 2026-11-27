@@ -10,10 +10,8 @@ export const WITHDRAW_BACK_FALLBACK_URL = '/withdraw'
 import { withdrawCountryUrl } from '@/utils/native-routes'
 
 /**
- * /withdraw/manteca with its query contract (method, country, amount,
- * destination, isSavedAccount). The readers also accept `account=<saved
- * account id>`, which links made by the ui#4201 bundle carry. Undefined/empty
- * values are omitted.
+ * /withdraw/manteca with its query contract (method, country, amount, and
+ * `account`, a saved account's id). Undefined/empty values are omitted.
  */
 export function mantecaWithdrawUrl(params: Record<string, string | undefined>): string {
     const search = new URLSearchParams()

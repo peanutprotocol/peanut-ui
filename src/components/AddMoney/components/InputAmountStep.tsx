@@ -26,7 +26,7 @@ interface InputAmountStepProps {
     error: string | null
     // client-side amount validation — renders as the field's own error under the input
     validationError?: string | null
-    setCurrencyAmount: (amount: string | undefined) => void
+    setCurrencyAmount?: (amount: string | undefined) => void
     currencyData?: ICurrency
     setCurrentDenomination?: (denomination: string) => void
     initialDenomination?: string
@@ -43,6 +43,8 @@ interface InputAmountStepProps {
     details?: React.ReactNode
     // a dynamic Pix code carries the amount, so the "must match" helper does not apply
     amountFixedByCode?: boolean
+    // replaces "Continue" where the next step is worth naming
+    submitLabel?: string
 }
 
 const InputAmountStep = ({
@@ -64,6 +66,7 @@ const InputAmountStep = ({
     providerFinePrint,
     details,
     amountFixedByCode = false,
+    submitLabel,
 }: InputAmountStepProps) => {
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
@@ -114,7 +117,7 @@ const InputAmountStep = ({
                         <AmountInput
                             initialAmount={tokenAmount}
                             initialDenomination={initialDenomination}
-                            setPrimaryAmount={setCurrencyAmount}
+                            setPrimaryAmount={(value) => setCurrencyAmount?.(value)}
                             setSecondaryAmount={setTokenAmount}
                             setDisplayedAmount={setDisplayedAmount}
                             secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
@@ -156,7 +159,7 @@ const InputAmountStep = ({
                     className="w-full"
                     loading={isLoading}
                 >
-                    {tCommon('continue')}
+                    {submitLabel ?? tCommon('continue')}
                 </Button>
                 {/* fine print sits under the CTA, never between the amount and the button */}
                 {providerFinePrint}

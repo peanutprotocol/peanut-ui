@@ -49,6 +49,7 @@ import { useAuth } from '@/context/authContext'
 import { AccountType } from '@/interfaces/interfaces'
 import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { WITHDRAW_BACK_FALLBACK_URL } from '@/features/withdraw/routes'
+import { useSavedAccountParam } from '@/features/withdraw/useSavedAccountParam'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
@@ -229,19 +230,10 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     // USD amount handed over by the shared /withdraw amount step (TASK-21664)
     const [urlAmount] = useWithdrawAmount()
-    // A saved account arrives as `destination` + `isSavedAccount=true`, or by its id
-    // (`account`) in links made by the ui#4201 bundle (mantecaWithdrawUrl).
     const { user } = useAuth()
-    const savedAccountId = searchParams.get('account')
-    const savedAccountIdentifier = savedAccountId
-        ? (user?.accounts.find((account) => account.id === savedAccountId && account.type === AccountType.MANTECA)
-              ?.identifier ?? null)
-        : null
-    const paramAddress = searchParams.get('destination') ?? savedAccountIdentifier
-    const isSavedAccount =
-        (searchParams.get('isSavedAccount') === 'true' || !!savedAccountIdentifier) &&
-        !!paramAddress &&
-        validateCbuCvuAlias(paramAddress).valid
+    // a saved account arrives by id (`SAVED_ACCOUNT_PARAM`); its CBU or alias never rides in the URL
+    const paramAddress = useSavedAccountParam(searchParams)?.identifier ?? null
+    const isSavedAccount = !!paramAddress && validateCbuCvuAlias(paramAddress).valid
     const [destinationConfirmed, setDestinationConfirmed] = useState(isSavedAccount)
     const [destinationAddress, setDestinationAddress] = useState<string>(paramAddress ?? '')
     const [selectedBank, setSelectedBank] = useState<MantecaBankCode | null>(null)
@@ -370,7 +362,7 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
         () => null
     )
     const savedAccountForDestination = pendingDestination
-        ? (user?.accounts.find(
+        ? (user?.accounts?.find(
               (account) =>
                   account.type === AccountType.MANTECA && account.identifier.toLowerCase() === pendingDestination
           )?.id ?? null)
@@ -381,7 +373,7 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
     // booked since the send began: every other Manteca withdrawal here is held.
     const heldAccountId = intent ? mantecaWithdrawAccountId(intent) : null
     const readDestination = heldAccountId
-        ? (user?.accounts.find((account) => account.id === heldAccountId)?.identifier.toLowerCase() ?? null)
+        ? (user?.accounts?.find((account) => account.id === heldAccountId)?.identifier.toLowerCase() ?? null)
         : null
     const readThisWithdrawal = useCallback(
         (send: PendingChargeSend) => readWithdrawal(send, readDestination, setBookedAmounts),

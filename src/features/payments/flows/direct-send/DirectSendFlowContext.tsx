@@ -24,6 +24,8 @@ export interface DirectSendRecipient {
     address: Address
     userId?: string
     fullName?: string
+    /** The profile's verified flag, the one the contacts list shows (TASK-21376). */
+    isVerified: boolean
     /** The person behind the username, for their avatar (TASK-23756). */
     person: Person
 }
@@ -76,14 +78,22 @@ const DirectSendFlowContext = createContext<DirectSendFlowContextType | undefine
 interface SendFlowProviderProps {
     children: ReactNode
     initialRecipient?: DirectSendRecipient
+    /** A past send's amount (USD) and note, offered by "Send again" as an editable suggestion. */
+    initialDraft?: { amount: string; message?: string }
 }
 
-export const DirectSendFlowProvider: React.FC<SendFlowProviderProps> = ({ children, initialRecipient }) => {
-    const [amount, setAmount] = useState<string>('')
-    const [usdAmount, setUsdAmount] = useState<string>('')
+export const DirectSendFlowProvider: React.FC<SendFlowProviderProps> = ({
+    children,
+    initialRecipient,
+    initialDraft,
+}) => {
+    const [amount, setAmount] = useState<string>(initialDraft?.amount ?? '')
+    const [usdAmount, setUsdAmount] = useState<string>(initialDraft?.amount ?? '')
     const [currentView, setCurrentView] = useState<DirectSendFlowView>('INITIAL')
     const [recipient, setRecipient] = useState<DirectSendRecipient | null>(initialRecipient ?? null)
-    const [attachment, setAttachment] = useState<DirectSendAttachment>({})
+    const [attachment, setAttachment] = useState<DirectSendAttachment>(
+        initialDraft?.message ? { message: initialDraft.message } : {}
+    )
     const [charge, setCharge] = useState<TRequestChargeResponse | null>(null)
     const [payment, setPayment] = useState<PaymentCreationResponse | null>(null)
     const [txHash, setTxHash] = useState<Hash | null>(null)

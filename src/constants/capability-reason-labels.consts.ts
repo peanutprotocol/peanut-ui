@@ -99,6 +99,11 @@ export const REASON_CODE_KEYS = {
     // neutral on purpose: the UK line names UK regulation, which is false for
     // a Japanese or Sudanese resident.
     residence_bank_restricted: 'reasons.residence_bank_restricted',
+    // Bridge refused one account type in the user's region (its per-endorsement
+    // `endorsement_not_available_in_customers_region`): the line names that
+    // account only. A screen that knows the currency names it
+    // (`depositAccounts.list.regionUnavailableBody`, TASK-24969).
+    bridge_region_unavailable: 'reasons.bridge_region_unavailable',
 } as const
 
 export type KnownReasonCode = keyof typeof REASON_CODE_KEYS

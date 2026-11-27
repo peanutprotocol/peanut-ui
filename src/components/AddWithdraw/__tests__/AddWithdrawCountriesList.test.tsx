@@ -709,7 +709,10 @@ describe('restart cooldown in add and withdraw flows', () => {
         mockCooldown = { retryAt: '2026-09-08T18:57:00Z' }
         render(<AddWithdrawCountriesList flow={flow} />)
         expect(screen.getByText('Give it a little time')).toBeInTheDocument()
-        expect(screen.getByText(/You can try again after/)).toHaveTextContent(/Sep 8/)
+        expect(screen.getByText(/You can try again after/)).toHaveTextContent(
+            // the modal shows the local date, so derive it the same way or the day shifts by timezone
+            new Date('2026-09-08T18:57:00Z').toLocaleString('en-US', { month: 'short', day: 'numeric' })
+        )
         expect(screen.queryByText('Too many requests')).not.toBeInTheDocument()
         expect(screen.queryByText('Contact support')).not.toBeInTheDocument()
         fireEvent.click(screen.getByText("I'll try later"))
@@ -930,6 +933,15 @@ describe('bank country back navigation', () => {
             query ? '/withdraw?showAll=true&method=bank' : '/withdraw?showAll=true&rail=bank'
         )
         expect(mockSetSelectedMethod).toHaveBeenCalledWith(null)
+    })
+
+    // TASK-23925: Rates & fees sends its page as returnTo; back skipped it for the hub.
+    it.each(['add', 'withdraw'] as const)('%s: back returns to the page named in returnTo', (flow) => {
+        const origin = '/profile/exchange-rate?from=ARS&to=USD'
+        mockSearchParams = new URLSearchParams({ returnTo: origin })
+        render(<AddWithdrawCountriesList flow={flow} />)
+        fireEvent.click(screen.getByTestId('nav-header'))
+        expect(mockReturnTo).toHaveBeenCalledWith(origin)
     })
 })
 

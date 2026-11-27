@@ -32,7 +32,7 @@ jest.mock('@/hooks/useTokenChainIcons', () => ({
     useTokenChainIcons: () => ({ resolvedChainName: 'Solana', resolvedTokenSymbol: 'USDC' }),
 }))
 
-const BALANCE_WARNING = 'Not enough balance. Add funds to continue.'
+const BALANCE_WARNING = 'Not enough balance. Add money to continue.'
 const BOOKKEEPING_ERROR = 'The transfer completed, but Peanut could not record it.'
 
 const baseProps = {

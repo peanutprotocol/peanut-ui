@@ -279,3 +279,46 @@ describe('the account provider on the claim screen (TASK-23295)', () => {
         expect(screen.queryByRole('link', { name: 'Bridge terms' })).not.toBeInTheDocument()
     })
 })
+
+// TASK-24913: the subheading told EUR holders to share their details with
+// clients, but another individual cannot pay a EUR account (own account and businesses only)
+describe('the subheading names the payers the account takes', () => {
+    it('names businesses, not clients, where another individual cannot pay', () => {
+        // as the API sends EUR today (bridge-adapter, EUR_INDIVIDUAL_VOLUME_AGREED = false)
+        const eur: ClaimableCorridor = {
+            ...CLAIMABLE_EUR,
+            matching: { sender: 'business-only' },
+            rules: {
+                ownAccount: { allowed: true },
+                thirdPartyBusiness: 'unlimited',
+                thirdPartyIndividual: { policy: 'unavailable' },
+                min: { amount: '1', currency: 'EUR' },
+            },
+        }
+        claim({ terms: eur })
+        expect(screen.getByText(messages.depositAccounts.claim.subheadingBusinessPayers)).toBeInTheDocument()
+        expect(screen.queryByText(messages.depositAccounts.claim.subheading)).not.toBeInTheDocument()
+    })
+
+    // Chip on ui#4230: a Texas resident's USD preview takes only the holder's own transfers
+    it("names only the holder's own accounts where nobody else can pay", () => {
+        const texasUsd: ClaimableCorridor = {
+            ...CLAIMABLE_USD_PREVIEW,
+            matching: { sender: 'own-name-only' },
+            rules: {
+                ownAccount: { allowed: true },
+                thirdPartyBusiness: 'unavailable',
+                thirdPartyIndividual: { policy: 'unavailable' },
+                reason: 'state-restricted',
+            },
+        }
+        claim({ rail: DEPOSIT_RAILS.ACH_US, terms: texasUsd })
+        expect(screen.getByText(messages.depositAccounts.claim.subheadingOwnAccounts)).toBeInTheDocument()
+        expect(screen.queryByText(messages.depositAccounts.claim.subheadingBusinessPayers)).not.toBeInTheDocument()
+    })
+
+    it('keeps clients where another person can pay', () => {
+        claim({ rail: DEPOSIT_RAILS.ACH_US, terms: CLAIMABLE_USD_PREVIEW })
+        expect(screen.getByText(messages.depositAccounts.claim.subheading)).toBeInTheDocument()
+    })
+})

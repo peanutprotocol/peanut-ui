@@ -52,6 +52,7 @@ export const rainCollateralErrorMessage = (error: unknown): string | null => {
 export type FriendlyErrorCode =
     | 'mantecaAccountRejected'
     | 'bankAccountNotUsable'
+    | 'belowMinBridgeAmount'
     | 'transferTemporarilyUnavailable'
     | 'userOpReverted'
     | 'balanceSettling'
@@ -150,6 +151,9 @@ const WIRE_CODE_MAP: Partial<Record<ApiErrorCode, FriendlyErrorCode>> = {
     // A saved bank account the provider refused for good (TASK-23054). The API
     // has already switched it off, so a retry cannot help: add it again.
     [API_ERROR_CODES.BANK_ACCOUNT_NOT_USABLE]: 'bankAccountNotUsable',
+    // the backend's sentence names the minimum but is English only, and the
+    // response carries no minimum field to fill a localized one (TASK-23877)
+    [API_ERROR_CODES.BELOW_MIN_BRIDGE_AMOUNT]: 'belowMinBridgeAmount',
 }
 
 /** Both cooldown codes render the same copy — the distinction between a
@@ -212,13 +216,6 @@ const classifyError = (error: unknown): FriendlyError => {
     // Fixed copy on purpose: screens store this as a string, so a number here
     // would freeze. CooldownErrorText swaps in the live countdown on render.
     if (wire && COOLDOWN_WIRE_CODES.includes(wire)) return code('rainCooldownRetryShortly')
-    // The backend already ships a specific, user-ready sentence for a
-    // sub-minimum bridge ("Amount ($2.00) is below the $5 minimum to bridge to
-    // ETHEREUM.") with the interpolated amounts and chain — pass it through
-    // rather than collapsing to a generic coded string.
-    if (wire === API_ERROR_CODES.BELOW_MIN_BRIDGE_AMOUNT) {
-        return message ? passthrough(message) : code('genericSupport')
-    }
     if (wire) {
         const mapped = WIRE_CODE_MAP[wire as ApiErrorCode]
         if (mapped) return code(mapped)

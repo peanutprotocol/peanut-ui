@@ -17,9 +17,11 @@ const getServerBrowserDetectionSnapshot = (): boolean => false
 const UnsupportedBrowserModalContent = ({
     allowClose = true,
     visible = false,
+    onDismiss,
 }: {
     allowClose?: boolean
     visible?: boolean
+    onDismiss?: () => void
 }) => {
     const t = useTranslations('global')
     const searchParams = useSearchParams()
@@ -50,6 +52,7 @@ const UnsupportedBrowserModalContent = ({
         // Registration remains gated by the setup flow's capability check.
         if (allowClose || modalCopy.kind === 'passkey') {
             setHasDismissedDetection(true)
+            onDismiss?.()
         }
     }
 
@@ -80,7 +83,7 @@ const UnsupportedBrowserModalContent = ({
 }
 
 // suspense is being used to prevent hydration errors that may be caused by useSearchParams
-const UnsupportedBrowserModal = (props: { allowClose?: boolean; visible?: boolean }) => {
+const UnsupportedBrowserModal = (props: { allowClose?: boolean; visible?: boolean; onDismiss?: () => void }) => {
     return (
         <Suspense fallback={null}>
             <UnsupportedBrowserModalContent {...props} />

@@ -6,6 +6,8 @@ import { KycRegionRestrictedModal } from '../../modals/KycRegionRestrictedModal'
 import { InitiateKycModal } from '../../InitiateKycModal'
 
 let mockRegionRestricted = false
+// Remind me later's profile write is useRemindLater's own suite
+jest.mock('@/components/Setup/redesign/VerifyStart/useRemindLater', () => ({ useRemindLater: () => jest.fn() }))
 jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({ isRegionRestricted: mockRegionRestricted }),

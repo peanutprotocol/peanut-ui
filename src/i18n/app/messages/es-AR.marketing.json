@@ -16,7 +16,7 @@
     "errors": {
         "mantecaAccountRejectedForCountry": "No podés agregar ni retirar dinero en {country}. Podés seguir pagando con QR.",
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Intentalo de nuevo en unos segundos.",
-        "notEnoughBalanceAddFunds": "Saldo insuficiente. Agregá fondos para continuar.",
+        "notEnoughBalanceAddFunds": "Saldo insuficiente. Agregá dinero para continuar.",
         "balanceShortBy": "A tu saldo le faltan ${amount}. Agregá dinero para continuar.",
         "insufficientFunds": "No tenés fondos suficientes.",
         "userRejectedTransaction": "Confirmá la transacción en tu billetera.",
@@ -48,6 +48,7 @@
         "staleCardApproval": "Necesitás volver a habilitar tu tarjeta antes de retirar. Solo toma un toque con tu passkey.",
         "providerRejected": "Nuestro socio de pagos no pudo aceptar esta operación para tu cuenta. No se movió plata. Contactá a soporte.",
         "bankAccountNotUsable": "Esta cuenta bancaria ya no se puede usar. Agregala de nuevo.",
+        "belowMinBridgeAmount": "Este monto está por debajo del mínimo para esta red. Probá con un monto mayor o con otra red.",
         "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Esperá un momento e intentalo de nuevo.",
         "linkTransactionHashFetch": "No pudimos cargar la transacción de este enlace. Actualizá la página e intentalo de nuevo.",
         "cardApprovalCancelled": "Aprobación cancelada: podés volver a intentarlo cuando quieras.",
@@ -79,7 +80,6 @@
             "logIn": "Iniciá sesión en la web"
         },
         "smartLink": {
-            "openApp": "Abrir Peanut",
             "pickStore": "Elegí tu tienda y descargá la app."
         }
     },

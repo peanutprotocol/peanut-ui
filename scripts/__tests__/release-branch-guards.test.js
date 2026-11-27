@@ -155,7 +155,9 @@ function runFloors(bridgeActive, androidBridgeActive = false) {
     const script = `
         node() {
             case "$*" in
-                *native-floor*) printf '1.6.0\\n';;
+                # the newest tag is never the delivery floor (TASK-25355)
+                *native-floor*) return 1;;
+                *--shared*) printf '1.6.0\\n';;
                 *'--platform android'*) printf '1.6.0\\n';;
                 *'--platform ios'*) printf '1.5.0\\n';;
                 *) return 1;;
@@ -294,7 +296,8 @@ describe('release-ota.yml publishes main source', () => {
         const workflow = fs.readFileSync(path.join(workflowsDir, 'release-ota.yml'), 'utf8')
         expect(workflow).toMatch(/push:\n\s+branches: \[main\]/)
         // A content publish moves only the submodule pointer and starts no release.
-        expect(workflow).toMatch(/branches: \[main\]\n(?:\s+#.*\n)*\s+paths-ignore: \['src\/content'\]\n/)
+        // release-source-guard.test.js checks the rest of the list.
+        expect(workflow).toMatch(/branches: \[main\]\n(?:\s+#.*\n)*\s+paths-ignore:\n\s+- 'src\/content'\n/)
         const gitmodules = fs.readFileSync(path.join(__dirname, '..', '..', '.gitmodules'), 'utf8')
         expect(gitmodules).toContain('path = src/content\n')
         expect(workflow).toMatch(/workflow_dispatch:\n\s+inputs:\n\s+sha:/)
@@ -846,6 +849,117 @@ describe('store builds never half-release', () => {
                 'DISCORD_WEBHOOK: ${{ secrets.RELEASE_ALERT_DISCORD_WEBHOOK || secrets.CONTENT_PIPELINE_DISCORD_WEBHOOK }}'
             )
             expect(workflow).toContain('bash scripts/post-release-alert.sh')
+        }
+    })
+})
+
+describe('an unchanged bundle ships nothing, and any doubt releases', () => {
+    const ota = fs.readFileSync(path.join(workflowsDir, 'release-ota.yml'), 'utf8')
+    const native = fs.readFileSync(path.join(workflowsDir, 'release-native.yml'), 'utf8')
+
+    function compareShell() {
+        const step = ota.indexOf('- name: Compare the bundle with production')
+        const runStart = ota.indexOf('run: |', step)
+        const nextStep = ota.indexOf('\n            # release-native.yml reads this marker', runStart)
+        return ota
+            .slice(runStart + 'run: |\n'.length, nextStep)
+            .split('\n')
+            .map((line) => line.replace(/^ {18}/, ''))
+            .join('\n')
+    }
+
+    // GitHub runs a step as `bash -e -o pipefail`; continue-on-error turns a
+    // failed step into "release as usual" because skip=true is never written.
+    function runCompare({ event = 'push', cutover = 'false', bootstrap = 'active', fail = '', same = true } = {}) {
+        const dir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'ota-compare-step-'))
+        fs.mkdirSync(path.join(dir, '.next'))
+        fs.writeFileSync(path.join(dir, '.next', 'BUILD_ID'), 'buildIdAAAAAAAAAAAAAA')
+        const script = `
+            git() { printf 'abc1234\\n'; }
+            node() {
+                case "$*" in
+                    *" digest "*) [ "$FAIL" = digest ] && return 1; printf 'sha256:%064d\\n' 0;;
+                    *live-source*) [ "$FAIL" = "live-$PLATFORM" ] && return 1; printf '%040d\\n' 0;;
+                    *" compare "*) [ "$SAME" = true ];;
+                    *) return 1;;
+                esac
+            }
+            ${compareShell()}
+        `
+        const result = spawnSync('bash', ['-e', '-o', 'pipefail', '-c', script], {
+            cwd: dir,
+            encoding: 'utf8',
+            env: {
+                ...process.env,
+                GITHUB_EVENT_NAME: event,
+                GITHUB_OUTPUT: path.join(dir, 'output'),
+                GITHUB_STEP_SUMMARY: path.join(dir, 'summary'),
+                RUNNER_TEMP: dir,
+                OTA_SOURCE_SHA: 'a'.repeat(40),
+                OTA_DISPLAY_VERSION: '1.45.1',
+                MIGRATION_CUTOVER: cutover,
+                IOS_BRIDGE_PREVIOUS: bootstrap,
+                ANDROID_BRIDGE_PREVIOUS: 'active',
+                FAIL: fail,
+                SAME: String(same),
+            },
+        })
+        const read = (file) =>
+            fs.existsSync(path.join(dir, file)) ? fs.readFileSync(path.join(dir, file), 'utf8') : ''
+        const outcome = { status: result.status, output: read('output'), marker: read('ota-bundle-unchanged/head.sha') }
+        fs.rmSync(dir, { recursive: true, force: true })
+        return outcome
+    }
+
+    it('skips only a plain main push whose bundle both production channels serve', () => {
+        const skipped = runCompare()
+        expect(skipped.status).toBe(0)
+        expect(skipped.output).toBe(`digest=sha256:${'0'.repeat(64)}\nskip=true\n`)
+        expect(skipped.marker).toBe(`${'a'.repeat(40)}\n`)
+    })
+
+    it.each([
+        ['a different bundle', { same: false }],
+        ['a dispatch', { event: 'workflow_dispatch' }],
+        ['a cutover', { cutover: 'true' }],
+        ['a bridge bootstrap', { bootstrap: 'inactive' }],
+        ['an unreadable iOS channel', { fail: 'live-ios' }],
+        ['an unreadable Android channel', { fail: 'live-android' }],
+        ['a digest error', { fail: 'digest' }],
+    ])('releases on %s', (_case, options) => {
+        const result = runCompare(options)
+        expect(result.output).not.toContain('skip=true')
+        expect(result.marker).toBe('')
+    })
+
+    it('cannot fail the job, and gates every later deploy step, the tag and the store build on the skip', () => {
+        const compare = ota.indexOf('- name: Compare the bundle with production')
+        expect(ota.slice(compare, ota.indexOf('run: |', compare))).toContain('continue-on-error: true')
+        expect(ota.indexOf('- name: Verify build output')).toBeLessThan(compare)
+        const later = ota.slice(compare, ota.indexOf('\n    tag:'))
+        const steps = later.split('\n            - name: ').slice(1)
+        expect(steps.map((step) => step.split('\n')[0])).toEqual([
+            'Record unchanged-bundle OTA',
+            'Resolve bundle version',
+            'Resolve native floor',
+            'Check the native surface still matches that binary',
+            'Prepare disabled candidate channel',
+            'Upload bundles to Capgo',
+            'Verify the floors reached the bundles',
+            'Promote verified bundles to platform production',
+            'Deployment summary',
+        ])
+        for (const step of steps.slice(1)) expect(step).toContain("if: steps.unchanged.outputs.skip != 'true'")
+        expect(ota).toContain("github.run_attempt == 1 && needs.deploy.outputs.bundle_unchanged != 'true' }}")
+        expect(ota).toContain('name: ota-bundle-unchanged-${{ github.run_id }}')
+        expect(native).toContain('name: ota-bundle-unchanged-${{ github.event.workflow_run.id }}')
+        expect(native).toContain('artifacts?name=ota-bundle-unchanged-$OTA_RUN_ID')
+        expect(native.match(/needs\.resolve\.outputs\.ota_unchanged != 'true'/g)).toHaveLength(2)
+        for (const name of ['Look for', 'Read', 'Verify']) {
+            const step = native.indexOf(`- name: ${name} the unchanged-bundle OTA marker`)
+            expect(native.slice(step, native.indexOf('\n            - ', step + 1))).toContain(
+                'continue-on-error: true'
+            )
         }
     })
 })

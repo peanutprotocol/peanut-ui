@@ -1,9 +1,7 @@
 import { FLAG_DEFAULTS } from '@/utils/featureFlag.utils'
-import { NOTIFICATIONS_EXPERIMENT_FLAG, readNotificationsVariant } from '@/features/setup/notificationsExperiment'
 import { SCREENS } from './catalogue'
 import { FLAGS, FLAG_EXEMPTIONS, FLAG_VARIANTS } from './flag-variants'
 
-const flagState = { value: undefined as unknown }
 jest.mock('posthog-js', () => ({
     __esModule: true,
     default: {
@@ -11,7 +9,7 @@ jest.mock('posthog-js', () => ({
             hasLoadedFlags: true,
             getFlagVariants: () => ({}),
         },
-        getFeatureFlag: () => flagState.value,
+        getFeatureFlag: () => undefined,
         isFeatureEnabled: () => false,
         onFeatureFlags: () => () => {},
         capture: () => {},
@@ -20,16 +18,7 @@ jest.mock('posthog-js', () => ({
 
 describe('PostHog flag variants in the Screen Library', () => {
     it('lists every flag the app reads', () => {
-        expect(Object.keys(FLAGS).sort()).toEqual([...Object.keys(FLAG_DEFAULTS), NOTIFICATIONS_EXPERIMENT_FLAG].sort())
-    })
-
-    it('lists exactly the experiment arms the app accepts', () => {
-        for (const value of FLAGS[NOTIFICATIONS_EXPERIMENT_FLAG].values) {
-            flagState.value = value
-            expect(readNotificationsVariant()).toBe(value)
-        }
-        flagState.value = 'unknown-arm'
-        expect(readNotificationsVariant()).toBe(FLAGS[NOTIFICATIONS_EXPERIMENT_FLAG].baseline)
+        expect(Object.keys(FLAGS).sort()).toEqual(Object.keys(FLAG_DEFAULTS).sort())
     })
 
     it('starts each boolean flag at its registered default, except a nonProdBypass read', () => {

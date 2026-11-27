@@ -26,6 +26,9 @@ const pluginProxy = createPluginProxy({ configure, openMessenger, reset }, 'Capa
 
 jest.mock('@capgo/capacitor-crisp', () => ({ CapacitorCrisp: pluginProxy }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => true, isAndroidNative: () => false }))
+// crisp.ts no longer reads this; the mock stays so the no-locale test fails if it ever does again
+const mockCurrentAppLocale = jest.fn((): string | null => null)
+jest.mock('@/i18n/app/locale-store', () => ({ currentAppLocale: () => mockCurrentAppLocale() }))
 
 describe('ensureNativeCrispConfigured', () => {
     beforeEach(() => {
@@ -41,6 +44,17 @@ describe('ensureNativeCrispConfigured', () => {
         expect(configure).toHaveBeenCalledWith({ websiteID: expect.any(String) })
         await CapacitorCrisp.openMessenger()
         expect(openMessenger).toHaveBeenCalled()
+    })
+
+    it('never passes a locale: with one, the Android plugin crashes the app when the chat opens (PEANUT-UI-V0N)', async () => {
+        mockCurrentAppLocale.mockReturnValue('pt-BR')
+        const { ensureNativeCrispConfigured } = await import('@/utils/crisp')
+
+        await expectToSettle(ensureNativeCrispConfigured())
+
+        expect(configure).toHaveBeenCalledTimes(1)
+        expect(configure.mock.calls[0][0]).not.toHaveProperty('locale')
+        mockCurrentAppLocale.mockReturnValue(null)
     })
 
     it('configures once across repeated support opens', async () => {

@@ -99,6 +99,27 @@ it('shows existing ARS provisioning without starting paperwork when QR already w
     expect(result.current.allowed).toBe(true)
 })
 
+// TASK-25345: Manteca parked the ARS account for a missing email; the deposit flow asks for it.
+it('lets the ARS deposit flow ask a verify-once user for a missing email', () => {
+    const emailStep = { state: 'action_required', reason: 'email_required', action: 'provide-email' }
+    jest.mocked(useAuth).mockReturnValue({
+        user: {
+            user: { userId: 'a' },
+            identityVerification: { oneShot: true, status: 'verified' },
+            capabilities: {
+                features: { local: { ...emailStep, accounts: { ARS: emailStep } } },
+                nextActions: [{ key: 'provide-email', kind: 'provide-email', purpose: 'submission-failed-no-email' }],
+            },
+        },
+    } as unknown as ReturnType<typeof useAuth>)
+    const { result } = renderHook(() =>
+        useKycFeatureActivation('local', { selectedCurrency: 'ARS', scope: { channel: 'bank', country: 'AR' } })
+    )
+    expect(result.current.allowed).toBe(true)
+    expect(result.current.selectedStatus).toBeUndefined()
+    expect(activateKycFeature).not.toHaveBeenCalled()
+})
+
 // TASK-24968: the bank screen of a verify-once user Bridge refused as a duplicate.
 it('bank refused for good shows the refusal from the report and never activates', async () => {
     const refused = {

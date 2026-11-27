@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { withNuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -20,7 +20,6 @@ jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
 
 type PillProps = {
     isVerified?: boolean
-    hasFundedBefore?: boolean
     balance?: bigint
     isHidden?: boolean
     isStale?: boolean
@@ -44,6 +43,9 @@ const renderSection = (
             wrapper: withNuqsTestingAdapter({ searchParams: '', onUrlUpdate }),
         }
     )
+
+const actionOrder = () =>
+    screen.getAllByTestId(/^home-submenu-/).map((el) => el.dataset.testid?.replace('home-submenu-', ''))
 
 describe('BalanceSection submenu', () => {
     it('request opens its drawer while it offers two ways to be paid', async () => {
@@ -85,13 +87,14 @@ describe('BalanceSection submenu', () => {
     })
 })
 
-describe('BalanceSection Add money pill', () => {
+describe('BalanceSection low-balance Add button', () => {
     beforeEach(() => mockedCapture.mockClear())
     const verified = { isVerified: true }
 
-    it('keeps the round Add and tracks taps without the pill', () => {
+    it('keeps the plain Add in the centre and tracks taps without the pink button', () => {
         renderSection()
         expect(screen.getByTestId('home-submenu-add')).toHaveTextContent('add')
+        expect(actionOrder()).toEqual(['send', 'add', 'request'])
         fireEvent.click(screen.getByTestId('home-submenu-send'))
         expect(mockedCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.HOME_SUBMENU_TAPPED, {
             action: 'send',
@@ -100,11 +103,13 @@ describe('BalanceSection Add money pill', () => {
         expect(mockedCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.HOME_ADD_CTA_SHOWN, expect.anything())
     })
 
-    it('renders the labelled pill to the same picker link and tracks it', () => {
+    it('turns the centre Add pink with its label, same picker link, and tracks it', () => {
         renderSection(undefined, 'picker', verified)
         const add = screen.getByTestId('home-submenu-add')
         expect(add).toHaveAttribute('href', '/add-money')
-        expect(add).toHaveTextContent('addMoneyPill.addMoney')
+        expect(add).toHaveTextContent('add')
+        expect(actionOrder()).toEqual(['send', 'add', 'request'])
+        expect(mockedCapture).toHaveBeenCalledTimes(1)
         expect(mockedCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.HOME_ADD_CTA_SHOWN, {
             balance_bucket: '0',
             label: 'add_money',
@@ -116,12 +121,13 @@ describe('BalanceSection Add money pill', () => {
         })
     })
 
-    it('reads "Top up" once money came in before', () => {
-        renderSection(undefined, 'picker', { ...verified, hasFundedBefore: true, balance: 3_000_000n })
-        expect(screen.getByTestId('home-submenu-add')).toHaveTextContent('addMoneyPill.topUp')
+    it('reads "Add money" for a user who funded before and has $3 left', () => {
+        renderSection(undefined, 'picker', { ...verified, balance: 3_000_000n })
+        expect(screen.getByTestId('home-submenu-add')).toHaveTextContent('add')
+        expect(actionOrder()).toEqual(['send', 'add', 'request'])
         expect(mockedCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.HOME_ADD_CTA_SHOWN, {
             balance_bucket: '1-10',
-            label: 'top_up',
+            label: 'add_money',
         })
     })
 
@@ -130,52 +136,19 @@ describe('BalanceSection Add money pill', () => {
         ['the balance is hidden', { ...verified, isHidden: true }],
         ['the balance is stale', { ...verified, isStale: true }],
         ['the user is not verified', { isVerified: false }],
-    ])('keeps the round Add while %s', (_, props) => {
+    ])('keeps the plain Add in the centre while %s', (_, props) => {
         renderSection(undefined, 'picker', props)
         expect(screen.getByTestId('home-submenu-add')).toHaveTextContent(/^add$/)
+        expect(actionOrder()).toEqual(['send', 'add', 'request'])
         expect(mockedCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.HOME_ADD_CTA_SHOWN, expect.anything())
     })
 
-    it('opens the Add drawer from the pill for a returning user', async () => {
+    it('opens the Add drawer from the pink button for a returning user', async () => {
         const urlUpdates: UrlUpdateEvent[] = []
         renderSection((event) => urlUpdates.push(event), 'drawer', verified)
         const add = screen.getByTestId('home-submenu-add')
         expect(add.tagName).toBe('BUTTON')
         fireEvent.click(add)
         await waitFor(() => expect(urlUpdates.at(-1)?.searchParams.get('drawer')).toBe('add'))
-    })
-
-    it('falls back to the short label when the long one does not fit', () => {
-        const scrollWidth = jest.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(200)
-        renderSection(undefined, 'picker', verified)
-        expect(screen.getByTestId('home-submenu-add')).toHaveTextContent(/^add$/)
-        scrollWidth.mockRestore()
-    })
-
-    it('returns to the long label when the row widens again', () => {
-        const observers: Array<() => void> = []
-        const original = global.ResizeObserver
-        global.ResizeObserver = class {
-            constructor(private callback: () => void) {}
-            observe() {
-                observers.push(this.callback)
-            }
-            unobserve() {}
-            disconnect() {}
-        } as unknown as typeof ResizeObserver
-        let width = 100
-        const scrollWidth = jest.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(200)
-        const clientWidth = jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(() => width)
-        try {
-            renderSection(undefined, 'picker', verified)
-            expect(screen.getByTestId('home-submenu-add')).toHaveTextContent(/^add$/)
-            width = 300
-            act(() => observers.forEach((notify) => notify()))
-            expect(screen.getByTestId('home-submenu-add')).toHaveTextContent('addMoneyPill.addMoney')
-        } finally {
-            scrollWidth.mockRestore()
-            clientWidth.mockRestore()
-            global.ResizeObserver = original
-        }
     })
 })

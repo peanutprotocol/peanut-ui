@@ -82,6 +82,15 @@ describe('InitiateKycModal — gate kinds', () => {
         expect(onContactSupport).toHaveBeenCalled()
         expect(onVerify).not.toHaveBeenCalled()
     })
+
+    // TASK-24969: an unknown block read "We couldn't confirm your ID", which
+    // blames the ID for a refusal that may have nothing to do with it
+    it('does not blame the ID for a block the app has no words for', () => {
+        renderModal({ variant: 'blocked', reasonCode: 'some_code_without_app_copy' })
+
+        expect(screen.getByText(messages.kyc.initiate.descriptionBlocked)).toBeInTheDocument()
+        expect(messages.kyc.initiate.descriptionBlocked).not.toMatch(/\bID\b|identity|document/i)
+    })
 })
 
 describe('page processing actions match their purpose', () => {

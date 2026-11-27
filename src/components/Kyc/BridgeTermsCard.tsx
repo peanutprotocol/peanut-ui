@@ -33,7 +33,7 @@ export const BridgeTermsCard = ({ providerId }: { providerId: ProviderId }) => {
                     label={t('field.terms')}
                     value={
                         <LinkButton href={provider.termsUrl} external icon onClick={() => track('terms', 'tap')}>
-                            {provider.termsName ?? t('field.view')}
+                            {provider.termsName ? t(`termsName.${provider.termsName}`) : t('field.view')}
                         </LinkButton>
                     }
                 />

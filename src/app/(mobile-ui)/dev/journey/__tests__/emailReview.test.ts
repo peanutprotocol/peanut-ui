@@ -15,26 +15,30 @@ const step = (type: string, extra: Partial<SpecEmailStep> = {}): SpecEmailStep =
 const spec = (): JourneySpec => ({
     generatedFrom: 'test',
     rules: {
-        stepAfterDays: [2, 6, 12],
-        governorDays: 3,
-        freshnessDays: 30,
+        cadence: {},
+        minGapHours: 20,
+        idleMinutes: 30,
+        quietHours: { fromMinute: 1290, untilMinute: 480 },
+        freshnessDays: 14,
         dormancyDays: 42,
-        holdoutFraction: 0.1,
-        sendWindowUtc: { startHour: 13, endHour: 21 },
-        maxSendsPerCycle: 500,
-        maxSendsPerDay: 500,
+        holdoutFraction: 0,
+        maxSendsPerCycle: 100,
+        maxSendsPerDay: 200,
     },
     welcome: step('lifecycle.welcome'),
+    reminder: step('lifecycle.verify_reminder'),
     stages: [
-        { stage: 'verify', order: 1, predicate: 'p', steps: [step('lifecycle.verify_1'), step('lifecycle.verify_2')] },
+        {
+            stage: 'start_verify',
+            order: 1,
+            predicate: 'p',
+            steps: [step('lifecycle.verify_1')],
+        },
         {
             stage: 'first_spend',
             order: 5,
             predicate: 'p',
-            steps: [
-                step('lifecycle.first_spend_1', { paragraphsWithRewards: ['rewards copy'] }),
-                step('lifecycle.first_spend_2', { paragraphsWithRewards: ['rewards copy'] }),
-            ],
+            steps: [step('lifecycle.first_spend_1')],
         },
     ],
     pushReminders: [],
@@ -58,12 +62,9 @@ describe('emailReview', () => {
         const renders = buildEmailRenderList(spec())
         expect(renders.map((render) => render.id)).toEqual([
             renderId('lifecycle.welcome', 0),
+            renderId('lifecycle.verify_reminder', 0),
             renderId('lifecycle.verify_1', 0),
-            renderId('lifecycle.verify_2', 0),
             renderId('lifecycle.first_spend_1', 0),
-            renderId('lifecycle.first_spend_1', 1),
-            renderId('lifecycle.first_spend_2', 0),
-            renderId('lifecycle.first_spend_2', 1),
         ])
     })
 
@@ -78,9 +79,8 @@ describe('emailReview', () => {
         expect(buildEmailRenderList(withUnmapped).map((render) => render.eventType)).toContain('lifecycle.brand_new_1')
     })
 
-    it('flags exactly the open product decisions (finish_setup settled: killed in lifecycle v2)', () => {
-        expect(decisionFlagFor('lifecycle.first_spend_1')?.label).toMatch(/rewards branch/)
-        expect(decisionFlagFor('lifecycle.finish_setup_2')).toBeNull()
+    it('returns null when no structural decision flag is active', () => {
+        expect(decisionFlagFor('lifecycle.first_spend_1')).toBeNull()
         expect(decisionFlagFor('lifecycle.welcome')).toBeNull()
     })
 })

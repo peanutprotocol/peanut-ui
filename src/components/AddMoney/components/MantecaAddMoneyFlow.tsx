@@ -8,11 +8,11 @@ import MantecaDepositShareDetails from '@/components/AddMoney/components/Manteca
 import { useMantecaDepositPolling } from '@/components/AddMoney/hooks/useMantecaDepositPolling'
 import { useOpenMantecaDeposit } from '@/components/AddMoney/hooks/useOpenMantecaDeposit'
 import { Callout } from '@/components/0_Bruddle/Callout'
-import { formatCurrency } from '@/utils/general.utils'
+import { formatAmountNumber } from '@/utils/currency'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { useParams } from 'next/navigation'
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { countryData } from '@/components/AddMoney/consts'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useCurrency } from '@/hooks/useCurrency'
@@ -25,6 +25,7 @@ import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
+import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { MIN_MANTECA_DEPOSIT_AMOUNT } from '@/constants/payment.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
@@ -32,12 +33,12 @@ import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useBankEntryFor } from '@/hooks/useBankRows'
-import { isLocalResidenceRefusal, isMantecaAccountClosed, refusalOf } from '@/features/kyc-features/report'
+import { entryAction, isLocalResidenceRefusal, isMantecaAccountClosed, refusalOf } from '@/features/kyc-features/report'
 import { useAuth } from '@/context/authContext'
 import { ResidenceRequiredScreen } from '@/features/deposit-accounts/components/ResidenceRequiredScreen'
-import { withReturnTo, readReturnTo } from '@/utils/return-to.utils'
+import { withReturnTo, readReturnTo, originPastHubs } from '@/utils/return-to.utils'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUnavailable'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -56,6 +57,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     const params = useParams()
     const queryClient = useQueryClient()
     const t = useTranslations('addMoney')
+    const locale = useLocale()
     const tErrors = useTranslations('errors')
     const tKyc = useTranslations('kyc')
     const tIdentity = useTranslations('identity')
@@ -83,7 +85,6 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
 
     // Local UI state for tracking both amounts (needed for API call and validation)
     const [usdAmount, setUsdAmount] = useState<string>('')
-    const [localCurrencyAmount, setLocalCurrencyAmount] = useState<string>('')
 
     // Other local UI state (not URL-appropriate - transient or API responses)
     const [isCreatingDeposit, setIsCreatingDeposit] = useState(false)
@@ -107,6 +108,8 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     // otherwise to the hub itself — not the bare `/add-money/argentina` amount
     // route the user never knowingly opened.
     const onBack = useSafeBack(readReturnTo(searchParams) ?? '/add-money?method=bank')
+    // Done after the pesos arrived never reopens a hub: the origin past the Add money hubs, or Home
+    const leaveToOrigin = useReturnTo(originPastHubs(readReturnTo(searchParams), ['/add-money']) ?? '/home')
     // Argentina's Manteca top-up mints a CVU per deposit, and Manteca rejects a
     // non-resident only after amount + KYC. The API's answer for this country's
     // account comes first: a closure by Manteca, or an account the residence
@@ -117,6 +120,8 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     const arsDeposit = residenceGatedCountry && step === 'depositDetails' ? depositDetails : undefined
     const { status: arsDepositStatus } = useMantecaDepositPolling(arsDeposit?.id, () => {
         void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+        // COMPLETED means Manteca sent the USDC to the wallet; the success view says the balance has it
+        void queryClient.invalidateQueries({ queryKey: ['balance'] })
     })
     const localAccount = residenceGatedCountry ? bankEntryFor('ars') : null
     const accountRejected = isMantecaAccountClosed(localAccount ?? undefined)
@@ -141,6 +146,10 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
             ),
         [rails, residenceGatedCountry, nextActions]
     )
+    // Manteca parked the account for a missing email (api resolver `email_required`): saving one
+    // resubmits it, so the drawer asks for the email instead of sending the user to support (TASK-25345).
+    const emailRequired =
+        localAccount?.state === 'action_required' && entryAction(localAccount, nextActions)?.kind === 'provide-email'
     const currencyData = useCurrency(selectedCountry?.currency ?? 'ARS')
     // inline sumsub kyc flow for manteca users who need LATAM verification
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
@@ -158,7 +167,6 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     const showOpenDeposit = useCallback(() => {
         if (!openDeposit) return
         setDepositDetails(openDeposit)
-        setLocalCurrencyAmount('')
         void setUrlState({ step: 'depositDetails', amount: null })
     }, [openDeposit, setUrlState])
 
@@ -231,11 +239,6 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
         [setUrlState]
     )
 
-    // Handle local currency amount change (primary in AmountInput)
-    const handleLocalCurrencyAmountChange = useCallback((value: string | undefined) => {
-        setLocalCurrencyAmount(value ?? '')
-    }, [])
-
     // Handle USD amount change (secondary in AmountInput)
     const handleUsdAmountChange = useCallback((value: string) => {
         setUsdAmount(value)
@@ -262,12 +265,26 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
         if (showKycModal && sumsubFlow.isModalOpen) closeKycModal()
     }, [showKycModal, sumsubFlow.isModalOpen, closeKycModal])
 
+    // the refreshed report then shows MantecaAccountUnavailable in place of the amount
+    const captureAccountRejected = useCallback(() => {
+        posthog.capture(ANALYTICS_EVENTS.DEPOSIT_SUBMIT_BLOCKED, {
+            method_type: 'manteca',
+            country: selectedCountryPath,
+            reason: 'account_rejected',
+        })
+    }, [selectedCountryPath])
+
     const handleAmountSubmit = useCallback(async () => {
         if (!selectedCountry?.currency) return
         if (isCreatingDeposit) return
         if (accountRejected) return
 
         if (!isUserMantecaKycApprovedForCountry) {
+            posthog.capture(ANALYTICS_EVENTS.DEPOSIT_SUBMIT_BLOCKED, {
+                method_type: 'manteca',
+                country: selectedCountryPath,
+                reason: 'verification_required',
+            })
             setShowKycModal(true)
             return
         }
@@ -293,6 +310,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
             })
             if (depositData.error) {
                 if (depositData.code === API_ERROR_CODES.MANTECA_ACCOUNT_REJECTED) {
+                    captureAccountRejected()
                     setShowKycModal(false)
                     // The API's report now carries the closure; re-read it so this and every later visit say so.
                     await fetchUser()
@@ -319,6 +337,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
             setUrlState({ step: 'depositDetails' })
         } catch (error) {
             if (wireErrorCode(error) === API_ERROR_CODES.MANTECA_ACCOUNT_REJECTED) {
+                captureAccountRejected()
                 setShowKycModal(false)
                 await fetchUser()
                 return
@@ -345,6 +364,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
         selectedCountryPath,
         tErrors,
         fetchUser,
+        captureAccountRejected,
     ])
 
     // Redirect to inputAmount if depositDetails is accessed without required data (deep link / back navigation)
@@ -429,9 +449,12 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     if (step === 'inputAmount') {
         // A document Manteca asks for takes the page, as on the bank Add money screen: nothing on
         // the amount step works until it is uploaded, so a drawer over it would sit on a dead screen.
-        const documentRequest = showKycModal && mantecaRejection.state === 'fixable'
+        const documentRequest = showKycModal && !emailRequired && mantecaRejection.state === 'fixable'
         return (
             <>
+                {emailRequired && (
+                    <ProvideEmailStep visible={showKycModal} onComplete={closeKycModal} onSkip={closeKycModal} />
+                )}
                 <InitiateKycModal
                     presentation={documentRequest ? 'page' : 'modal'}
                     navTitle={documentRequest ? t('title') : undefined}
@@ -440,7 +463,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                     cooldownActive={!!sumsubFlow.errorCooldown}
                     prepPath="extended"
                     taxIdCountry={residenceGatedCountry ?? undefined}
-                    visible={showKycModal}
+                    visible={showKycModal && !emailRequired}
                     onClose={closeKycModal}
                     onVerify={async () => {
                         if (mantecaRejection.state === 'blocked') {
@@ -496,7 +519,6 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                         error={error || sumsubFlow.error}
                         validationError={validationError}
                         currencyData={currencyData}
-                        setCurrencyAmount={handleLocalCurrencyAmountChange}
                         setCurrentDenomination={handleDenominationChange}
                         initialDenomination={currentDenomination}
                         setDisplayedAmount={handleDisplayedAmountChange}
@@ -513,12 +535,20 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                                 >
                                     {t('manteca.openTransferDescription', {
                                         currency: openDeposit.stages['1'].asset,
-                                        amount: formatCurrency(openDeposit.stages['1'].thresholdAmount),
+                                        amount: formatAmountNumber(
+                                            openDeposit.stages['1'].thresholdAmount,
+                                            2,
+                                            2,
+                                            locale
+                                        ),
                                     })}
                                 </Callout>
                             )
                         }
                         providerFinePrint={residenceGatedCountry && <ProviderFinePrint providerId="manteca-ar" />}
+                        // The CBU and alias are minted per order and expire, so none can show before the amount.
+                        // The button names what it leads to: replays showed users leaving here, not knowing (TASK-25101).
+                        submitLabel={residenceGatedCountry ? t('manteca.seeTransferDetails') : undefined}
                     />
                 )}
             </>
@@ -533,7 +563,6 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
         return (
             <MantecaDepositShareDetails
                 depositDetails={depositDetails}
-                currencyAmount={localCurrencyAmount || undefined}
                 arsStatus={arsDeposit ? arsDepositStatus : undefined}
                 onStartOver={() => {
                     setDepositDetails(undefined)
@@ -543,6 +572,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                 // way the input step does, not back to `inputAmount` (which would let
                 // the user start a second deposit).
                 onBack={onBack}
+                onDone={leaveToOrigin}
             />
         )
     }

@@ -14,9 +14,12 @@ import { useTranslations } from 'next-intl'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import type { useAddMoneyReadiness } from '@/features/add-money/useAddMoneyReadiness'
 import { readReturnTo, RETURN_TO_PARAM, withReturnTo } from '@/utils/return-to.utils'
-import PIX from '@/assets/payment-apps/pix.svg'
 import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
-import Image from 'next/image'
+import { ARS_ADD_MONEY_PATH, DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
+import { CorridorFlag } from '@/features/deposit-accounts/components/CorridorFlag'
+import { rewriteMethodPath } from '@/utils/native-routes'
+
+const ARS_RAIL = DEPOSIT_RAILS.BANK_TRANSFER_AR
 
 /**
  * home IA bottom drawers (figma boards 17831:79186 / 17830:76839): the Add and
@@ -66,12 +69,16 @@ export function HomeActionDrawers({
                           ? tSaved('bankSectionTitle')
                           : method === 'pix'
                             ? tMethods('pix')
-                            : method === 'crypto'
-                              ? tMethods('crypto')
-                              : tMethods('moreWays'),
+                            : method === 'ars'
+                              ? ARS_RAIL.currency
+                              : method === 'crypto'
+                                ? tMethods('crypto')
+                                : tMethods('moreWays'),
                   leading:
                       method === 'pix' ? (
-                          <Image src={PIX} alt="" width={32} height={32} />
+                          <IconBubble {...CONCEPT_ICONS.pix} size="s" />
+                      ) : method === 'ars' ? (
+                          <CorridorFlag iso2={ARS_RAIL.flagIso2} />
                       ) : method === 'account' ? (
                           <IconBubble {...CONCEPT_ICONS.bankAccount} size="s" />
                       ) : (
@@ -82,11 +89,13 @@ export function HomeActionDrawers({
                           ? '/add-money'
                           : method === 'crypto'
                             ? '/add-money/crypto'
-                            : // Pix has one currency, so it opens the Pix deposit, not a chooser of one row
+                            : // Pix and ARS have one currency each, so they open the deposit, not a chooser of one row
                               method === 'pix'
                               ? PIX_ADD_MONEY_PATH
-                              : // only the ready ones where some are
-                                `/add-money/options?method=${method}${addMoney.ready[method as keyof typeof addMoney.ready].length ? '&ready=1' : ''}`,
+                              : method === 'ars'
+                                ? rewriteMethodPath(ARS_ADD_MONEY_PATH)
+                                : // only the ready ones where some are
+                                  `/add-money/options?method=${method}${addMoney.ready[method as keyof typeof addMoney.ready].length ? '&ready=1' : ''}`,
               }))
             : (content ? homeDrawerOptions(content, depositAccounts) : []).map((option) => ({
                   key: option.key,

@@ -22,13 +22,14 @@ jest.mock('@/context/authContext', () => ({
 import React from 'react'
 import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 import type { FeatureReportEntry, NextAction, RailCapability } from '@/types/capabilities'
-import { act, fireEvent, render as rtlRender, screen, within } from '@testing-library/react'
+import { act, fireEvent, render as rtlRender, screen, waitFor, within } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUnavailable'
 import { LOCAL_SERVED_ELSEWHERE_REASON } from '@/features/kyc-features/report'
 // jest.mock calls are hoisted above this import, so the mocks below apply to it
 import MantecaAddMoney from '../MantecaAddMoney'
+import posthog from 'posthog-js'
 
 const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRender>[1], 'wrapper'>) =>
     rtlRender(ui, { wrapper: IntlWrapper, ...options })
@@ -166,6 +167,8 @@ jest.mock('@/context/ModalsContext', () => ({
     useModalsContextOptional: () => null,
 }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
+const mockUpdateUserById = jest.fn()
+jest.mock('@/app/actions/users', () => ({ updateUserById: (...args: unknown[]) => mockUpdateUserById(...args) }))
 
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({
     SumsubKycModals: ({ flow }: { flow: { isModalOpen: boolean; showWrapper: boolean } }) => (
@@ -213,6 +216,7 @@ type InputStepProps = {
     onSubmit: () => Promise<void>
     error?: string | null
     providerFinePrint?: React.ReactElement<{ providerId: string }>
+    submitLabel?: string
 }
 let lastInputStepProps: InputStepProps | null = null
 jest.mock('@/components/AddMoney/components/InputAmountStep', () => ({
@@ -277,6 +281,36 @@ describe('provider fine print', () => {
         render(<MantecaAddMoney />)
 
         expect(lastInputStepProps!.providerFinePrint?.props.providerId).toBe('manteca-ar')
+    })
+})
+
+// TASK-25101: replays showed Argentines leaving the amount screen without knowing that
+// the CBU and alias come next. They are minted per order, so the screen names the next step.
+describe('ARS amount screen button names the transfer details that come next', () => {
+    test('Argentina labels the button with the next step', () => {
+        setCountry('argentina')
+        render(<MantecaAddMoney />)
+
+        expect(lastInputStepProps!.submitLabel).toBe(en.addMoney.manteca.seeTransferDetails)
+    })
+
+    test('the button still creates the order for the typed amount before any details show', async () => {
+        setCountry('argentina')
+        mockQueryState.amount = '10000'
+        mockDeposit.mockResolvedValue({ data: { id: 'ars-order' } })
+        render(<MantecaAddMoney />)
+
+        await act(() => lastInputStepProps!.onSubmit())
+
+        expect(mockDeposit).toHaveBeenCalledWith({ amount: '10000', isUsdDenominated: false, currency: 'ARS' })
+        expect(mockSetQueryState).toHaveBeenCalledWith({ step: 'depositDetails' })
+    })
+
+    test('Brazil keeps the plain Continue', () => {
+        setCountry('brazil')
+        render(<MantecaAddMoney />)
+
+        expect(lastInputStepProps!.submitLabel).toBeUndefined()
     })
 })
 
@@ -793,6 +827,76 @@ describe('provider refusal', () => {
     })
 })
 
+/**
+ * TASK-25059: every Continue that reaches the submit leaves one deposit event, so a tap that shows no bank
+ * details can be counted. The guards that return without one cannot be reached from the screen: no country
+ * renders nothing, a rejected account renders MantecaAccountUnavailable, and a request in flight disables Continue.
+ */
+describe('Continue leaves one deposit event per outcome', () => {
+    const events = () =>
+        jest
+            .mocked(posthog.capture)
+            .mock.calls.filter(([name]) => name.startsWith('deposit_'))
+            .map(([name, props]) => [name, props?.reason])
+    beforeEach(() => jest.mocked(posthog.capture).mockClear())
+
+    test('a user not verified for the country: deposit_submit_blocked, verification_required', async () => {
+        setCountry('argentina')
+        mockIsVerifiedForCountry = false
+        mockQueryState.amount = '100'
+        render(<MantecaAddMoney />)
+        await act(() => lastInputStepProps!.onSubmit())
+        expect(events()).toEqual([['deposit_submit_blocked', 'verification_required']])
+        expect(mockDeposit).not.toHaveBeenCalled()
+    })
+
+    test.each([
+        ['an error body', () => mockDeposit.mockResolvedValue({ error: 'closed', code: 'MANTECA_ACCOUNT_REJECTED' })],
+        [
+            'a thrown error',
+            () =>
+                mockDeposit.mockRejectedValue(
+                    Object.assign(new Error('closed'), { code: 'MANTECA_ACCOUNT_REJECTED', status: 403 })
+                ),
+        ],
+    ])('Manteca closed the account (%s): deposit_submit_blocked, account_rejected', async (_, answer) => {
+        setCountry('argentina')
+        mockQueryState.amount = '100'
+        answer()
+        render(<MantecaAddMoney />)
+        await act(() => lastInputStepProps!.onSubmit())
+        expect(events()).toEqual([
+            ['deposit_amount_entered', undefined],
+            ['deposit_submit_blocked', 'account_rejected'],
+        ])
+    })
+
+    test('a failed deposit: deposit_failed', async () => {
+        setCountry('argentina')
+        mockQueryState.amount = '100'
+        mockDeposit.mockResolvedValue({ error: 'Unexpected error', code: 'PROVIDER_REJECTED' })
+        render(<MantecaAddMoney />)
+        await act(() => lastInputStepProps!.onSubmit())
+        expect(events()).toEqual([
+            ['deposit_amount_entered', undefined],
+            ['deposit_failed', undefined],
+        ])
+    })
+
+    test('a created deposit: deposit_confirmed and the bank details step', async () => {
+        setCountry('argentina')
+        mockQueryState.amount = '100'
+        mockDeposit.mockResolvedValue({ data: { id: 'dep-1', details: {}, stages: {} } })
+        render(<MantecaAddMoney />)
+        await act(() => lastInputStepProps!.onSubmit())
+        expect(events()).toEqual([
+            ['deposit_amount_entered', undefined],
+            ['deposit_confirmed', undefined],
+        ])
+        expect(mockSetQueryState).toHaveBeenCalledWith({ step: 'depositDetails' })
+    })
+})
+
 describe('refused local accounts retain their own reason and remedy', () => {
     const setRefusal = (entry: FeatureReportEntry) => {
         setCountry('argentina')
@@ -875,6 +979,80 @@ describe('refused local accounts retain their own reason and remedy', () => {
             expect(screen.queryByTestId('input-amount-step')).not.toBeInTheDocument()
         }
     )
+})
+
+// TASK-25345: Manteca parked the account for a missing email. "Contact support" was the only button
+// and did nothing; saving an email resubmits the account (api update-user).
+describe('ARS account parked for a missing email', () => {
+    const parkForEmail = () => {
+        setCountry('argentina')
+        mockResidence = 'AR'
+        mockIsVerifiedForCountry = false
+        mockApiArs = { state: 'action_required', reason: 'email_required', action: 'provide-email' }
+        mockNextActions = [
+            { key: 'provide-email', kind: 'provide-email', purpose: 'submission-failed-no-email' } as NextAction,
+        ]
+        // deriveProviderRejection reads a provide-email verdict as blocked
+        mockRejection = { state: 'blocked', reasonCode: 'email_required' }
+    }
+
+    test('opens the email step instead of the support drawer', () => {
+        parkForEmail()
+        render(<MantecaAddMoney />)
+
+        expect(screen.getByTestId('provide-email-form')).toBeInTheDocument()
+        expect(lastKycModalProps!.visible).toBe(false)
+        expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
+    })
+
+    test('saving the email refreshes the account and closes the step', async () => {
+        parkForEmail()
+        mockUpdateUserById.mockResolvedValue({})
+        mockFetchUser.mockImplementationOnce(async () => {
+            mockApiArs = { state: 'setting_up' }
+            mockNextActions = []
+            mockCapabilityRevision += 1
+            mockCapabilityListeners.forEach((listener) => listener())
+            return { capabilities: mockCapabilityBlock() }
+        })
+        render(<MantecaAddMoney />)
+
+        fireEvent.change(within(screen.getByTestId('provide-email-form')).getByRole('textbox'), {
+            target: { value: 'ana@example.com' },
+        })
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: en.kyc.provideEmail.save }))
+        })
+
+        expect(mockUpdateUserById).toHaveBeenCalledWith({ userId: 'legacy-user', email: 'ana@example.com' })
+        expect(mockFetchUser).toHaveBeenCalled()
+        expect(screen.queryByTestId('provide-email-form')).not.toBeInTheDocument()
+        expect(mockSetIsSupportModalOpen).not.toHaveBeenCalled()
+    })
+
+    test('Continue reopens the email step after "Not now"', async () => {
+        parkForEmail()
+        render(<MantecaAddMoney />)
+
+        fireEvent.click(screen.getByRole('button', { name: en.kyc.provideEmail.notNow }))
+        await waitFor(() => expect(screen.queryByTestId('provide-email-form')).not.toBeInTheDocument())
+
+        await act(() => lastInputStepProps!.onSubmit())
+
+        expect(screen.getByTestId('provide-email-form')).toBeInTheDocument()
+        expect(mockDeposit).not.toHaveBeenCalled()
+    })
+
+    test('any other blocked account keeps the support drawer', () => {
+        setCountry('argentina')
+        mockResidence = 'AR'
+        mockIsVerifiedForCountry = false
+        mockRejection = { state: 'blocked', reasonCode: 'submission_failed' }
+        render(<MantecaAddMoney />)
+
+        expect(screen.queryByTestId('provide-email-form')).not.toBeInTheDocument()
+        expect(lastKycModalProps).toMatchObject({ visible: true, variant: 'blocked' })
+    })
 })
 
 describe('no-token verification status handoff', () => {

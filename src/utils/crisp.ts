@@ -23,6 +23,9 @@ let nativeCrispReady: Promise<{ CapacitorCrisp: NativeCrisp }> | null = null
 export function ensureNativeCrispConfigured(): Promise<{ CapacitorCrisp: NativeCrisp }> {
     if (!nativeCrispReady) {
         nativeCrispReady = import('@capgo/capacitor-crisp').then(async ({ CapacitorCrisp }) => {
+            // no locale: capgo crisp 8.2.3 android opens chat without NEW_TASK when a
+            // locale is set and the app crashes (PEANUT-UI-V0N). the chat follows the
+            // phone language until the plugin is patched; then restore it (TASK-23926).
             await CapacitorCrisp.configure({ websiteID: CRISP_WEBSITE_ID })
             return { CapacitorCrisp }
         })

@@ -45,7 +45,8 @@ export default function JourneyBoard({
                             const stages = spec ? spec.stages.filter((st) => state.specStages.includes(st.stage)) : []
                             const emailCount =
                                 stages.reduce((total, stage) => total + stage.steps.length, 0) +
-                                (spec && state.includesWelcome ? 1 : 0)
+                                (spec && state.includesWelcome ? 1 : 0) +
+                                (spec?.reminder && state.includesReminder ? 1 : 0)
                             const pushCount = spec && state.includesPushReminder ? spec.pushReminders.length : 0
 
                             return (
@@ -93,6 +94,19 @@ export default function JourneyBoard({
                                                 />
                                             </>
                                         )}
+                                        {spec?.reminder && state.includesReminder && (
+                                            <>
+                                                <p className="text-body-xs leading-snug text-foreground-secondary italic">
+                                                    At the time the user picked (Remind me later):
+                                                </p>
+                                                <EmailCard
+                                                    step={spec.reminder}
+                                                    showDev={showDev}
+                                                    isReviewed={isReviewed}
+                                                    onOpen={onOpenEmail}
+                                                />
+                                            </>
+                                        )}
                                         {stages.map((stage) => (
                                             <div key={stage.stage} className="flex flex-col gap-2">
                                                 {showDev && (
@@ -130,7 +144,11 @@ export default function JourneyBoard({
                                         {spec &&
                                             (state.includesPushReminder ? (
                                                 spec.pushReminders.map((push) => (
-                                                    <PushCard key={push.type} push={push} showDev={showDev} />
+                                                    <PushCard
+                                                        key={`${push.type}:${push.stage ?? push.afterMinutes}`}
+                                                        push={push}
+                                                        showDev={showDev}
+                                                    />
                                                 ))
                                             ) : (
                                                 <p className={EMPTY_NOTE}>No push in this state.</p>

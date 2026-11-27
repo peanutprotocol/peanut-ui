@@ -59,6 +59,30 @@ describe('paperworkVerificationRoute', () => {
         await expect(paperworkVerificationRoute(plan(), null)).resolves.toBe('/verify')
     })
 
+    it('treats a failed status read as unknown: retries once, then keeps today\u2019s start', async () => {
+        // one blip: the retry answers
+        mockStatus.mockRejectedValueOnce(new Error('network')).mockResolvedValueOnce('APPROVED')
+        await expect(paperworkVerificationRoute(plan(), 'bank')).resolves.toBe('/verify?feature=bank')
+        expect(mockStatus).toHaveBeenCalledTimes(2)
+
+        mockStatus.mockClear()
+        // still failing: a verified user must not land on /verify
+        mockStatus.mockRejectedValue(new Error('server error'))
+        await expect(paperworkVerificationRoute(plan(), 'bank')).resolves.toBeNull()
+        await expect(paperworkVerificationRoute(plan(), null)).resolves.toBeNull()
+        expect(mockStatus).toHaveBeenCalledTimes(4)
+    })
+
+    it('does not retry a status read the caller aborted', async () => {
+        const controller = new AbortController()
+        mockStatus.mockImplementation(async () => {
+            controller.abort()
+            throw new Error('aborted')
+        })
+        await expect(paperworkVerificationRoute(plan(), 'bank', undefined, controller.signal)).rejects.toBeDefined()
+        expect(mockStatus).toHaveBeenCalledTimes(1)
+    })
+
     it('keeps retry and final rejection in Smart Paperwork Verification', async () => {
         mockStatus.mockResolvedValue('ACTION_REQUIRED')
         await expect(paperworkVerificationRoute(plan(), null)).resolves.toBe('/verify')

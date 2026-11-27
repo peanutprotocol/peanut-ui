@@ -79,32 +79,9 @@ describe('isMarketingRoute', () => {
         }
     })
 
-    it('renders creator pages under /go/ without the wallet tree, and only under /go/', () => {
-        for (const route of ['/go/a', '/go/a/ig', '/go/a/7/']) {
-            expect(isMarketingRoute(route)).toBe(true)
-        }
-        for (const route of ['/goa', '/go', '/gopher/a']) {
-            expect(isMarketingRoute(route)).toBe(false)
-        }
-    })
-
-    it('renders the creator page previews on the marketing tree, and no other dev route', () => {
-        for (const route of [
-            '/dev/creator-pages',
-            '/dev/creator-pages/',
-            '/dev/creator-pages/juanacervio/g2',
-            '/dev/creator-pages/juanacervio/g2/',
-        ]) {
-            expect(isMarketingRoute(route)).toBe(true)
-        }
-        for (const route of ['/dev', '/dev/ds', '/dev/kyc-flows', '/dev/creator-pages-other']) {
-            expect(isMarketingRoute(route)).toBe(false)
-        }
-    })
-
-    it('keeps the creator page previews on the app tree in native builds', () => {
-        process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'true'
-        expect(isMarketingRoute('/dev/creator-pages/juanacervio/g2')).toBe(false)
+    it('renders creator pages under /c/ without the wallet tree, and only under /c/', () => {
+        for (const route of ['/c/juanacervio', '/c/juanacervio/preview/g2']) expect(isMarketingRoute(route)).toBe(true)
+        for (const route of ['/c', '/card', '/claim', '/cards/x']) expect(isMarketingRoute(route)).toBe(false)
     })
 
     it('keeps app routes on the full provider tree', () => {

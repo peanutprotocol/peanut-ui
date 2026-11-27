@@ -40,6 +40,7 @@ import {
 import { friendlyError } from '@/utils/friendly-error.utils'
 import { isPasskeyBusyError, isPasskeyCleanupPendingError } from '@/utils/webauthn.utils'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
+import { useCooldownRemaining } from '@/hooks/useCooldownRemaining'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
 import { qrInitIdempotencyKey } from '@/utils/qr-payment.utils'
@@ -491,12 +492,17 @@ export function useQrPayFlowController(
         }
     }, [isPixPay, pixPayOpened, pixPayPrice, setCurrency, rateAttempt])
 
+    // the card cool-down clock the error banner counts down (`CooldownErrorText`)
+    const cooldownRemaining = useCooldownRemaining()
     const isBlockingError = useMemo(() => {
         // The settling failure says "try again in a few seconds" — keep the Pay
         // button enabled so the user can retry, don't dead-end it like a hard error.
         // A failed replacement quote is the same shape: the payment did not
         // fail, the re-quote did, and tapping Pay tries the whole thing again.
         if (requoteFailed) return false
+        // Nothing was signed or sent. Pay waits only while the clock runs: once it ends, or when
+        // Rain named no wait and no clock started, a tap is a new attempt (TASK-25316).
+        if (errorCode === 'rainCooldownRetryShortly') return cooldownRemaining !== null
         return (
             !!errorMessage &&
             errorCode !== 'confirmTransaction' &&
@@ -506,7 +512,7 @@ export function useQrPayFlowController(
             // Nothing was signed or sent; tapping Pay again is safe.
             errorCode !== 'signRetryable'
         )
-    }, [errorMessage, errorCode, requoteFailed])
+    }, [errorMessage, errorCode, requoteFailed, cooldownRemaining])
 
     const usdAmount = useMemo(() => {
         // what leaves the wallet: the paid entry's, else what this session signed, else the review's figure
@@ -712,15 +718,6 @@ export function useQrPayFlowController(
         if (scanOutcome.kind === 'awaiting-merchant-amount') setWaitingForMerchantAmount(true)
         else if (scanOutcome.kind !== 'pending' && scanOutcome.kind !== 'idle') setWaitingForMerchantAmount(false)
 
-        /*
-         * `idle` deliberately touches nothing. A disabled query — invalid QR,
-         * KYC-blocked user, provider maintenance — must not drive the app-wide
-         * loading context, which survives navigation away from this route.
-         */
-        if (scanOutcome.kind === 'pending') setLoadingState('Fetching details')
-        else if (scanOutcome.kind === 'retrying') setLoadingState('Still fetching details')
-        else if (scanOutcome.kind !== 'idle') setLoadingState('Idle')
-
         if (scanOutcome.kind === 'failed') {
             if (scanOutcome.reason === QR_INIT_CODE.DECODE) {
                 posthog.capture(ANALYTICS_EVENTS.QR_DECODING_ERROR_SHOWN, { qr_type: qrType })
@@ -737,10 +734,25 @@ export function useQrPayFlowController(
         paymentLock,
         paymentProcessor,
         qrType,
-        setLoadingState,
         setPaymentLock,
         setWaitingForMerchantAmount,
     ])
+
+    /*
+     * `idle` deliberately touches nothing. A disabled query — invalid QR,
+     * KYC-blocked user, provider maintenance — must not drive the app-wide
+     * loading context, which survives navigation away from this route.
+     * Keyed on the kind alone: a Pay tap stores its own lock while the scan
+     * stays `ready`, and a re-run here set that tap's loading state back to
+     * Idle until the passkey opened (TASK-25316).
+     */
+    const scanKind = scanOutcome.kind
+    useEffect(() => {
+        if (paymentProcessor !== 'MANTECA') return
+        if (scanKind === 'pending') setLoadingState('Fetching details')
+        else if (scanKind === 'retrying') setLoadingState('Still fetching details')
+        else if (scanKind !== 'idle') setLoadingState('Idle')
+    }, [paymentProcessor, scanKind, setLoadingState])
 
     /*
      * The loading context is app-wide and outlives this route, so leaving it set
@@ -947,6 +959,9 @@ export function useQrPayFlowController(
         if (!paymentLock || !qrCode || !currencyAmount || isBrazilPaused || amountEntryRejection) return
         // A refresh already owns the flow (cooldown wait or init in flight).
         if (isQuoteRecovering) return
+        // This tap starts a new attempt, a re-quote included. The error the last attempt left
+        // with Pay usable no longer applies; this attempt sets its own if it fails (TASK-25316).
+        if (!isBlockingError) setErrorMessage(null)
         // The previous re-quote never landed: this tap retries the QUOTE only —
         // signing the old lock is exactly what must not happen. The user then
         // sees the fresh terms and taps again to pay.
@@ -1386,6 +1401,7 @@ export function useQrPayFlowController(
         handleQuoteRecovery,
         isQuoteRecovering,
         requoteFailed,
+        isBlockingError,
         paymentLock,
         signSpend,
         takePreparedSmartSpend,
@@ -1456,15 +1472,16 @@ export function useQrPayFlowController(
 
     /*
      * Balance and floor/cap validation, derived — the old effect-and-state pair
-     * could only ever restate these inputs.
+     * could only ever restate these inputs. `shortOfBalance` marks the one
+     * refusal that adding money fixes, so the form offers Add money for it.
      */
-    const balanceErrorMessage = useMemo(() => {
+    const balanceError = useMemo((): { message: string; shortOfBalance?: true } | null => {
         // The pay route's minimum, checked before any call (Aleks, 2026-11-14), then the review's refusal
         // of the amount typed. Both name the amount, so both sit under the amount field.
         if (isPixPay && pixPayMinimumBrl && isUnderPixMinimum(currencyAmount, pixPayMinimumBrl)) {
-            return tPix('deposit.minimum', { amount: formatBankAmount(pixPayMinimumBrl, 'BRL') })
+            return { message: tPix('deposit.minimum', { amount: formatBankAmount(pixPayMinimumBrl, 'BRL') }) }
         }
-        if (isPixPay && pixPayment.amountRefusal) return pixPayment.amountRefusal
+        if (isPixPay && pixPayment.amountRefusal) return { message: pixPayment.amountRefusal }
         if (
             (!Number(usdAmount) && !Number(currencyAmount)) ||
             !usdAmount ||
@@ -1478,31 +1495,41 @@ export function useQrPayFlowController(
         // Manteca-specific validation (PIX, MercadoPago, QR3)
         if (paymentProcessor === 'MANTECA') {
             if (paymentAmount < parseUnits(MIN_MANTECA_QR_PAYMENT_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
-                return t(pixKeyLabel ? 'errors.minTransferAmount' : 'errors.minMantecaAmount', {
-                    amount: MIN_MANTECA_QR_PAYMENT_AMOUNT,
-                })
+                return {
+                    message: t(pixKeyLabel ? 'errors.minTransferAmount' : 'errors.minMantecaAmount', {
+                        amount: MIN_MANTECA_QR_PAYMENT_AMOUNT,
+                    }),
+                }
             }
             // PIX rail enforces a 1 BRL minimum, stricter than the USD floor above
             if (currency?.code === 'BRL' && currencyAmount && parseFloat(currencyAmount) < MIN_PIX_AMOUNT_BRL) {
-                return t('errors.minPixAmountBrl', { amount: MIN_PIX_AMOUNT_BRL })
+                return { message: t('errors.minPixAmountBrl', { amount: MIN_PIX_AMOUNT_BRL }) }
             }
         }
 
         // Common validations for all payment processors
         if (paymentAmount > parseUnits(MAX_QR_PAYMENT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
-            return t(pixKeyLabel ? 'errors.maxTransferAmount' : 'errors.maxQrAmount', { amount: MAX_QR_PAYMENT_AMOUNT })
+            return {
+                message: t(pixKeyLabel ? 'errors.maxTransferAmount' : 'errors.maxQrAmount', {
+                    amount: MAX_QR_PAYMENT_AMOUNT,
+                }),
+            }
         }
         if (paymentAmount < parseUnits(MIN_QR_PAYMENT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
-            return t(pixKeyLabel ? 'errors.minTransferAmount' : 'errors.minQrAmount', { amount: MIN_QR_PAYMENT_AMOUNT })
+            return {
+                message: t(pixKeyLabel ? 'errors.minTransferAmount' : 'errors.minQrAmount', {
+                    amount: MIN_QR_PAYMENT_AMOUNT,
+                }),
+            }
         }
         if (!isAmountWithinBalance(usdAmount, balance)) {
             // gate on the displayed total; an in-transit shortfall passes here and
             // fails late with the settling message at execution. A locked amount
             // cannot be lowered here, so the copy says how much is missing.
-            if (paymentLock?.code) {
-                return tErrors('balanceShortBy', { amount: usdShortfall(paymentAmount, balance) })
-            }
-            return tErrors('notEnoughBalanceAddFunds')
+            const message = paymentLock?.code
+                ? tErrors('balanceShortBy', { amount: usdShortfall(paymentAmount, balance) })
+                : tErrors('notEnoughBalanceAddFunds')
+            return { message, shortOfBalance: true }
         }
         return null
     }, [
@@ -1520,6 +1547,7 @@ export function useQrPayFlowController(
         t,
         tErrors,
     ])
+    const balanceErrorMessage = balanceError?.message ?? null
 
     // "Try again in a few seconds" is untrue once the refreshed balance cannot
     // cover the amount: the field error says what is short instead.
@@ -1670,6 +1698,7 @@ export function useQrPayFlowController(
         initErrorNeedsVerification,
         isBlockingError,
         balanceErrorMessage,
+        isShortOfBalance: !!balanceError?.shortOfBalance,
         rateUnavailable,
         retryRate,
         amountInputRevision,

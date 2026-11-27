@@ -35,12 +35,14 @@ export function CurrencyRefusalScreen({
     const description =
         currency && (reason === 'account_unavailable_in_residence' || isLocalResidenceRefusal(reason))
             ? tDeposit('list.residenceRestrictedBody', { currency })
-            : reasonKey
-              ? tIdentity(reasonKey)
-              : (message ??
-                (currency && !reason
-                    ? tDeposit('list.notOfferedBody', { currency })
-                    : tKyc(kycFeatureRefusalCopy(reason), { feature: tKyc('documents.bank') })))
+            : currency && reason === 'bridge_region_unavailable'
+              ? tDeposit('list.regionUnavailableBody', { currency })
+              : reasonKey
+                ? tIdentity(reasonKey)
+                : (message ??
+                  (currency && !reason
+                      ? tDeposit('list.notOfferedBody', { currency })
+                      : tKyc(kycFeatureRefusalCopy(reason), { feature: tKyc('documents.bank') })))
     return (
         <VerifyHeroLayout
             statusTone="error"

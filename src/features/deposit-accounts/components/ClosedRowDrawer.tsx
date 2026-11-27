@@ -107,6 +107,20 @@ export function ClosedRowDrawer({
                     body: tAccounts(restrictions.card ? 'bankNotAvailableNote' : 'bankOnlyNotAvailableNote'),
                     cta: { label: tCommon('gotIt') },
                 }
+            // the provider's own refusal, worded as the currency refusal screen words it (TASK-24969)
+            case 'refused': {
+                const key = reasonCodeKey(row.reason)
+                return {
+                    title: t('list.badgeNotOffered'),
+                    body:
+                        row.reason === 'bridge_region_unavailable' && row.currency
+                            ? t('list.regionUnavailableBody', { currency: row.currency })
+                            : key
+                              ? tIdentity(key)
+                              : tKyc(kycFeatureRefusalCopy(row.reason), { feature: tKyc('documents.bank') }),
+                    cta: { label: tCommon('gotIt') },
+                }
+            }
             // the route's own reason (an outage, the rollout, a pause), as the Pix pages word it; a refusal
             // only support can lift offers support with the reason, as the Pix page does
             case 'pix-route': {
@@ -172,12 +186,17 @@ export function ClosedRowDrawer({
                     link: { label: t('details.residenceCta'), act: onChangeResidence },
                 }
             // nothing about the user, so nothing for them or support to do
-            case 'not-open':
+            case 'not-open': {
+                // The API currently maps Bridge's COP pause to not-open (TASK-25414).
+                const copPaused = row.corridor === 'BANK_TRANSFER_CO'
                 return {
-                    title: t('gate.notYetTitle'),
-                    body: t('list.notOpenBody', { currency: DEPOSIT_RAILS[row.corridor].currency }),
+                    title: t(copPaused ? 'list.copPausedTitle' : 'list.notOpenTitle'),
+                    body: copPaused
+                        ? t('list.copPausedBody')
+                        : t('list.notOpenBody', { currency: DEPOSIT_RAILS[row.corridor].currency }),
                     cta: { label: tCommon('gotIt') },
                 }
+            }
             case 'residence-missing':
                 return {
                     title: tAccounts('residence.unknown'),

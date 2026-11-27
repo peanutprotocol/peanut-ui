@@ -1,6 +1,6 @@
 'use client'
 
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import GlobalCard from '@/components/Global/Card'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { formatBankAmount, formatFiatRate } from '@/utils/currency'
@@ -13,17 +13,22 @@ import { formatBankAmount, formatFiatRate } from '@/utils/currency'
  */
 export function PixRateAndFeeCard({ rate, providerFeeBrl }: { rate: number | null; providerFeeBrl: string | null }) {
     const tCommon = useTranslations('common')
+    const locale = useLocale()
     const tPix = useTranslations('pix.withdraw')
     return (
         <GlobalCard className="px-4">
             <PaymentInfoRow
                 label={tCommon('exchangeRate')}
-                value={rate !== null ? `1 USD = ${formatFiatRate(rate)} BRL` : ''}
+                value={rate !== null ? `1 USD = ${formatFiatRate(rate, locale)} BRL` : ''}
                 loading={rate === null}
                 hideBottomBorder={providerFeeBrl === null}
             />
             {providerFeeBrl !== null && (
-                <PaymentInfoRow label={tPix('fee')} value={formatBankAmount(providerFeeBrl, 'BRL')} hideBottomBorder />
+                <PaymentInfoRow
+                    label={tPix('fee')}
+                    value={formatBankAmount(providerFeeBrl, 'BRL', locale)}
+                    hideBottomBorder
+                />
             )}
         </GlobalCard>
     )

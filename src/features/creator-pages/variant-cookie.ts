@@ -1,7 +1,7 @@
-import { isGoPageLabel } from '@/features/tracked-links/contract'
+import { isCreatorPageLabel } from './label'
 
 const MAX_AGE_SECONDS = 30 * 24 * 60 * 60
-const COOKIE_SCOPE = 'Path=/go; SameSite=Lax; Secure'
+const COOKIE_SCOPE = 'Path=/c; SameSite=Lax; Secure'
 
 export type VariantCookie = { experimentId: string; variantId: string }
 
@@ -12,12 +12,11 @@ export function variantCookieName(username: string): string {
 /** Value format: `<experimentId>.<variantId>`. */
 export function parseVariantCookie(value: string | null | undefined): VariantCookie | null {
     const [experimentId, variantId, ...rest] = (value ?? '').split('.')
-    // The engine's rule for a variant and an experiment id: a cookie it would refuse is not sticky.
-    if (rest.length || !isGoPageLabel(experimentId) || !isGoPageLabel(variantId)) return null
+    if (rest.length || !isCreatorPageLabel(experimentId) || !isCreatorPageLabel(variantId)) return null
     return { experimentId, variantId }
 }
 
-/** A `document.cookie` assignment. `Path=/go` keeps the cookie off every other request. */
+/** A `document.cookie` assignment. `Path=/c` keeps the cookie off every other request. */
 export function serializeVariantCookie(username: string, { experimentId, variantId }: VariantCookie): string {
     return `${variantCookieName(username)}=${experimentId}.${variantId}; Max-Age=${MAX_AGE_SECONDS}; ${COOKIE_SCOPE}`
 }

@@ -28,7 +28,7 @@ export const ANALYTICS_EVENTS = {
     HOME_BLOCKED_CARD_HIDDEN: 'home_blocked_card_hidden',
     // `action`: add | send | request; `add_cta_active`: Add showed as the low-balance pill
     HOME_SUBMENU_TAPPED: 'home_submenu_tapped',
-    // once per pill mount: `balance_bucket` (0 | <1 | 1-10), `label` (add_money | top_up)
+    // once per pill mount: `balance_bucket` (0 | <1 | 1-10), `label` (always add_money; top_up before TASK-25341)
     HOME_ADD_CTA_SHOWN: 'home_add_cta_shown',
     KYC_DEGRADED_NOTIFY_REQUESTED: 'kyc_degraded_notify_requested',
     SIGNUP_CLICKED: 'signup_signup_clicked',
@@ -152,6 +152,11 @@ export const ANALYTICS_EVENTS = {
     DEPOSIT_CONFIRMED: 'deposit_confirmed',
     DEPOSIT_COMPLETED: 'deposit_completed',
     DEPOSIT_FAILED: 'deposit_failed',
+    // Continue on an amount that stops before the deposit call: `reason` says what the user saw instead
+    DEPOSIT_SUBMIT_BLOCKED: 'deposit_submit_blocked',
+    // the progress screen while a local (ARS) account opens: `wait_ms` and `outcome` on the end
+    LOCAL_ACCOUNT_WAIT_STARTED: 'local_account_wait_started',
+    LOCAL_ACCOUNT_WAIT_ENDED: 'local_account_wait_ended',
 
     // ── Limits ──
     // The warning-card route check is intentionally separate from the payment
@@ -202,10 +207,6 @@ export const ANALYTICS_EVENTS = {
     // is the iOS stash loss of Oct 2026 — it used to leave no trace at all.
     INVITE_ATTRIBUTION_SETTLED: 'invite_attribution_settled',
 
-    // ── Creator pages (/go/<username>) ──
-    // The view count is the engine's tracked_link_visit. Read-out: mono engineering/ui/creator-pages.md
-    CREATOR_PAGE_CTA_CLICKED: 'creator_page_cta_clicked',
-
     // ── Points / Rewards ──
     POINTS_PAGE_VIEWED: 'points_page_viewed',
     POINTS_EARNED: 'points_earned',
@@ -244,9 +245,7 @@ export const ANALYTICS_EVENTS = {
     NOTIFICATION_SUBSCRIBED: 'notification_subscribed',
     NOTIFICATION_CLICKED: 'notification_clicked',
     NOTIFICATION_SUBSCRIPTION_SNAPSHOT: 'notification_subscription_snapshot',
-    /** Sign-up notifications step saved: outcome = OS answer, not_asked or skipped. */
-    NOTIFICATION_CHOICES_SAVED: 'notification_choices_saved',
-    /** The OS answer to the prompt the sign-up notifications step opened; the experiment's goal. */
+    /** The OS answer to the prompt the sign-up notifications step opened. */
     SIGNUP_PUSH_PERMISSION_ANSWERED: 'signup_push_permission_answered',
 
     // ── App store review ──
@@ -369,6 +368,19 @@ export const ANALYTICS_EVENTS = {
     // when a deposit method was picked, else null. The deposit itself is the
     // server-side `deposit_completion` (peanut-api-ts, every rail).
     CARD_GATE_ADD_FUNDS_TAPPED: 'card_gate_add_funds_tapped',
+    // The add-money drawer on the funding step (TASK-25169). Codes only, no amount.
+    // `method` ∈ bank|crypto; `view` ∈ networks|address|rows|details|not_verified|
+    // finish_setup|not_offered|loading. Closed = dismissed without funding.
+    CARD_GATE_ADD_MONEY_DRAWER_OPENED: 'card_gate_add_money_drawer_opened',
+    CARD_GATE_ADD_MONEY_DRAWER_CLOSED: 'card_gate_add_money_drawer_closed',
+    // `network` ∈ EVM|SOL|TRON
+    CARD_GATE_ADD_MONEY_NETWORK_PICKED: 'card_gate_add_money_network_picked',
+    // `corridor` a DepositCorridor; `kind` ∈ account|page
+    CARD_GATE_ADD_MONEY_RAIL_PICKED: 'card_gate_add_money_rail_picked',
+    CARD_GATE_ADD_MONEY_VERIFY_TAPPED: 'card_gate_add_money_verify_tapped',
+    // The balance reached the minimum while the funding step showed. `in_drawer` = the
+    // drawer was open; `method` = its method, or the last one opened, else null.
+    CARD_GATE_CAME_BACK_FUNDED: 'card_gate_came_back_funded',
     // POST /rain/cards lifecycle. `outcome` ∈
     // pending|terms-required|incomplete|main-kyc-required|enabled|error|already-applied.
     CARD_APPLY_ATTEMPTED: 'card_apply_attempted',

@@ -73,7 +73,7 @@
     },
     "errors": {
         "balanceSettling": "Seu saldo ainda não está totalmente disponível. Tente novamente em alguns segundos.",
-        "notEnoughBalanceAddFunds": "Saldo insuficiente. Adicione fundos para continuar.",
+        "notEnoughBalanceAddFunds": "Saldo insuficiente. Adicione dinheiro para continuar.",
         "balanceShortBy": "Faltam ${amount} no seu saldo. Adicione dinheiro para continuar.",
         "insufficientFunds": "Você não tem fundos suficientes.",
         "userRejectedTransaction": "Confirme a transação na sua carteira.",
@@ -118,6 +118,7 @@
         "mantecaAccountRejected": "Depósitos e saques neste país não estão disponíveis para sua conta. Você pode continuar pagando com QR. O suporte pode ajudar.",
         "mantecaAccountRejectedForCountry": "Você não pode adicionar ou sacar dinheiro em {country}. Você ainda pode pagar com QR.",
         "bankAccountNotUsable": "Esta conta bancária não pode mais ser usada. Adicione-a novamente.",
+        "belowMinBridgeAmount": "Este valor está abaixo do mínimo para esta rede. Tente um valor maior ou outra rede.",
         "cardRateLimited": "Muitas solicitações com o cartão. Aguarde um momento e tente novamente.",
         "linkTransactionHashFetch": "Não conseguimos carregar a transação deste link. Atualize a página e tente novamente.",
         "cardApprovalCancelled": "Aprovação cancelada. Você pode tentar novamente quando quiser.",
@@ -156,7 +157,6 @@
         },
         "downloadNow": "Baixar agora",
         "smartLink": {
-            "openApp": "Abrir Peanut",
             "redirecting": "Abrindo a loja…",
             "pickStore": "Escolha sua loja e baixe o app."
         }

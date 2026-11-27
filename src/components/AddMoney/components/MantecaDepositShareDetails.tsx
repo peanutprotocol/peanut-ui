@@ -14,13 +14,16 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { Card } from '@/components/0_Bruddle/Card'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
+import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import {
     MANTECA_ARG_DEPOSIT_CUIT,
     MANTECA_ARG_DEPOSIT_NAME,
     MANTECA_COUNTRIES_CONFIG,
 } from '@/constants/manteca.consts'
-import { shortenStringLong, formatCurrency } from '@/utils/general.utils'
-import { formatFiatRate } from '@/utils/currency'
+import { shortenStringLong } from '@/utils/general.utils'
+import { formatAmountNumber, formatFiatRate } from '@/utils/currency'
 import { useLocale, useTranslations } from 'next-intl'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ProviderHelp } from '@/components/Provider/ProviderHelp'
@@ -28,17 +31,18 @@ import { PROVIDERS } from '@/constants/providers.consts'
 
 const MantecaDepositShareDetails = ({
     depositDetails,
-    currencyAmount,
     arsStatus,
     onStartOver,
     onBack,
+    onDone,
 }: {
     depositDetails: MantecaDepositResponseData
-    currencyAmount?: string | undefined
     arsStatus?: 'pending' | 'processing' | 'completed' | 'failed' | 'expired'
     onStartOver?: () => void
     // Parent owns step navigation — usually a setUrlState({ step: 'inputAmount' }).
     onBack: () => void
+    // Leaves the flow once the pesos arrived.
+    onDone: () => void
 }) => {
     const params = useParams()
     const t = useTranslations('addMoney')
@@ -76,16 +80,19 @@ const MantecaDepositShareDetails = ({
     const depositAddress = depositDetails.details.depositAddress ?? ''
     const shortenedAddress = depositAddress.length > 30 ? shortenStringLong(depositAddress, 10) : depositAddress
     const depositAlias = depositDetails.details.depositAlias
-    const depositAmount = currencyAmount ?? depositDetails.stages['1'].thresholdAmount
+    // The order's own amount, at the price it locked. The amount step's figure is an estimate at an earlier
+    // price, so next to the locked rate it looked short (26 Nov: ARS 1.780,39 shown for a 1.777,34 order).
+    const depositAmount = depositDetails.stages['1'].thresholdAmount
     let usdAmount = depositDetails.stages['3'].amount
     const currencySymbol = depositDetails.stages['1'].asset
     const exchangeRate = depositDetails.details.price
     let networkFees = depositDetails.details.withdrawCostInAsset
     usdAmount = (Number(usdAmount) - Number(networkFees)).toString()
+    // Argentines read "1,746.62" as 1.74: every number on this screen uses the app locale
     if (Number(networkFees) < 0.01) {
-        networkFees = '< 0.01 USD'
+        networkFees = `< ${formatAmountNumber(0.01, 2, 2, locale)} USD`
     } else {
-        networkFees = `${formatCurrency(networkFees)} USD`
+        networkFees = `${formatAmountNumber(networkFees, 2, 2, locale)} USD`
     }
 
     const generateShareText = () => {
@@ -120,6 +127,32 @@ const MantecaDepositShareDetails = ({
             </div>
         )
 
+    // The pesos reached Manteca: the bank details would invite a second transfer, and back would offer the amount again.
+    if (arsStatus === 'processing')
+        return (
+            <PageStack>
+                <NavHeader title={t('title')} onPrev={onDone} />
+                <ProcessingScreen
+                    title={t('manteca.paymentReceivedTitle')}
+                    description={t('manteca.paymentReceivedDescription')}
+                />
+            </PageStack>
+        )
+
+    if (arsStatus === 'completed')
+        return (
+            <PageStack>
+                <NavHeader title={t('title')} onPrev={onDone} />
+                <PageStack.Center className="items-center text-center">
+                    <IconBubble icon="check" size="l" color="green" />
+                    <TitleBlock align="center" title={t('depositReceived')} description={t('balanceUpdated')} />
+                    <Button variant="primary" className="w-full" onClick={onDone}>
+                        {tCommon('done')}
+                    </Button>
+                </PageStack.Center>
+            </PageStack>
+        )
+
     const transferDeadline = arsStatus === 'pending' ? Date.parse(depositDetails.stages?.['1']?.expireAt ?? '') : NaN
     return (
         <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
@@ -140,10 +173,11 @@ const MantecaDepositShareDetails = ({
                                 <Icon name="arrow-down" size={10} /> {t('manteca.youreAdding')}
                             </p>
                             <p className="text-heading-s text-foreground-primary">
-                                {currencySymbol} {formatCurrency(depositAmount)}
+                                {currencySymbol} {formatAmountNumber(depositAmount, 2, 2, locale)}
                             </p>
+                            {/* no "≈": the order locked this price when it was created */}
                             <div className="text-heading-card text-foreground-primary">
-                                ≈ {formatCurrency(usdAmount)} USD
+                                {formatAmountNumber(usdAmount, 2, 2, locale)} USD
                             </div>
                         </div>
                     </div>
@@ -180,7 +214,7 @@ const MantecaDepositShareDetails = ({
                     )}
                     <PaymentInfoRow
                         label={t('manteca.exchangeRate')}
-                        value={`1 USD = ${formatFiatRate(exchangeRate)} ${currencySymbol}`}
+                        value={`1 USD = ${formatFiatRate(exchangeRate, locale)} ${currencySymbol}`}
                     />
                     <PaymentInfoRow
                         label={t('manteca.providerFees')}

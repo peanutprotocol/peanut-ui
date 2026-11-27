@@ -131,6 +131,28 @@ function candidateSubmissionPending(key: string) {
     }
 }
 
+// sign-up and the legacy start push /verify again, which remounts the flow and empties its refs, so the
+// "start screen seen" mark lives in session storage, per account (TASK-25326)
+const introSeenKey = (userId: string) => `peanut:verify-intro-seen:${userId}`
+
+function introSeen(userId: string | undefined) {
+    if (!userId) return false
+    try {
+        return sessionStorage.getItem(introSeenKey(userId)) === '1'
+    } catch {
+        return false
+    }
+}
+
+function markIntroSeen(userId: string | undefined) {
+    if (!userId) return
+    try {
+        sessionStorage.setItem(introSeenKey(userId), '1')
+    } catch {
+        // storage unavailable: the start screen may show again on the next mount
+    }
+}
+
 type Loaded = {
     questions: PaperworkVerificationQuestions
     plan: KycDocumentPlan | null
@@ -524,17 +546,28 @@ function CandidateTerminal({
     )
 }
 
-function useCandidateReturn(returnTo?: string | null) {
+/**
+ * Back to a safe returnTo once the user is read again, so that place sees the new status. Only while the
+ * same session holds: a logout or account switch during the read stops it. `waitMs` caps a slow read;
+ * `orElse` runs instead when there is no safe returnTo (default: Home after the read, as a candidate ends).
+ */
+function useCandidateReturn(
+    returnTo?: string | null,
+    { waitMs, orElse }: { waitMs?: number; orElse?: () => void } = {}
+) {
     const router = useRouter()
     const { fetchUser } = useAuth()
     const captureSession = useSessionFence()
     const returning = useRef(false)
+    const target = safeReverificationReturnTo(returnTo)
     return async () => {
+        if (!target && orElse) return orElse()
         if (returning.current) return
         const session = captureSession()
         returning.current = true
-        await Promise.resolve(fetchUser()).catch(() => {})
-        if (session.current()) router.replace(safeReverificationReturnTo(returnTo) ?? '/home')
+        const read = Promise.resolve(fetchUser()).catch(() => {})
+        await (waitMs ? Promise.race([read, new Promise((resolve) => setTimeout(resolve, waitMs))]) : read)
+        if (session.current()) router.replace(target ?? '/home')
     }
 }
 
@@ -661,7 +694,9 @@ function PaperworkVerificationSteps({
 
     // A visit that still has questions or the ID ahead opens on Verify start, the one verify intro, in front
     // of the open step; a deep link to a step skips it.
-    const [intro, setIntro] = useState(() => !candidate && asking && !introShown.current && !stepParam)
+    const [intro, setIntro] = useState(
+        () => !candidate && asking && !introShown.current && !introSeen(user?.user.userId) && !stepParam
+    )
     const showIntro = intro && asking
     // While asking, the clean URL keeps meaning the step this visit opened on, so moving on to
     // a step that has since become the entry (the ID, once every answer is in) still writes it.
@@ -686,8 +721,10 @@ function PaperworkVerificationSteps({
     const step = stepper.step
     const goToStep = stepper.goTo
     useEffect(() => {
-        if (showIntro) introShown.current = true
-    }, [showIntro, introShown])
+        if (!showIntro) return
+        introShown.current = true
+        markIntroSeen(user?.user.userId)
+    }, [showIntro, introShown, user?.user.userId])
 
     const stepRef = useRef(step)
     stepRef.current = step
@@ -1220,6 +1257,13 @@ function PaperworkVerificationSteps({
 
     const goHome = () =>
         candidate ? router.replace('/home') : returnToFeature === '1' ? exit() : router.replace('/home')
+    // First-time completion (submitted or verified) goes back where the check was opened from, when
+    // that place passed a safe returnTo (the card step does); without one it ends as before. The user is
+    // read again first, so that place sees the new verification status.
+    const firstTimeReturn = candidate ? null : safeReverificationReturnTo(returnTo)
+    // the read is a courtesy to the place returned to: a slow one never holds the user here past 3 s
+    const returnToOpener = useCandidateReturn(firstTimeReturn, { waitMs: 3000, orElse: () => goHome() })
+    const finish = () => void returnToOpener()
     const residenceName = questions.residence
         ? localizedCountryName(locale, questions.residence, questions.residence)
         : ''
@@ -1347,8 +1391,10 @@ function PaperworkVerificationSteps({
                 title={candidate ? t('reverify.pendingTitle') : undefined}
                 note={candidate ? t('reverify.pendingDescription') : undefined}
                 hasQuestions={questionIds.length > 0}
-                onBack={goHome}
-                onContinue={goHome}
+                // "Back to Home" would be false when the check returns to where it was opened from
+                cta={firstTimeReturn ? t('continue') : undefined}
+                onBack={finish}
+                onContinue={finish}
             />
         )
     } else if (step === 'verified') {
@@ -1357,14 +1403,22 @@ function PaperworkVerificationSteps({
                 phase="verified"
                 hasQuestions={questionIds.length > 0}
                 // The identity's own status page also names what a feature still asks for (Rain's
-                // proof of address, a bank's document) as steps of its own, before Unlock.
-                followUps={candidate ? undefined : followUps.map((followUp) => followUp.label)}
-                note={!candidate && followUps[0] ? tRoot(followUps[0].note) : undefined}
-                cta={candidate || followUps[0] ? t('continue') : undefined}
+                // proof of address, a bank's document) as steps of its own, before Unlock. Opened with a
+                // returnTo, Continue goes back to the opener, not to those steps, and the opener (the card
+                // funding step) does not lead to each of them, so the screen does not list them.
+                followUps={candidate || firstTimeReturn ? undefined : followUps.map((followUp) => followUp.label)}
+                note={!candidate && !firstTimeReturn && followUps[0] ? tRoot(followUps[0].note) : undefined}
+                // a returnTo target is not "payments": the neutral label is true for any place returned to
+                cta={candidate || followUps[0] || firstTimeReturn ? t('continue') : undefined}
                 aside={!candidate && bankRefusal && <BankRefusalNotice refusal={bankRefusal} />}
-                onBack={goHome}
+                onBack={finish}
+                // opened with a returnTo (the card step): back there
                 onContinue={
-                    candidate ? completeCandidate : () => router.push(followUps[0]?.href ?? PAYMENT_METHODS_HREF)
+                    candidate
+                        ? completeCandidate
+                        : firstTimeReturn
+                          ? finish
+                          : () => router.push(followUps[0]?.href ?? PAYMENT_METHODS_HREF)
                 }
             />
         )

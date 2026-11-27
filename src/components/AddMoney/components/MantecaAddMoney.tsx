@@ -20,6 +20,8 @@ export default function MantecaAddMoney() {
             <KycFeatureActivationGate
                 feature="local"
                 selectedCurrency={selectedCountry?.currency}
+                // picking pesos asks for the peso account; it usually opens in seconds (TASK-25059)
+                startOnArrival={selectedCountry?.id === 'AR'}
                 scope={{ channel: 'bank', country: selectedCountry?.id }}
             >
                 <MantecaAddMoneyFlow searchParams={searchParams} />

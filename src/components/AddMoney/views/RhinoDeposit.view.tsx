@@ -5,15 +5,16 @@ import Card from '@/components/Global/Card'
 import CopyField from '@/components/Global/CopyField'
 import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
-import ChainChip from '../components/ChainChip'
+import DepositProcessingScreen from '../components/DepositProcessingScreen'
+import SupportedEvmNetworksCard from '../components/SupportedEvmNetworksCard'
+import SupportedTokensRow from '../components/SupportedTokensRow'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { Tabs } from '@/components/0_Bruddle/Tabs'
 import Loading from '@/components/Global/Loading'
-import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useCryptoDepositPolling } from '../hooks/useCryptoDepositPolling'
 import type { CreateDepositAddressResponse, RhinoChainType } from '@/services/services.types'
-import { CHAIN_LOGOS, SUPPORTED_EVM_CHAINS, NETWORK_LABELS, getSupportedTokens } from '@/constants/rhino.consts'
+import { NETWORK_LABELS } from '@/constants/rhino.consts'
 import UserCard from '@/components/User/UserCard'
 import type { Person } from '@/lib/person/person.types'
 import { isCryptoAddress, printableAddress } from '@/utils/general.utils'
@@ -76,7 +77,6 @@ const RhinoDepositView = ({
     chargeId,
 }: RhinoDepositViewProps) => {
     const t = useTranslations('addMoney.crypto')
-    const tAddMoney = useTranslations('addMoney')
     const tCommon = useTranslations('common')
     const tPayment = useTranslations('payment')
     const {
@@ -149,10 +149,7 @@ const RhinoDepositView = ({
                 {/* no way back while the payment is being booked: the flow would
                     land on the amount screen with its buttons still busy */}
                 <NavHeader title={headerTitle} onPrev={onBack} hideBackBtn={isConfirming} />
-                <ProcessingScreen
-                    title={tAddMoney('processingDepositTitle')}
-                    description={tAddMoney('processingDepositBody')}
-                />
+                <DepositProcessingScreen />
             </PageStack>
         )
     }
@@ -259,12 +256,7 @@ const RhinoDepositView = ({
                         <CopyField text={depositAddressData.depositAddress} />
 
                         <Callout priority="attention">
-                            <div className="flex items-center gap-2">
-                                <p>{t('supportedTokensInline')}</p>
-                                {getSupportedTokens(chainType).map((token) => (
-                                    <ChainChip key={token.name} chainName={token.name} chainSymbol={token.logoUrl} />
-                                ))}
-                            </div>
+                            <SupportedTokensRow network={chainType} />
                         </Callout>
 
                         <div className="flex w-full flex-col gap-1">
@@ -293,16 +285,7 @@ const RhinoDepositView = ({
                             </div>
                         </div>
 
-                        {chainType === 'EVM' && (
-                            <Card className="flex flex-col gap-2 p-4">
-                                <h3 className="text-label-l text-foreground-primary">{t('supportedEvmNetworks')}</h3>
-                                <div className="flex flex-wrap gap-2">
-                                    {SUPPORTED_EVM_CHAINS.map((chain) => (
-                                        <ChainChip key={chain} chainName={chain} chainSymbol={CHAIN_LOGOS[chain]} />
-                                    ))}
-                                </div>
-                            </Card>
-                        )}
+                        {chainType === 'EVM' && <SupportedEvmNetworksCard />}
                     </>
                 )}
 

@@ -25,6 +25,8 @@ describe('pixSetupState', () => {
         expect(pixSetupState(route('pending'))).toBe('pending')
         expect(pixSetupState(route('action_required', { action: 'verify' }))).toBe('verify')
         expect(pixSetupState(route('action_required', { action: 'activate' }))).toBe('activate')
+        // TASK-25335: a missing email is the user's own step, not support's
+        expect(pixSetupState(route('action_required', { action: 'provide-email' }))).toBe('email')
     })
 
     // TASK-24947: Avenia relies on our verification, so a terms or hosted step is no step of the Pix setup

@@ -34,7 +34,7 @@ function isSameDay(date1: Date, date2: Date): boolean {
  * @param date2 second date.
  * @returns how many days date1 is ahead of date2 (negative when date1 is earlier).
  */
-function daysDifference(date1: Date, date2: Date): number {
+export function daysDifference(date1: Date, date2: Date): number {
     const oneDay = 24 * 60 * 60 * 1000 // hours*minutes*seconds*milliseconds
     // reset time to midnight for accurate day difference
     const date1Midnight = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate())

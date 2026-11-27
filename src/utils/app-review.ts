@@ -2,7 +2,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { REVIEW_URL } from '@/constants/migration.consts'
 import { isAttentionInterruptOpen } from '@/features/attention/interruptState'
-import { isNativeBridge, openExternalUrl } from '@/utils/capacitor'
+import { isNativeBridge, openInOsApp } from '@/utils/capacitor'
 import { hadRecentFriction } from '@/utils/app-review-friction'
 import { isDemoMode } from '@/utils/demo'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
@@ -40,20 +40,11 @@ const DAY_MS = 86_400_000
  * Deliberately not openExternalUrl: that opens an in-app sheet
  * (SFSafariViewController on iOS), which does not follow universal links, so
  * `?action=write-review` would render the web listing with no composer on it.
- * AppLauncher hands the url to the OS, which opens the App Store / Play app.
+ * openInOsApp hands the url to the OS, which opens the App Store / Play app.
  */
 export async function openStoreReviewPage(store: 'ios' | 'android'): Promise<void> {
-    try {
-        const { AppLauncher } = await import('@capacitor/app-launcher')
-        // it reports a failed launch in `completed`, it does not throw — an
-        // unchecked call is a dead tap with no error anywhere
-        const { completed } = await AppLauncher.openUrl({ url: REVIEW_URL[store] })
-        if (completed) return
-    } catch {
-        // plugin missing (web, or a binary predating it) — fall through
-    }
-    // the in-app sheet still reaches the listing, just without the composer
-    await openExternalUrl(REVIEW_URL[store])
+    // the in-app sheet fallback still reaches the listing, just without the composer
+    await openInOsApp(REVIEW_URL[store])
 }
 
 /** Which happy moment triggered the request — the `trigger` property on the event. */

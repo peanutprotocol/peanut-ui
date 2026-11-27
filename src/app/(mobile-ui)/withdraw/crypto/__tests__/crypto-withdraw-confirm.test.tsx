@@ -16,6 +16,8 @@
 import React from 'react'
 import { render as rtlRender, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
+import { NextIntlClientProvider } from 'next-intl'
+import { loadMessages } from '@/i18n/app/messages'
 
 // ---------- module-level mocks ----------
 
@@ -103,8 +105,9 @@ jest.mock('@/utils/balance.utils', () => ({
 
 jest.mock('@/utils/withdraw.utils', () => ({
     ...jest.requireActual('@/utils/withdraw.utils'),
-    isBelowRhinoMinDeposit: () => false,
+    isBelowRhinoMinDeposit: (...args: unknown[]) => mockIsBelowRhinoMinDeposit(...args),
 }))
+const mockIsBelowRhinoMinDeposit = jest.fn((..._args: unknown[]) => false)
 
 jest.mock('@/utils/general.utils', () => ({
     isStableCoin: (symbol: string) => ['USDC', 'USDT'].includes(symbol.toUpperCase()),
@@ -467,7 +470,10 @@ beforeEach(() => {
         receiveAmount: '50',
         isCalculating: false,
         isFeeEstimationError: false,
+        payAmount: null,
+        minDepositLimitUsd: 0,
     })
+    mockIsBelowRhinoMinDeposit.mockReturnValue(false)
     chargeDetails.chainId = '42161'
     mockIsWithdrawFeeDisproportionate.mockImplementation(() => false)
     mockWithdrawFlow.paymentError = null
@@ -523,7 +529,42 @@ describe('crypto withdraw confirm — network fee', () => {
 
         render(<WithdrawCryptoPage />)
 
-        expect(screen.getByTestId('below-minimum').textContent).toMatch(/leave nothing to deliver/)
+        expect(screen.getByTestId('below-minimum').textContent).toBe(
+            'The network fee is more than this withdrawal. Enter a larger amount or pick a cheaper network.'
+        )
+    })
+
+    describe('the blocking messages follow the user language', () => {
+        const renderIn = async (locale: 'es-419' | 'pt-BR') => {
+            const messages = await loadMessages(locale)
+            rtlRender(
+                <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
+                    <WithdrawCryptoPage />
+                </NextIntlClientProvider>
+            )
+        }
+
+        it('shows the Rhino route minimum in pt-BR', async () => {
+            chargeDetails.chainId = '1'
+            mockIsBelowRhinoMinDeposit.mockReturnValue(true)
+            Object.assign(mockCrossChainTransfer, { isXChain: true, payAmount: '3', minDepositLimitUsd: 5 })
+
+            await renderIn('pt-BR')
+
+            expect(screen.getByTestId('below-minimum').textContent).toBe('O mínimo desta rede é $5.')
+        })
+
+        it('shows the fee that leaves nothing to deliver in es-419', async () => {
+            chargeDetails.chainId = 'solana'
+            mockUrlAmount = '0.5'
+            Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 0.5, receiveAmount: '0' })
+
+            await renderIn('es-419')
+
+            expect(screen.getByTestId('below-minimum').textContent).toBe(
+                'La comisión de red supera este retiro. Ingresa un monto mayor o elige una red más barata.'
+            )
+        })
     })
 
     it('refuses to broadcast when the fee would take the whole withdrawal', async () => {
@@ -611,8 +652,8 @@ describe('crypto withdraw confirm — network fee', () => {
             liveFee = 3
             Object.assign(mockCrossChainTransfer, { feeUsd: 3, receiveAmount: '0' })
             view.rerender(<WithdrawCryptoPage />)
-            expect(screen.getByTestId('below-minimum').textContent).toMatch(
-                /network fee to Solana is \$3\.00, which would leave nothing to deliver\. Enter a larger amount/
+            expect(screen.getByTestId('below-minimum').textContent).toBe(
+                'The network fee is more than this withdrawal. Enter a larger amount or pick a cheaper network.'
             )
             fireEvent.click(screen.getByTestId('confirm-withdraw'))
             await waitFor(() =>
@@ -1923,7 +1964,7 @@ describe('crypto withdraw — the network minimum is checked live', () => {
         mockUrlAmount = '5'
         openAmountStep()
 
-        expect(screen.getByRole('alert')).toHaveTextContent('Minimum withdrawal is $10.10.')
+        expect(screen.getByRole('alert')).toHaveTextContent("This network's minimum is $10.10.")
         expect(screen.getByTestId('review-cta')).toHaveAttribute('data-continue-disabled', 'true')
     })
 
@@ -1933,7 +1974,7 @@ describe('crypto withdraw — the network minimum is checked live', () => {
         openAmountStep()
         fireEvent.click(screen.getByTestId('review-cta'))
 
-        await waitFor(() => expect(mockSetPaymentError).toHaveBeenCalledWith('Minimum withdrawal is $10.10.'))
+        await waitFor(() => expect(mockSetPaymentError).toHaveBeenCalledWith("This network's minimum is $10.10."))
         expect(chargesApi.create).not.toHaveBeenCalled()
     })
 
@@ -1973,7 +2014,7 @@ describe('crypto withdraw — the network minimum is checked live', () => {
             mockUrlAmount = '3'
             renderPayScreen('1', '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48')
 
-            expect(screen.getByRole('alert')).toHaveTextContent('Minimum withdrawal is $5.05.')
+            expect(screen.getByRole('alert')).toHaveTextContent("This network's minimum is $5.05.")
             expect(screen.getByTestId('pay-cta')).toHaveAttribute('data-continue-disabled', 'true')
         })
 

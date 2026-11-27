@@ -1,7 +1,6 @@
 /* Variant A1.
-   The page's styles live here, not in Tailwind utilities, to keep the server HTML small: the engine
-   renders the page inside a Suspense boundary, and React hides a boundary over 12,800 bytes until a
-   script runs. With utilities <main> was 17 kB and the page was blank without JavaScript.
+   The page's styles live here, not in Tailwind utilities, to keep the server HTML small (on /go the
+   page sat in a Suspense boundary that React hid above 12,800 bytes; /c has no such boundary).
    So: one short class per block, child selectors inside it, values from the design tokens.
    The selectors follow the markup order in NitaA1.tsx and a1/. Change both together.
    Rules here are unlayered, so they win over any utility on the same element. */
@@ -271,7 +270,7 @@
     padding: 2rem 1rem 2.5rem;
 }
 .proofs > p,
-.proof > div:first-child span {
+.proof > div:first-child span:first-child {
     color: var(--color-foreground-secondary);
     font-size: var(--text-label-m);
     font-weight: var(--text-label-m--font-weight);
@@ -299,7 +298,8 @@
     height: 2rem;
     margin-top: 0.125rem;
 }
-.proof > div:first-child span {
+/* The label over the phrase; the span after it holds her words. */
+.proof > div:first-child span:first-child {
     display: block;
 }
 /* A closing quotation mark follows the phrase, so the stroke has no padding after it. */

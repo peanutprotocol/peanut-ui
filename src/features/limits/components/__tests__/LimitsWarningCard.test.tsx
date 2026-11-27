@@ -7,7 +7,7 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
  */
 /** @jest-environment jsdom */
 import React from 'react'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import LimitsWarningCard from '../LimitsWarningCard'
 
 jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
@@ -108,6 +108,28 @@ describe('LimitsWarningCard native navigation', () => {
         jest.useRealTimers()
         document.body.style.pointerEvents = ''
         window.history.replaceState({}, '', '/')
+    })
+
+    // design review 2026-11-26: the link closes the first bullet, never a bullet of its own
+    test('puts Check limits at the end of the first bullet', () => {
+        render(
+            <LimitsWarningCard
+                type="error"
+                title="This amount exceeds the limit"
+                items={[
+                    { text: 'You can withdraw up to $2,000 per transaction.' },
+                    { text: 'Limit resets in 3 days.' },
+                    { text: 'Check limits', isLink: true, href: '/limits', kind: 'check-limits' },
+                ]}
+                showSupportLink={false}
+            />
+        )
+
+        const bullets = screen.getAllByRole('listitem')
+        expect(bullets).toHaveLength(2)
+        expect(bullets[0]).toHaveTextContent('You can withdraw up to $2,000 per transaction. Check limits')
+        expect(within(bullets[0]).getByRole('button', { name: 'Check limits' })).toBeInTheDocument()
+        expect(bullets[1]).toHaveTextContent('Limit resets in 3 days.')
     })
 
     test.each([false, true])('provides exactly one Check limits action when supplied=%s', (supplied) => {
