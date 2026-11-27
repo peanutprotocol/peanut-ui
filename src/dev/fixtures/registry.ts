@@ -2600,6 +2600,9 @@ const CARD_US_USER = {
     capabilities: { rails: US_ACH_RAILS, nextActions: [], restrictions: [] },
 }
 
+/** A resident of Brazil whose Pix route is Avenia's, and the Pix page's own answers (quote and the rest). */
+const { 'GET /users/me': AVENIA_PIX_USER, ...AVENIA_PIX_PAGE_RESPONSES } = aveniaResponses('enabled')
+
 /** A verified UK resident: every bank rail refused for the residence. */
 const CARD_GB_REFUSED_USER = {
     residence: verifiedResidence('GB'),
@@ -2685,6 +2688,30 @@ const CARD_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
         'Card $10 step, bank: a resident of Argentina whose peso top-up is ready (ARS row).',
         ARS_TOP_UP_RESIDENT,
         {}
+    ),
+    // TASK-25444: two bank ways, so Bank opens the drawer's list, and ARS or Pix leads it
+    'card-add-money-bank-ars-two': cardAddMoney(
+        'Card $10 step, bank: a resident of Argentina with the peso top-up ready and a held USD account; the drawer lists ARS first.',
+        {
+            ...ARS_TOP_UP_RESIDENT,
+            capabilities: {
+                ...MANTECA_AR_CAPABILITIES,
+                rails: [...MANTECA_AR_CAPABILITIES.rails, ...US_ACH_RAILS],
+            },
+        },
+        { depositAccounts: [DEPOSIT_ACCOUNT_USD] }
+    ),
+    'card-add-money-bank-pix-two': cardAddMoney(
+        'Card $10 step, bank: a resident of Brazil on Avenia with a held USD account; the drawer lists Pix first.',
+        {
+            ...AVENIA_PIX_USER,
+            capabilities: {
+                ...AVENIA_PIX_USER.capabilities,
+                rails: [...AVENIA_PIX_USER.capabilities.rails, ...US_ACH_RAILS],
+            },
+        },
+        { depositAccounts: [DEPOSIT_ACCOUNT_USD] },
+        { responses: AVENIA_PIX_PAGE_RESPONSES }
     ),
     // a US resident: the peso rail being set up keeps the ARS row (its page takes the user through), as on
     // the Add picker (TASK-25444), so the status shows for a rail with no row of its own
