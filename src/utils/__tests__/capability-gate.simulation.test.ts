@@ -111,11 +111,8 @@ describe('capability-gate exhaustive state simulation (no user stuck)', () => {
                 arbFeatures,
                 fc.array(arbAction, { maxLength: 2 }),
                 fc.constantFrom(...OPERATIONS),
-                fc.constantFrom<GateScope>({}, { provider: 'bridge' }, { provider: 'manteca' }, { country: 'US' }),
-                fc.constantFrom<'duplicate_account' | 'imported_identity_rejected'>(
-                    'duplicate_account',
-                    'imported_identity_rejected'
-                ),
+                fc.constantFrom<GateScope>({}, { country: 'US' }, { country: 'AR' }, { country: 'BR' }),
+                fc.constantFrom<'duplicate-account' | 'imported-identity'>('duplicate-account', 'imported-identity'),
                 (features, nextActions, op, scope, identityHold) => {
                     const state: CapabilityState = {
                         isLoading: false,
