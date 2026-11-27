@@ -833,6 +833,18 @@ describe('General Utilities', () => {
         })
     })
 
+    // Sentry keeps console logs as breadcrumbs; a send-link password logged here
+    // would let anyone with Sentry access claim the link (TASK-24270).
+    describe('saveToLocalStorage', () => {
+        it('logs the key but never the value', () => {
+            const log = jest.spyOn(console, 'log').mockImplementation(() => {})
+            saveToLocalStorage('sendLink::password::0xabc', 'fakeLinkSecret0123')
+            expect(localStorage.getItem('sendLink::password::0xabc')).toContain('fakeLinkSecret0123')
+            expect(JSON.stringify(log.mock.calls)).not.toContain('fakeLinkSecret0123')
+            log.mockRestore()
+        })
+    })
+
     describe('getInitialsFromName', () => {
         it('takes the first letter of the first two words, or two letters of one word', () => {
             expect(getInitialsFromName('ana maria lopez')).toBe('AM')

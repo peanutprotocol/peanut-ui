@@ -91,6 +91,8 @@ export type FriendlyErrorCode =
     | 'passkeyStillOpen'
     | 'claimLinkFailed'
     | 'sendLinkAlreadyClaimed'
+    | 'sendLinkUnconfirmed'
+    | 'sendLinkStorageUnavailable'
     | 'lowLiquidity'
     | 'networkBusyTimeout'
     | 'connectionLost'
@@ -334,6 +336,11 @@ const classifyError = (error: unknown, opts?: FriendlyErrorOptions): FriendlyErr
     // Native still holds an abandoned Android passkey request after the bounded wait and one retry.
     if (name === 'PasskeyCleanupPendingError') return code('passkeyStillOpen')
     if (name === 'PasskeyRequestSettlingError') return code('passkeySettling')
+    // The link's deposit may still land. A retry is safe (createLink settles the
+    // earlier op first) but is refused for up to UNCONFIRMED_LINK_BLOCK_MS, so
+    // the copy names that wait.
+    if (name === 'LinkDepositUnconfirmedError') return code('sendLinkUnconfirmed')
+    if (name === 'LinkStorageUnavailableError') return code('sendLinkStorageUnavailable')
     // iOS Safari's NotAllowedError copy when the passkey ceremony never
     // completes. Third-party credential providers (1Password) can wedge and
     // refuse every assertion until unlocked or the device restarts

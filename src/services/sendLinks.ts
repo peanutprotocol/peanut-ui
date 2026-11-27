@@ -2,7 +2,8 @@ import { jsonParse, jsonStringify, getFromLocalStorage, saveToLocalStorage } fro
 import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
 import type { SendLink } from '@/services/services.types'
 import { apiFetch, serverFetch } from '@/utils/api-fetch'
-import { apiErrorFromResponse } from '@/services/api-error'
+import { ApiError, apiErrorFromResponse } from '@/services/api-error'
+import { retryAsync } from '@/utils/retry.utils'
 import { sendLinkReadProof } from '@/utils/send-link-proof.utils'
 
 export { ESendLinkStatus } from '@/services/services.types'
@@ -147,6 +148,30 @@ export const sendLinksApi = {
         const responseText = await response.text()
         const data: SendLink = jsonParse(responseText)
         return data
+    },
+
+    /**
+     * POST /send-links until the backend holds the link. The pubKey is the
+     * row's primary key, so a replay is safe, and a 409 means an earlier
+     * attempt already wrote it (its response was lost). Only failures that
+     * can pass are retried: no response, a timeout, a rate limit or a 5xx.
+     */
+    persist: async (sendLink: CreateLinkBody): Promise<void> => {
+        await retryAsync(
+            async () => {
+                try {
+                    await sendLinksApi.create(sendLink)
+                } catch (error) {
+                    if (error instanceof ApiError && error.status === 409) return
+                    throw error
+                }
+            },
+            {
+                maxRetries: 3,
+                shouldRetry: (error) =>
+                    !(error instanceof ApiError) || error.status === 408 || error.status === 429 || error.status >= 500,
+            }
+        )
     },
 
     update: async (sendLink: UpdateLinkBody): Promise<SendLink> => {

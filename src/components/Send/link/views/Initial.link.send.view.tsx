@@ -12,15 +12,15 @@ import { loadingStateContext } from '@/context/loadingStates.context'
 import { useLinkSendFlow } from '@/context/LinkSendFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
-import { sendLinksApi } from '@/services/sendLinks'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { isAmountWithinBalance, isValidSendAmount } from '@/utils/balance.utils'
 import { captureNetworkTriagedFailure } from '@/utils/network-triage'
 import { criticalFlowTags } from '@/utils/sentry-critical-flow'
+import { LinkDepositUnconfirmedError } from '@/utils/send-link-deposit.utils'
 import { useQueryClient } from '@tanstack/react-query'
-import { useCallback, useContext, useEffect, useMemo } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef } from 'react'
 import { useTranslations } from 'next-intl'
-import { parseUnits } from 'viem'
+import { formatUnits, parseUnits } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import AmountInput from '../../../Global/AmountInput'
@@ -54,11 +54,17 @@ const LinkSendInitialView = () => {
         setView,
     } = useLinkSendFlow()
 
-    const { createLink } = useCreateLink()
+    const { createLink, recoverPendingLink } = useCreateLink()
 
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
 
-    const { fetchBalance, spendableBalance: balance, formattedSpendableBalance, spendableBalanceDecimal } = useWallet()
+    const {
+        address: walletAddress,
+        fetchBalance,
+        spendableBalance: balance,
+        formattedSpendableBalance,
+        spendableBalanceDecimal,
+    } = useWallet()
     const queryClient = useQueryClient()
     const { hasPendingTransactions } = usePendingTransactions()
 
@@ -73,9 +79,126 @@ const LinkSendInitialView = () => {
     const enteredAmount = parseFloat(tokenValue ?? '')
     const isBelowFiatClaimMinimum = enteredAmount > 0 && enteredAmount < MIN_FIAT_CLAIM_AMOUNT
 
+    /** The success screen for a recorded link, new or recovered. */
+    const showCreatedLink = useCallback(
+        ({ link, chainId, tokenAddress, amount, recovered }: Awaited<ReturnType<typeof createLink>>) => {
+            // An earlier link landed late and came back instead of a new one:
+            // the success screen and analytics describe that link, not the form.
+            const linkAmount = recovered ? formatUnits(amount, PEANUT_WALLET_TOKEN_DECIMALS) : tokenValue
+            if (recovered) {
+                setTokenValue(linkAmount)
+                setAttachmentOptions({ message: recovered.message, fileUrl: undefined, rawFile: undefined })
+            }
+            posthog.capture(ANALYTICS_EVENTS.SEND_LINK_CREATED, {
+                amount: linkAmount,
+                chain_id: chainId,
+                token_address: tokenAddress,
+                has_attachment: !recovered && !!attachmentOptions?.rawFile,
+                recovered: !!recovered,
+            })
+            setLink(link)
+            setView('SUCCESS')
+            fetchBalance()
+            queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+        },
+        [
+            attachmentOptions?.rawFile,
+            fetchBalance,
+            queryClient,
+            setAttachmentOptions,
+            setLink,
+            setTokenValue,
+            setView,
+            tokenValue,
+        ]
+    )
+
+    /** Shows why a link attempt failed, and reports it. */
+    const showCreateFailure = useCallback(
+        (error: unknown) => {
+            // Card re-approval dismissed, or the screen left, before the link's
+            // deposit was prepared or signed — no link exists and nothing was
+            // spent. Control flow, not a failed link creation.
+            if (error instanceof SpendRecoveryAbortedError) return
+
+            // The deposit may have landed after all: show the real balance and
+            // activity before the user decides whether to retry.
+            if (error instanceof LinkDepositUnconfirmedError) {
+                fetchBalance()
+                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+            }
+
+            // handle errors
+            const errorString = toFriendlyError(error)
+            setErrorState({ showError: true, errorMessage: errorString })
+            // Tagged, or the noise filters drop it: a send link that dies on a
+            // failed fetch matched `networkIssues` in sentry.utils.ts and was
+            // silently discarded (TASK-21956). Fire-and-forget: the triage
+            // probes may take up to 2.5s and must not hold up `finally`.
+            // `error_message` is the LOCALIZED copy the user saw, so it can't be
+            // grouped on — error_name/error_raw carry the raw class alongside.
+            void captureNetworkTriagedFailure(error, {
+                tags: { ...criticalFlowTags('send-link'), send_link_step: 'create' },
+                extra: { amount: tokenValue, hasAttachment: !!attachmentOptions?.rawFile },
+                analytics: {
+                    event: ANALYTICS_EVENTS.SEND_LINK_FAILED,
+                    props: {
+                        amount: tokenValue,
+                        error_message: errorString,
+                        error_name: error instanceof Error ? error.name : 'unknown',
+                        error_raw: error instanceof Error ? error.message : String(error),
+                    },
+                },
+            })
+        },
+        [attachmentOptions?.rawFile, fetchBalance, queryClient, setErrorState, toFriendlyError, tokenValue]
+    )
+
+    // Opening the screen settles an earlier link that may have landed late
+    // (Chip on ui#4296): a restarted app brings it back, and no amount or
+    // balance check can keep it hidden. The latest handlers are read through a
+    // ref so typing does not settle again.
+    const settleHandlers = useRef({ recoverPendingLink, showCreatedLink, showCreateFailure })
+    settleHandlers.current = { recoverPendingLink, showCreatedLink, showCreateFailure }
+    const settledFor = useRef<string | undefined>(undefined)
+    useEffect(() => {
+        if (!walletAddress || settledFor.current === walletAddress) return
+        settledFor.current = walletAddress
+        let live = true
+        let done = false
+        settleHandlers.current
+            .recoverPendingLink()
+            .then(
+                (recovered) => {
+                    if (live && recovered) settleHandlers.current.showCreatedLink(recovered)
+                },
+                (error: unknown) => {
+                    if (live) settleHandlers.current.showCreateFailure(error)
+                }
+            )
+            .finally(() => {
+                done = true
+            })
+        return () => {
+            live = false
+            // An unmount before the settle finished (StrictMode included) lets the next mount run it.
+            if (!done) settledFor.current = undefined
+        }
+    }, [walletAddress])
+
     const handleOnNext = useCallback(async () => {
         try {
             if (isLoading) return
+
+            // An earlier link that landed late comes first, before the amount
+            // and balance checks: its deposit may have spent the balance the
+            // checks below would ask for (Chip on ui#4296).
+            const recovered = await recoverPendingLink()
+            if (recovered) {
+                setErrorState({ showError: false, errorMessage: '' })
+                showCreatedLink(recovered)
+                return
+            }
 
             // Numeric gate, not string truthiness — "0"/"0.00" are truthy and
             // used to reach createLink as a real zero-value on-chain link.
@@ -107,94 +230,31 @@ const LinkSendInitialView = () => {
             // clear any previous errors
             setErrorState({ showError: false, errorMessage: '' })
 
-            const { link, pubKey, chainId, contractVersion, depositIdx, txHash, amount, tokenAddress, preparationId } =
-                await createLink(parseUnits(tokenValue!, PEANUT_WALLET_TOKEN_DECIMALS))
-
-            posthog.capture(ANALYTICS_EVENTS.SEND_LINK_CREATED, {
-                amount: tokenValue,
-                chain_id: chainId,
-                token_address: tokenAddress,
-                has_attachment: !!attachmentOptions?.rawFile,
-            })
-
-            setLink(link)
-            setView('SUCCESS')
-            fetchBalance()
-            queryClient.invalidateQueries({
-                queryKey: [TRANSACTIONS],
-            })
-
-            // we dont need to wait for this to finish in order to proceed
-            setTimeout(async () => {
-                try {
-                    await sendLinksApi.create({
-                        pubKey,
-                        chainId,
-                        txHash,
-                        contractVersion,
-                        depositIdx,
-                        amount,
-                        tokenAddress,
-                        preparationId,
-                        reference: attachmentOptions?.message,
-                        attachment: attachmentOptions?.rawFile,
-                        filename: attachmentOptions?.rawFile?.name,
-                        mimetype: attachmentOptions?.rawFile?.type,
-                    })
-                } catch (error) {
-                    // we want to capture any errors here because we are already in the background
-                    console.error(error)
-                    void captureNetworkTriagedFailure(error, {
-                        tags: { ...criticalFlowTags('send-link'), send_link_step: 'persist' },
-                    })
-                }
-            }, 0)
+            // Resolves only once the link is funded and recorded (TASK-24270).
+            showCreatedLink(
+                await createLink(parseUnits(tokenValue!, PEANUT_WALLET_TOKEN_DECIMALS), {
+                    message: attachmentOptions?.message,
+                    attachment: attachmentOptions?.rawFile,
+                })
+            )
         } catch (error) {
-            // Card re-approval dismissed, or the screen left, before the link's
-            // deposit was prepared or signed — no link exists and nothing was
-            // spent. Control flow, not a failed link creation.
-            if (error instanceof SpendRecoveryAbortedError) return
-
-            // handle errors
-            const errorString = toFriendlyError(error)
-            setErrorState({ showError: true, errorMessage: errorString })
-            // Tagged, or the noise filters drop it: a send link that dies on a
-            // failed fetch matched `networkIssues` in sentry.utils.ts and was
-            // silently discarded (TASK-21956). Fire-and-forget: the triage
-            // probes may take up to 2.5s and must not hold up `finally`.
-            // `error_message` is the LOCALIZED copy the user saw, so it can't be
-            // grouped on — error_name/error_raw carry the raw class alongside.
-            void captureNetworkTriagedFailure(error, {
-                tags: { ...criticalFlowTags('send-link'), send_link_step: 'create' },
-                extra: { amount: tokenValue, hasAttachment: !!attachmentOptions?.rawFile },
-                analytics: {
-                    event: ANALYTICS_EVENTS.SEND_LINK_FAILED,
-                    props: {
-                        amount: tokenValue,
-                        error_message: errorString,
-                        error_name: error instanceof Error ? error.name : 'unknown',
-                        error_raw: error instanceof Error ? error.message : String(error),
-                    },
-                },
-            })
+            showCreateFailure(error)
         } finally {
             setLoadingState('Idle')
         }
     }, [
         isLoading,
+        recoverPendingLink,
+        showCreatedLink,
+        showCreateFailure,
         tokenValue,
         tWithdraw,
         createLink,
-        fetchBalance,
-        queryClient,
         setLoadingState,
         attachmentOptions,
-        setLink,
-        setView,
         setErrorState,
         balance,
         tErrors,
-        toFriendlyError,
     ])
 
     useEffect(() => {

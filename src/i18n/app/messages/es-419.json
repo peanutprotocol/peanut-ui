@@ -4942,6 +4942,8 @@
         "passkeyNotCompleted": "Tu dispositivo no completó la confirmación con passkey. Inténtalo de nuevo; si sigue fallando, desbloquea tu gestor de contraseñas (por ejemplo, 1Password) o reinicia tu dispositivo.",
         "claimLinkFailed": "No se pudo reclamar el enlace, actualiza la página. Si el problema persiste, confirma el enlace con quien lo envió.",
         "sendLinkAlreadyClaimed": "El enlace de envío ya fue reclamado.",
+        "sendLinkUnconfirmed": "Todavía no pudimos confirmar tu enlace. Esto puede tardar hasta una hora. Inténtalo de nuevo más tarde.",
+        "sendLinkStorageUnavailable": "No pudimos guardar este enlace en tu dispositivo. Libera algo de espacio y vuelve a intentarlo.",
         "lowLiquidity": "Baja liquidez. Prueba con un monto menor o una ruta diferente.",
         "networkBusyTimeout": "La red está congestionada y tu solicitud expiró. Inténtalo de nuevo en un momento.",
         "sessionExpired": "Tu sesión expiró. Inicia sesión de nuevo.",

@@ -33,8 +33,9 @@ jest.mock('@/context/loadingStates.context', () => {
 })
 
 const mockCreateLink = jest.fn()
+const mockRecoverPendingLink = jest.fn()
 jest.mock('@/components/Create/useCreateLink', () => ({
-    useCreateLink: () => ({ createLink: mockCreateLink }),
+    useCreateLink: () => ({ createLink: mockCreateLink, recoverPendingLink: mockRecoverPendingLink }),
 }))
 
 const mockUseWallet = jest.fn()
@@ -44,10 +45,6 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
 
 jest.mock('@/hooks/wallet/usePendingTransactions', () => ({
     usePendingTransactions: () => ({ hasPendingTransactions: false, pendingCount: 0 }),
-}))
-
-jest.mock('@/services/sendLinks', () => ({
-    sendLinksApi: { create: jest.fn().mockResolvedValue({}) },
 }))
 
 jest.mock('posthog-js', () => ({
@@ -107,6 +104,7 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
 // Callout with data-testid="error-alert" / "info-card"
 import LinkSendInitialView from '../Initial.link.send.view'
 import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
+import { LinkDepositUnconfirmedError } from '@/utils/send-link-deposit.utils'
 
 // ---------- helpers ----------
 
@@ -154,6 +152,7 @@ const rerenderView = (utils: ReturnType<typeof render>, amount: string) => {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockRecoverPendingLink.mockResolvedValue(null)
 })
 
 // ---------- tests ----------
@@ -354,5 +353,164 @@ describe('LinkSendInitialView balance fill', () => {
 
         const input = await screen.findByTestId('amount-input')
         expect(input).not.toHaveAttribute('data-balance-fill')
+    })
+})
+
+// TASK-24270: the view no longer records the link itself in the background;
+// it hands the note to createLink, which records the link before it resolves.
+describe('LinkSendInitialView link creation', () => {
+    test('passes the note to createLink and shows success only after it resolves', async () => {
+        mockUseWallet.mockReturnValue(walletState(100))
+        let resolveCreate: (value: unknown) => void = () => {}
+        mockCreateLink.mockReturnValue(new Promise((resolve) => (resolveCreate = resolve)))
+        const ViewProbe = () => {
+            const { view, setAttachmentOptions } = useLinkSendFlow()
+            return (
+                <>
+                    <span data-testid="view">{view}</span>
+                    <button
+                        data-testid="set-note"
+                        onClick={() =>
+                            setAttachmentOptions({ message: 'dinner', fileUrl: undefined, rawFile: undefined })
+                        }
+                    />
+                </>
+            )
+        }
+
+        render(
+            <IntlWrapper>
+                <QueryClientProvider client={queryClient}>
+                    <LinkSendFlowProvider>
+                        <SetAmount amount="20" />
+                        <ViewProbe />
+                        <LinkSendInitialView />
+                    </LinkSendFlowProvider>
+                </QueryClientProvider>
+            </IntlWrapper>
+        )
+        fireEvent.click(screen.getByTestId('set-amount'))
+        fireEvent.click(screen.getByTestId('set-note'))
+        fireEvent.click(screen.getByText('Create link'))
+
+        await waitFor(() =>
+            expect(mockCreateLink).toHaveBeenCalledWith(usdc(20), { message: 'dinner', attachment: undefined })
+        )
+        expect(screen.getByTestId('view')).not.toHaveTextContent('SUCCESS')
+
+        resolveCreate({
+            link: 'https://peanut.me/claim?c=42161&v=v4.4&i=589#p=x',
+            chainId: '42161',
+            tokenAddress: '0x',
+            amount: usdc(20),
+        })
+        await waitFor(() => expect(screen.getByTestId('view')).toHaveTextContent('SUCCESS'))
+    })
+
+    // A Retry can bring back an earlier link that landed late (Chip on
+    // ui#4296): the success screen shows that link's own amount.
+    test('a recovered earlier link shows its own amount and note', async () => {
+        mockUseWallet.mockReturnValue(walletState(100))
+        mockCreateLink.mockResolvedValue({
+            link: 'https://peanut.me/claim?c=42161&v=v4.4&i=589#p=x',
+            chainId: '42161',
+            tokenAddress: '0x',
+            amount: usdc(5),
+            recovered: { message: 'dinner' },
+        })
+        const Probe = () => {
+            const { view, tokenValue, attachmentOptions } = useLinkSendFlow()
+            return <span data-testid="probe">{`${view}:${tokenValue}:${attachmentOptions.message}`}</span>
+        }
+
+        render(
+            <IntlWrapper>
+                <QueryClientProvider client={queryClient}>
+                    <LinkSendFlowProvider>
+                        <SetAmount amount="20" />
+                        <Probe />
+                        <LinkSendInitialView />
+                    </LinkSendFlowProvider>
+                </QueryClientProvider>
+            </IntlWrapper>
+        )
+        fireEvent.click(screen.getByTestId('set-amount'))
+        fireEvent.click(screen.getByText('Create link'))
+
+        await waitFor(() => expect(screen.getByTestId('probe')).toHaveTextContent('SUCCESS:5:dinner'))
+    })
+})
+
+// TASK-24270: the op may still land, so the copy asks the user to check their
+// balance, and the balance on screen must be fresh when they do.
+describe('LinkSendInitialView unconfirmed deposit', () => {
+    test('shows the check-your-balance copy and refreshes the balance', async () => {
+        const wallet = walletState(100)
+        mockUseWallet.mockReturnValue(wallet)
+        mockCreateLink.mockRejectedValue(
+            new LinkDepositUnconfirmedError('0x899B65fd3660F09D1504392A705a9f003316edDe', `0x${'ab'.repeat(32)}`)
+        )
+
+        renderView('20')
+        fireEvent.click(screen.getByText('Create link'))
+
+        await waitFor(() => expect(screen.getByTestId('error-alert')).toHaveTextContent(en.errors.sendLinkUnconfirmed))
+        expect(wallet.fetchBalance).toHaveBeenCalled()
+    })
+})
+
+// Chip on ui#4296: an earlier link that landed late must come back even when
+// its deposit spent the balance the amount checks ask for.
+describe('LinkSendInitialView settles an earlier link first', () => {
+    const recoveredLink = {
+        link: 'https://peanut.me/claim?c=42161&v=v4.4&i=589#p=x',
+        chainId: '42161',
+        tokenAddress: '0x',
+        amount: usdc(5),
+        recovered: { message: undefined },
+    }
+    const ViewProbe = () => <span data-testid="view">{useLinkSendFlow().view}</span>
+    const tree = (amount: string) => (
+        <IntlWrapper>
+            <QueryClientProvider client={queryClient}>
+                <LinkSendFlowProvider>
+                    <SetAmount amount={amount} />
+                    <ViewProbe />
+                    <LinkSendInitialView />
+                </LinkSendFlowProvider>
+            </QueryClientProvider>
+        </IntlWrapper>
+    )
+
+    test('Retry with a fully spent balance still brings back the landed link', async () => {
+        // the unconfirmed error first, so the Retry button shows
+        mockUseWallet.mockReturnValue(walletState(5))
+        mockCreateLink.mockRejectedValueOnce(
+            new LinkDepositUnconfirmedError('0x899B65fd3660F09D1504392A705a9f003316edDe', `0x${'ab'.repeat(32)}`)
+        )
+        const utils = render(tree('5'))
+        fireEvent.click(screen.getByTestId('set-amount'))
+        fireEvent.click(screen.getByText('Create link'))
+        await waitFor(() => expect(screen.getByText('Retry')).toBeInTheDocument())
+
+        // the late deposit spent it all; the retry settles before the balance check
+        mockUseWallet.mockReturnValue(walletState(0))
+        utils.rerender(tree('5'))
+        mockRecoverPendingLink.mockResolvedValueOnce(recoveredLink)
+        fireEvent.click(screen.getByText('Retry'))
+
+        await waitFor(() => expect(screen.getByTestId('view')).toHaveTextContent('SUCCESS'))
+        expect(mockCreateLink).toHaveBeenCalledTimes(1)
+    })
+
+    test('opening the screen brings back a landed link without a tap', async () => {
+        mockUseWallet.mockReturnValue({ ...walletState(0), address: '0x48F3bad83D0Aa198852e52834389Ac48154e64f5' })
+        mockRecoverPendingLink.mockResolvedValueOnce(recoveredLink)
+
+        render(tree(''))
+
+        await waitFor(() => expect(screen.getByTestId('view')).toHaveTextContent('SUCCESS'))
+        expect(mockRecoverPendingLink).toHaveBeenCalledTimes(1)
+        expect(mockCreateLink).not.toHaveBeenCalled()
     })
 })

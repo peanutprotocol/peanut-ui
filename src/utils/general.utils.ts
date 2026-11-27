@@ -134,7 +134,9 @@ export const saveToLocalStorage = (key: string, data: unknown, expirySeconds?: n
         }
         // key is passed as an argument (not interpolated into the format string)
         // so a user-controlled key can't act as a console format string (CodeQL).
-        console.log('Saved to localStorage:', key, data)
+        // Never the value: Sentry keeps console logs as breadcrumbs, and values
+        // here include send-link passwords and full claim links.
+        console.log('Saved to localStorage:', key)
         return true
     } catch (error) {
         Sentry.captureException(error)
