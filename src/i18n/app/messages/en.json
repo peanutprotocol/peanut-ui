@@ -1248,7 +1248,7 @@
             "desc": "A virtual Visa to spend the balance wherever Visa is accepted. Oh, and it’s <pink>pink</pink>."
         },
         "residence": {
-            "sentence": "My residence is <nw>in <residence></residence>,</nw> my nationality <nw>is <nationality></nationality>.</nw>",
+            "sentence": "My residence is <nw>in <residence></residence>,</nw> my nationality <nw>is <nationality></nationality></nw>",
             "choose": "Choose",
             "sheetResidence": "Where do you live?",
             "sheetNationality": "What’s your nationality?",
