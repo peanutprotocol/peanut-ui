@@ -18,6 +18,7 @@ jest.mock('../useHomeFlow', () => ({
         username: 'demo',
         spendableBalance: 0n,
         onboarding: { addMoneyDone: false },
+        isSpendableBalanceReady: true,
         isFetchingSpendableBalance: false,
         isSpendableBalanceStale: false,
         isIdentityVerified: false,

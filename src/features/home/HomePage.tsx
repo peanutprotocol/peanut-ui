@@ -33,13 +33,18 @@ export function HomePage() {
         spendableBalance,
         isFetchingSpendableBalance,
         isSpendableBalanceStale,
+        isSpendableBalanceReady,
         isBalanceHidden,
         toggleBalanceVisibility,
     } = useHomeFlow()
     const addMoney = useAddMoneyReadiness(!!address)
     useHomeViewAnalytics(isPageLoading)
-    // "never added money" waits for the balance: an unread balance is not an empty one
-    useBankReadyReminder(spendableBalance === undefined ? undefined : onboarding.addMoneyDone || spendableBalance > 0n)
+    // "never added money" waits for the live balance: a cached or unread balance is not an empty one
+    useBankReadyReminder(
+        !isSpendableBalanceReady || spendableBalance === undefined
+            ? undefined
+            : onboarding.addMoneyDone || spendableBalance > 0n
+    )
 
     if (isPageLoading) {
         return <Loading variant="mascot" coverFullScreen />

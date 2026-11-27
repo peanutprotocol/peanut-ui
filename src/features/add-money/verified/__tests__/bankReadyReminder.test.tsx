@@ -93,6 +93,16 @@ describe('useBankReadyReminder', () => {
         expect(shownBankReady('u1')).toEqual([])
     })
 
+    it('a cached $0 that turns into a live balance never opens it', () => {
+        const hook = load()
+        const view = renderHook(({ added }: { added: boolean | undefined }) => hook(added), {
+            initialProps: { added: undefined as boolean | undefined },
+        })
+        view.rerender({ added: true })
+        expect(mockReplace).not.toHaveBeenCalled()
+        expect(shownBankReady('u1')).toEqual([])
+    })
+
     it('never opens when home was reached from another screen (a task), nor over an open drawer', () => {
         mockInAppHistory = true
         renderHook(() => load()(false))
