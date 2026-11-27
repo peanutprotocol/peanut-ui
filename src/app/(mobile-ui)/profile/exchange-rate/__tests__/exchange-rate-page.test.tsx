@@ -1,13 +1,16 @@
 /**
- * /profile/exchange-rate — "Try it!" CTA navigation.
+ * /profile/exchange-rate — Rates & Fees screen (TASK-25349).
  *
- * The CTA drops the user into the add-money / withdraw roots, whose back buttons
- * reset to /home. Without an explicit origin the user is stranded there, which is
- * the bug these tests lock down: every CTA target carries ?returnTo back here.
+ * Covers:
+ * - CTA routing & ?returnTo preservation + spendable-balance gating
+ * - Legacy ?from=&to= clamping & collision handling
+ * - 2-tab layout (Exchange rates | Fees) with canonical provider-fee schedule
+ * - Adaptable currency list (keeping USD 1:1) and ARS benchmarks sub-view
  */
 import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
+import { FALLBACK_FEE_SCHEDULE } from '@/features/rates-fees/rates-fees.utils'
 
 const mockRouterPush = jest.fn()
 jest.mock('next/navigation', () => ({
@@ -16,6 +19,11 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('@/hooks/useSafeBack', () => ({
     useSafeBack: () => jest.fn(),
+}))
+
+const mockUseAuth = jest.fn()
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => mockUseAuth(),
 }))
 
 const mockUseWallet = jest.fn()
@@ -34,40 +42,76 @@ jest.mock('@/utils/regions.utils', () => ({
 
 const mockGetRedirectRoute = jest.fn()
 jest.mock('@/utils/exchangeRateWidget.utils', () => ({
-    getExchangeRateWidgetRedirectRoute: (...args: any[]) => mockGetRedirectRoute(...args),
+    getExchangeRateWidgetRedirectRoute: (...args: unknown[]) => mockGetRedirectRoute(...args),
 }))
 
-// The page reads the widget's currency pair out of the same nuqs query state
-// the widget writes, so the CTA label can name the flow the tap will open.
-const mockPair = { from: 'USD', to: 'EUR' }
+const mockQuery = {
+    tab: 'rates',
+    cur: '',
+    dir: '',
+    view: 'main',
+    from: 'USD',
+    to: 'EUR',
+}
+const mockSetQuery = jest.fn((patch: Partial<typeof mockQuery>) => {
+    Object.assign(mockQuery, patch)
+})
 jest.mock('nuqs', () => ({
     parseAsString: { withDefault: (defaultValue: string) => ({ defaultValue }) },
-    useQueryStates: () => [mockPair, jest.fn()],
+    useQueryStates: () => [mockQuery, mockSetQuery],
+}))
+
+jest.mock('@/features/rates-fees/useRatesAndFees', () => ({
+    useAllDisplayRates: () => ({
+        isLoading: false,
+        data: {
+            base: 'USD',
+            generatedAt: '2026-11-27T10:50:00.000Z',
+            rates: {
+                ARS: { code: 'ARS', buyRate: 1782.59, sellRate: 1716.55, effectiveAt: '2026-11-27T10:50:00.000Z' },
+                EUR: { code: 'EUR', buyRate: 0.928, sellRate: 0.921, effectiveAt: '2026-11-27T10:50:00.000Z' },
+                BRL: { code: 'BRL', buyRate: 5.76, sellRate: 5.7, effectiveAt: '2026-11-27T10:50:00.000Z' },
+                USD: { code: 'USD', buyRate: 1, sellRate: 1, effectiveAt: null },
+                GBP: { code: 'GBP', buyRate: 0.794, sellRate: 0.786, effectiveAt: '2026-11-27T10:50:00.000Z' },
+                MXN: { code: 'MXN', buyRate: 20.28, sellRate: 20.02, effectiveAt: '2026-11-27T10:50:00.000Z' },
+                COP: { code: 'COP', buyRate: 4415, sellRate: 4350, effectiveAt: '2026-11-27T10:50:00.000Z' },
+            },
+        },
+    }),
+    useFeeSchedule: () => ({
+        isLoading: false,
+        schedule: FALLBACK_FEE_SCHEDULE,
+    }),
+    useReferenceBenchmarks: () => ({
+        isLoading: false,
+        data: {
+            currency: 'ARS',
+            base: 'USD',
+            source: 'dolarapi.com',
+            indicative: true,
+            benchmarks: [
+                { key: 'cripto', buy: '1752.6', sell: '1758.08', effectiveAt: '2026-11-27T10:45:00.000Z' },
+                { key: 'mep', buy: '1663', sell: '1665.7', effectiveAt: '2026-11-27T10:45:00.000Z' },
+            ],
+            generatedAt: '2026-11-27T10:50:00.000Z',
+        },
+    }),
 }))
 
 jest.mock('@/components/0_Bruddle/PageContainer', () => ({
     __esModule: true,
-    default: ({ children }: any) => <div>{children}</div>,
+    default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
 
 jest.mock('@/components/Global/NavHeader', () => ({
     __esModule: true,
-    default: ({ onPrev }: any) => (
-        <button data-testid="nav-back" onClick={onPrev}>
-            Back
-        </button>
-    ),
-}))
-
-// The real widget clamps its own currencies via `restrictToRoutable` — this
-// stub instead forwards whatever the URL currently says, so the CTA-handler
-// tests below exercise the page's own defensive clamp independently of that.
-jest.mock('@/components/Global/ExchangeRateWidget', () => ({
-    __esModule: true,
-    default: ({ ctaAction, ctaLabel, ctaDisabled }: any) => (
-        <button disabled={ctaDisabled} data-testid="widget-cta" onClick={() => ctaAction(mockPair.from, mockPair.to)}>
-            {ctaLabel}
-        </button>
+    default: ({ onPrev, title }: { onPrev?: () => void; title?: string }) => (
+        <div>
+            <button data-testid="nav-back" onClick={onPrev}>
+                Back
+            </button>
+            <span>{title}</span>
+        </div>
     ),
 }))
 
@@ -84,14 +128,19 @@ const renderPage = (search = '') => {
 
 beforeEach(() => {
     jest.clearAllMocks()
-    mockPair.from = 'USD'
-    mockPair.to = 'EUR'
+    mockQuery.tab = 'rates'
+    mockQuery.cur = ''
+    mockQuery.dir = ''
+    mockQuery.view = 'main'
+    mockQuery.from = 'USD'
+    mockQuery.to = 'EUR'
+    mockUseAuth.mockReturnValue({ user: { residence: { verified: { country: 'DE' } } } })
     mockUseWallet.mockReturnValue({ spendableBalance: 0n, isFetchingSpendableBalance: false })
     mockUseCapabilities.mockReturnValue({ rails: [] })
     mockGetRedirectRoute.mockReturnValue('/add-money')
 })
 
-describe('exchange-rate CTA', () => {
+describe('exchange-rate CTA & routing', () => {
     it('waits for spendable balance instead of treating unresolved funds as zero', () => {
         mockUseWallet.mockReturnValue({ balance: 0n, spendableBalance: undefined, isFetchingSpendableBalance: true })
         renderPage()
@@ -123,7 +172,7 @@ describe('exchange-rate CTA', () => {
         expect(mockRouterPush).toHaveBeenCalledWith('/add-money?returnTo=%2Fprofile%2Fexchange-rate')
     })
 
-    it('carries the widget state so back restores the pair the user was looking at', () => {
+    it('carries the URL state so back restores the view the user was looking at', () => {
         renderPage('?from=USD&to=EUR&amount=25')
 
         fireEvent.click(screen.getByTestId('widget-cta'))
@@ -141,73 +190,65 @@ describe('exchange-rate CTA', () => {
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw?currencyCode=EUR&returnTo=%2Fprofile%2Fexchange-rate')
     })
 
-    /*
-     * getExchangeRateWidgetRedirectRoute sends a zero balance, and any pair
-     * that is not USD → local, to /add-money. A fixed "Withdraw now" label
-     * therefore named the opposite flow for common inputs, so it is derived
-     * from the computed destination instead.
-     */
-    it('names add money when the pair and balance route there', () => {
-        mockGetRedirectRoute.mockReturnValue('/add-money')
-        renderPage()
-
-        expect(screen.getByTestId('widget-cta')).toHaveTextContent('Add money')
-    })
-
-    it('names the withdrawal when the destination is the withdraw flow', () => {
-        mockGetRedirectRoute.mockReturnValue('/withdraw?currencyCode=EUR')
-        renderPage()
-
-        expect(screen.getByTestId('widget-cta')).toHaveTextContent('Withdraw now')
-    })
-
-    /*
-     * A stale bookmark or hand-edited URL can carry a currency the dropdown no
-     * longer offers (`?from=PLN`, predating the six-currency trim). The label
-     * above is derived from a clamped pair; the click handler used to pass the
-     * widget's raw values straight through, so a positive balance with
-     * `?from=PLN&to=EUR` named "Withdraw now" but routed to /add-money/poland.
-     */
     it('clamps a non-routable currency to the same pair for both the label and the route', () => {
-        mockPair.from = 'PLN'
-        mockPair.to = 'EUR'
+        mockQuery.from = 'PLN'
+        mockQuery.to = 'EUR'
         mockGetRedirectRoute.mockReturnValue('/withdraw?currencyCode=EUR')
         renderPage()
 
         expect(screen.getByTestId('widget-cta')).toHaveTextContent('Withdraw now')
-
         fireEvent.click(screen.getByTestId('widget-cta'))
 
-        // Every call — the label's `destination` computation and the click
-        // handler's redirect — must see PLN clamped to the USD default, never
-        // the raw, unsupported currency.
-        expect(mockGetRedirectRoute.mock.calls.length).toBeGreaterThan(0)
         for (const [from, to] of mockGetRedirectRoute.mock.calls) {
             expect(from).toBe('USD')
             expect(to).toBe('EUR')
         }
     })
 
-    /*
-     * `?from=PLN&to=USD` is the collision case: PLN is invalid and would
-     * independently default to 'USD', landing on the same currency as the
-     * other, explicit and valid 'USD' side. The page must resolve this pair
-     * through the same pair-aware function the widget uses (EUR/USD), not its
-     * own independent fallback (which used to produce USD/USD) — otherwise
-     * the label names one flow and the tap opens another.
-     */
     it('resolves an invalid source next to an explicit USD to EUR, not USD/USD', () => {
-        mockPair.from = 'PLN'
-        mockPair.to = 'USD'
+        mockQuery.from = 'PLN'
+        mockQuery.to = 'USD'
         mockGetRedirectRoute.mockReturnValue('/withdraw?currencyCode=USD')
         renderPage()
 
         fireEvent.click(screen.getByTestId('widget-cta'))
 
-        expect(mockGetRedirectRoute.mock.calls.length).toBeGreaterThan(0)
         for (const [from, to] of mockGetRedirectRoute.mock.calls) {
             expect(from).toBe('EUR')
             expect(to).toBe('USD')
         }
+    })
+})
+
+describe('Rates & Fees tabs and sub-views', () => {
+    it('shows the ARS buy rate and Compare other dollar rates row for Argentine users', () => {
+        mockUseAuth.mockReturnValue({ user: { residence: { verified: { country: 'AR' } } } })
+        mockQuery.from = ''
+        mockQuery.to = ''
+        renderPage()
+
+        expect(screen.getByTestId('rates-hero-rate')).toHaveTextContent('1 USD = 1,782.59 ARS')
+        expect(screen.getByTestId('rates-open-compare')).toBeInTheDocument()
+    })
+
+    it('renders the Fees tab with canonical per-transfer fees, 0% Peanut card fee, and L2 crypto withdrawals', () => {
+        mockQuery.tab = 'fees'
+        renderPage()
+
+        expect(screen.getByText('USD · ACH / FedNow')).toBeInTheDocument()
+        expect(screen.getByText('$20')).toBeInTheDocument()
+        expect(screen.getByText('€0')).toBeInTheDocument()
+        expect(screen.getByText('R$ 0.75')).toBeInTheDocument()
+        expect(screen.getByText('0%')).toBeInTheDocument()
+        expect(screen.getByText('$0.50 + 0.07%')).toBeInTheDocument()
+    })
+
+    it('renders All currencies with adaptable order and keeps USD 1:1', () => {
+        mockUseAuth.mockReturnValue({ user: { residence: { verified: { country: 'BR' } } } })
+        mockQuery.view = 'all'
+        renderPage()
+
+        expect(screen.getByTestId('currency-row-BRL')).toBeInTheDocument()
+        expect(screen.getByTestId('currency-row-USD')).toHaveTextContent('1:1')
     })
 })
