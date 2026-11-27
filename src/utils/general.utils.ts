@@ -491,6 +491,8 @@ export type UserPreferences = {
     capNudgeSubmittedAt?: string
     /** the attention manager's ledger (features/attention/ledger.ts): shown, dismissed and snoozed per ask */
     attention?: Partial<Record<string, AttentionLedgerEntry>>
+    /** bank and local accounts (`bank.USD`, `local.ARS`) the "Your bank is ready" page already showed as ready */
+    bankReadyShown?: string[]
 }
 
 export const updateUserPreferences = (

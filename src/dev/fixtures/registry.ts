@@ -2802,6 +2802,20 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Verified page once the accounts work: every row opens, the name chip has its green check.',
         responses: { 'GET /users/me': verifiedUser('AR', { ARS: { state: 'on' } }, { state: 'on' }) },
     },
+    // slice 5: the app opens on Home, an account opened since, no money added yet: Home hands over to the page
+    'verified-bank-ready': {
+        route: '/home',
+        landsOn: '/verified',
+        geoCountry: 'AR',
+        balance: '0',
+        about: 'App opens on Home after an account opened, no money added yet: "Your bank is ready", once per account.',
+        responses: {
+            'GET /users/me': {
+                ...verifiedUser('AR', { ARS: { state: 'on' } }, { state: 'on' }),
+                user: { username: 'lena', activationMilestone: 'verified', isActivated: false },
+            },
+        },
+    },
     'verified-brazil': {
         route: '/verified',
         geoCountry: 'BR',

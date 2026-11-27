@@ -23,6 +23,7 @@ import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { trackAddMoney } from '../analytics'
 import { addMoneyMethodHref, isAddMoneyRowMethod, useAddMoneyMethodRows } from '../useAddMoneyMethodRows'
 import { useAddMoneyReadiness } from '../useAddMoneyReadiness'
+import { markBankReadyShown, readyAccountIds } from './bankReadyReminder'
 import { VerifiedArt } from './VerifiedArt'
 import {
     actionStep,
@@ -67,6 +68,11 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
     }, [])
 
     const report = capabilities.features
+    const userId = user?.user.userId
+    // an account seen ready here, or from the bank_ready push, never opens the reminder again
+    useEffect(() => {
+        if (userId) markBankReadyShown(userId, readyAccountIds(report))
+    }, [userId, report])
     const pixRoute = findPixRoute(capabilities.routes, 'deposit')
     const bank: Record<BankMethod, ReturnType<typeof verifiedRow>> = {
         ars: verifiedRow(report && accountEntry(report, 'local', 'ARS'), capabilities, settled),
