@@ -2444,17 +2444,17 @@
         "addCryptoTitle": "Agregar cripto",
         "bankNotAvailableNote": "Las transferencias bancarias no están disponibles en tu país. Todavía puedes ingresar y retirar cripto.",
         "verified": {
-            "title": "Tu identidad está verificada",
-            "titleBankReady": "Tu banco está listo",
+            "title": "Identidad verificada",
+            "titleBankReady": "Cuenta bancaria lista",
             "sub": "Agrega dinero para empezar a pagar con Peanut.",
             "subBankReady": "{count, plural, one {Tu cuenta en {accounts} está abierta.} other {Tus cuentas en {accounts} están abiertas.}} Agrega dinero para empezar.",
             "underReview": "En revisión por {provider}. Te avisaremos.",
             "notApproved": "No aprobado por {provider}",
-            "actionNeeded": "Acción requerida",
-            "actionTerms": "Términos de {provider} para {currencies}",
-            "actionTermsGeneric": "Términos de {provider}",
-            "actionAddress": "Comprobante de domicilio",
-            "cryptoWorksNow": "Desde billeteras o exchanges · funciona ya"
+            "actionTerms": "términos de {provider} para {currencies}",
+            "actionTermsGeneric": "términos de {provider}",
+            "actionAddress": "comprobante de domicilio",
+            "cryptoWorksNow": "Desde billeteras o exchanges, funciona ya",
+            "actionNeeded": "Acción requerida"
         }
     },
     "withdraw": {

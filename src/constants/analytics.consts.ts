@@ -147,7 +147,7 @@ export const ANALYTICS_EVENTS = {
     ADD_MONEY_COUNTRY_LIST_CLOSED: 'add_money_country_list_closed',
     ADD_MONEY_COUNTRY_SELECTED: 'add_money_country_selected',
     ADD_MONEY_BACK_TAPPED: 'add_money_back_tapped',
-    // "Your ID is verified" (/verified), where a self-started verification ends. `entry` is the verify source,
+    // "ID verified" (/verified), where a self-started verification ends. `entry` is the verify source,
     // `variant` verified | bank-ready, and each bank row's state (`ars`, `pix`, `bank`: loading | ready | open |
     // review | action | refused). `rows_resolved` carries `wait_ms`: page open (the approval) until no row loads.
     VERIFIED_PAGE_SHOWN: 'verified_page_shown',

@@ -1,5 +1,5 @@
 /**
- * "Your ID is verified" (/verified, add-money proposal rules 1-3): each bank row says where its account stands in
+ * "ID verified" (/verified, add-money proposal rules 1-3): each bank row says where its account stands in
  * Aleks's words, crypto always works, the name chip's check waits for a working account, and "Action needed" opens
  * the step itself. UI state only: every API answer comes from a fixture (`?__fixture=verified-*`,
  * src/dev/fixtures/registry.ts). The approval routing is unit-tested (useMultiPhaseKycFlow,
@@ -15,7 +15,7 @@ async function open(page: Page, fixture: string) {
     await page.goto(`/verified?__fixture=${fixture}`, { waitUntil: 'domcontentloaded' })
     await page.addStyleTag({ content: '[data-fixture-banner]{display:none!important}' })
     await dismissModals(page)
-    await expect(page.getByRole('heading', { name: 'Your ID is verified' })).toBeVisible({ timeout: 60_000 })
+    await expect(page.getByRole('heading', { name: 'ID verified' })).toBeVisible({ timeout: 60_000 })
 }
 
 const row = (page: Page, method: string) => page.getByTestId(`verified-method-${method}`)
@@ -28,12 +28,13 @@ test('rows load in place while the accounts open; crypto works at once', async (
     await expect(page.getByTestId('name-chip')).not.toHaveAttribute('data-verified')
 })
 
-test('a provider review greys the row out; a step to take opens that step', async ({ page }) => {
+test('a provider review says so and still opens; a step to take opens that step', async ({ page }) => {
     await open(page, 'verified-not-ready')
     await expect(row(page, 'ars')).toContainText('Under review by Manteca. We’ll notify you.')
-    await expect(row(page, 'ars')).toHaveAttribute('aria-disabled', 'true')
-    await expect(row(page, 'bank')).toContainText('Action needed · Bridge’s terms for USD and EUR')
-    await expect(row(page, 'crypto')).toContainText('works now')
+    await expect(row(page, 'ars')).toHaveAttribute('role', 'button')
+    await expect(row(page, 'ars')).not.toHaveAttribute('aria-disabled')
+    await expect(row(page, 'bank')).toContainText('Action needed, Bridge’s terms for USD and EUR')
+    await expect(row(page, 'crypto')).toContainText('From wallets or exchanges, works now')
     await expect(page.getByTestId('name-chip')).not.toHaveAttribute('data-verified')
 
     await row(page, 'bank').click()

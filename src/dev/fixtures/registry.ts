@@ -1777,7 +1777,7 @@ const ARS_TOP_UP_RESIDENT = {
 }
 
 /**
- * "Your ID is verified" (/verified, add-money proposal): the report right after approval, by account. `wait` is a
+ * "ID verified" (/verified, add-money proposal): the report right after approval, by account. `wait` is a
  * provider review, `tos` Bridge's terms; the bank feature's USD and EUR accounts share one entry.
  */
 const VERIFIED_WAIT = { key: 'provider-wait', kind: 'wait' }
