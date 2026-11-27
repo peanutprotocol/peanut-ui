@@ -40,7 +40,8 @@ export function useDepositSuccessEntry(
     const completedWhileOpen = !!entryId && phase === 'completed' && openSeenFor === entryId
     if (completedWhileOpen && entry && shown?.id !== entryId) setShown({ id: entryId, entry })
 
-    return shown && shown.id === entryId ? shown.entry : null
+    // the screen holds, but its receipt reads the latest entry, so a reversal shows there
+    return shown && shown.id === entryId ? (entry ?? shown.entry) : null
 }
 
 /**

@@ -16,10 +16,18 @@ jest.mock('@/hooks/useHistoryEntry', () => ({
 }))
 jest.mock('@/features/payments/shared/components/PaymentSuccessView', () => ({
     __esModule: true,
-    default: (props: { usdAmount?: string; secondaryAmount?: string; redirectTo?: string }) => (
-        <p>
-            success {props.usdAmount} {props.secondaryAmount} to {props.redirectTo}
-        </p>
+    default: (props: {
+        usdAmount?: string
+        secondaryAmount?: string
+        redirectTo?: string
+        transactionDetails?: { status?: string }
+    }) => (
+        <>
+            <p>
+                success {props.usdAmount} {props.secondaryAmount} to {props.redirectTo}
+            </p>
+            <p>receipt {props.transactionDetails?.status}</p>
+        </>
     ),
 }))
 jest.mock('next/navigation', () => ({
@@ -77,6 +85,7 @@ it('turns into the success screen when the transfer lands while the details are 
     rerender(<AddMoneyBankDetails onBack={jest.fn()} />)
     expect(details()).toBeNull()
     expect(success()).toHaveTextContent('success 21.5 €20 to /home')
+    expect(screen.getByText('receipt completed')).toBeInTheDocument()
 
     // a later re-render keeps it: no flash back to the details
     rerender(<AddMoneyBankDetails onBack={jest.fn()} />)
@@ -95,6 +104,8 @@ it('keeps the success screen when the transfer is returned after it completed', 
     rerender(<AddMoneyBankDetails onBack={jest.fn()} />)
     expect(success()).toBeInTheDocument()
     expect(details()).toBeNull()
+    // the receipt reads the latest entry, so it no longer claims the money landed
+    expect(screen.queryByText('receipt completed')).toBeNull()
 })
 
 it('keeps the details for a transfer that was already complete when the screen opened', () => {
