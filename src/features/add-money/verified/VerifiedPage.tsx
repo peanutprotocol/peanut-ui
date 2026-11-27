@@ -90,17 +90,20 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
     const stateProps = Object.fromEntries(shownBank.map((method) => [method, bank[method].state]))
     const resolved = !readiness.isLoading && !states.includes('loading')
 
+    // a direct visit must not claim a verification it does not have (Chip on #4317), nor count as a view
+    const justApproved = useRef(identityJustApproved()).current
+    const access = verifiedPageAccess(user ? user.identityVerification?.status : undefined, settled, justApproved)
     const shown = useRef(false)
     useEffect(() => {
-        if (shown.current || readiness.isLoading) return
+        if (shown.current || readiness.isLoading || access !== 'show') return
         shown.current = true
         trackAddMoney(ANALYTICS_EVENTS.VERIFIED_PAGE_SHOWN, { entry: entry.current, variant, ...stateProps })
         // once per view, with the rows as they first read
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [readiness.isLoading])
+    }, [readiness.isLoading, access])
     const reportedResolve = useRef(false)
     useEffect(() => {
-        if (!resolved || reportedResolve.current) return
+        if (!resolved || access !== 'show' || reportedResolve.current) return
         reportedResolve.current = true
         trackAddMoney(ANALYTICS_EVENTS.VERIFIED_PAGE_ROWS_RESOLVED, {
             entry: entry.current,
@@ -109,7 +112,7 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
             ...stateProps,
         })
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [resolved])
+    }, [resolved, access])
 
     // the step opens for its account: on the bank row, the Bridge account that asks for it
     const corridorOf = (method: BankMethod): DepositCorridor =>
@@ -172,9 +175,6 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
     }
 
     const username = user?.user.username
-    // a direct visit must not claim a verification or a bank that is not there (Chip on #4317)
-    const justApproved = useRef(identityJustApproved()).current
-    const access = verifiedPageAccess(user ? user.identityVerification?.status : undefined, settled, justApproved)
     useEffect(() => {
         if (access === 'leave') router.replace('/home')
     }, [access, router])
