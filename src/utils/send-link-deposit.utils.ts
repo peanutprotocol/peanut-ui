@@ -2,6 +2,7 @@ import type { Address, Hash, TransactionReceipt } from 'viem'
 import { isAddressEqual, parseEventLogs } from 'viem'
 import { isDemoMode } from '@/utils/demo'
 import { getFromLocalStorage, saveToLocalStorage } from '@/utils/general.utils'
+import { sendLinkPasswordKey } from '@/utils/peanut-link.utils'
 import { peanutVaultAbi } from '@/utils/peanut-claim.utils'
 import { userOpRevertedError, waitForUserOpReceiptOrNull, type UserOpReceiptWaiter } from '@/utils/userop-rescue.utils'
 
@@ -121,11 +122,28 @@ export interface UnconfirmedLink {
     savedAt: number
 }
 
+/**
+ * A copy for this app session, kept in memory only: when the device refuses
+ * storage (quota, storage turned off), a retry in this session is still
+ * guarded, and the password to rebuild the link is still at hand.
+ */
+const sessionCopies = new Map<string, { link: UnconfirmedLink; password: string }>()
+
 export const unconfirmedLinkStore = {
-    save: (link: UnconfirmedLink) => saveToLocalStorage(unconfirmedLinkKey(link.sender), link),
+    save: (link: UnconfirmedLink, password: string) => {
+        sessionCopies.set(unconfirmedLinkKey(link.sender), { link, password })
+        saveToLocalStorage(unconfirmedLinkKey(link.sender), link)
+    },
     read: (sender: Address): UnconfirmedLink | null =>
-        (getFromLocalStorage(unconfirmedLinkKey(sender)) as UnconfirmedLink | null | undefined) ?? null,
+        (getFromLocalStorage(unconfirmedLinkKey(sender)) as UnconfirmedLink | null | undefined) ??
+        sessionCopies.get(unconfirmedLinkKey(sender))?.link ??
+        null,
+    /** The link's password: from storage, else from this session's copy. */
+    password: (link: UnconfirmedLink): string | undefined =>
+        (getFromLocalStorage(sendLinkPasswordKey(link.pubKey)) as string | null | undefined) ??
+        sessionCopies.get(unconfirmedLinkKey(link.sender))?.password,
     clear: (sender: Address) => {
+        sessionCopies.delete(unconfirmedLinkKey(sender))
         if (typeof localStorage !== 'undefined') localStorage.removeItem(unconfirmedLinkKey(sender))
     },
 }

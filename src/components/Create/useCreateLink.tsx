@@ -1,7 +1,7 @@
 'use client'
 import { BASE_URL } from '@/constants/general.consts'
 import { loadingStateContext } from '@/context/loadingStates.context'
-import { getFromLocalStorage, saveToLocalStorage } from '@/utils/general.utils'
+import { saveToLocalStorage } from '@/utils/general.utils'
 import { generateKeysFromString, getLinkFromParams, sendLinkPasswordKey } from '@/utils/peanut-link.utils'
 import {
     getContractAddress,
@@ -93,8 +93,8 @@ export const useCreateLink = () => {
 
             const vault = getContractAddress(pending.chainId, pending.contractVersion)
             const { depositIdx, txHash } = parseLinkDeposit(fate.receipt, { vault, sender: owner })
-            // Saved before the first send, beside the record, so both are here.
-            const password = getFromLocalStorage(sendLinkPasswordKey(pending.pubKey)) as string
+            // Saved before the first send, so it is here whenever the record is.
+            const password = unconfirmedLinkStore.password(pending) as string
             return {
                 link: getLinkFromParams(
                     pending.chainId,
@@ -116,6 +116,69 @@ export const useCreateLink = () => {
         },
         [getClientForChain]
     )
+
+    /**
+     * Records a proven link with the backend, then clears its unconfirmed
+     * record. A recovered link keeps its own note; its attachment was never saved.
+     */
+    const recordLink = useCallback(
+        async (funded: FundedLink, { message, attachment }: SendLinkDetails) => {
+            setLoadingState('Creating link')
+            const { link, recovered, ...deposit } = funded
+            const details: SendLinkDetails = recovered ? { message: recovered.message } : { message, attachment }
+            try {
+                await sendLinksApi.persist({
+                    ...deposit,
+                    reference: details.message,
+                    attachment: details.attachment,
+                    filename: details.attachment?.name,
+                    mimetype: details.attachment?.type,
+                })
+            } catch (error) {
+                // The money is in the vault and the link still claims: the API
+                // rebuilds a missing row from chain when the link is opened.
+                // Hiding the link would hide the only claim URL, so show it and
+                // report: the sender's history misses it until support restores it.
+                console.error(error)
+                void captureNetworkTriagedFailure(error, {
+                    tags: { ...criticalFlowTags('send-link'), send_link_step: 'persist' },
+                    // Everything support needs to restore the row, preparationId
+                    // included: without it a mixed link's Rain intent is not adopted.
+                    extra: deposit,
+                })
+            }
+            // Cleared only now: a closed app before this point settles the same
+            // link again on the next attempt, and the replayed record is a 409.
+            if (sender) unconfirmedLinkStore.clear(sender)
+            return {
+                link,
+                chainId: deposit.chainId,
+                tokenAddress: deposit.tokenAddress,
+                amount: deposit.amount,
+                /** Set when an earlier link came back instead of a new one: its own note. */
+                recovered: recovered ? { message: recovered.message } : undefined,
+            }
+        },
+        [sender, setLoadingState]
+    )
+
+    /**
+     * Brings back an earlier link that landed late, without a new amount or a
+     * balance check: run it before them (Chip on ui#4296), because a late
+     * deposit can leave too little balance for the amount on screen. Null when
+     * there is nothing to settle; throws LinkDepositUnconfirmedError while the
+     * earlier op may still land.
+     */
+    const recoverPendingLink = useCallback(async () => {
+        if (!sender || !unconfirmedLinkStore.read(sender)) return null
+        setLoadingState('Loading')
+        try {
+            const funded = await settleUnconfirmedLink(sender)
+            return funded ? await recordLink(funded, {}) : null
+        } finally {
+            setLoadingState('Idle')
+        }
+    }, [recordLink, sender, setLoadingState, settleUnconfirmedLink])
 
     /**
      * Funds a link in the vault and records it with the backend before it
@@ -182,18 +245,21 @@ export const useCreateLink = () => {
                     // A send that throws after its broadcast leaves no record
                     // (TASK-25443).
                     if (!receipt && userOpHash) {
-                        unconfirmedLinkStore.save({
-                            userOpHash,
-                            pubKey,
-                            sender,
-                            chainId,
-                            contractVersion,
-                            tokenAddress,
-                            amount: amount.toString(),
-                            preparationId: intentId,
-                            message,
-                            savedAt: Date.now(),
-                        })
+                        unconfirmedLinkStore.save(
+                            {
+                                userOpHash,
+                                pubKey,
+                                sender,
+                                chainId,
+                                contractVersion,
+                                tokenAddress,
+                                amount: amount.toString(),
+                                preparationId: intentId,
+                                message,
+                                savedAt: Date.now(),
+                            },
+                            password
+                        )
                     }
                     // The send is over but a timed-out receipt means one more
                     // wait: keep the screen busy so the link cannot be created twice.
@@ -238,47 +304,13 @@ export const useCreateLink = () => {
                 () => ({ strategy })
             )
 
-            setLoadingState('Creating link')
-            const { link, recovered, ...deposit } = funded
-            // A recovered link keeps its own note; its attachment was never saved.
-            const details: SendLinkDetails = recovered ? { message: recovered.message } : { message, attachment }
-            try {
-                await sendLinksApi.persist({
-                    ...deposit,
-                    reference: details.message,
-                    attachment: details.attachment,
-                    filename: details.attachment?.name,
-                    mimetype: details.attachment?.type,
-                })
-            } catch (error) {
-                // The money is in the vault and the link still claims: the API
-                // rebuilds a missing row from chain when the link is opened.
-                // Hiding the link would hide the only claim URL, so show it and
-                // report: the sender's history misses it until support restores it.
-                console.error(error)
-                void captureNetworkTriagedFailure(error, {
-                    tags: { ...criticalFlowTags('send-link'), send_link_step: 'persist' },
-                    // Everything support needs to restore the row, preparationId
-                    // included: without it a mixed link's Rain intent is not adopted.
-                    extra: deposit,
-                })
-            }
-            // Cleared only now: a closed app before this point settles the same
-            // link again on the next attempt, and the replayed record is a 409.
-            if (sender) unconfirmedLinkStore.clear(sender)
-            return {
-                link,
-                chainId: deposit.chainId,
-                tokenAddress: deposit.tokenAddress,
-                amount: deposit.amount,
-                /** Set when an earlier link came back instead of a new one: its own note. */
-                recovered: recovered ? { message: recovered.message } : undefined,
-            }
+            return recordLink(funded, { message, attachment })
         },
-        [getClientForChain, sendTransactions, sender, setLoadingState, settleUnconfirmedLink]
+        [getClientForChain, recordLink, sendTransactions, sender, setLoadingState, settleUnconfirmedLink]
     )
 
     return {
         createLink,
+        recoverPendingLink,
     }
 }

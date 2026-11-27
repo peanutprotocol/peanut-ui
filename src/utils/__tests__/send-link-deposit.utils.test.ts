@@ -184,11 +184,27 @@ describe('unconfirmedLinkStore', () => {
         amount: '5000000',
         savedAt: 1,
     })
-    afterEach(() => localStorage.clear())
+    afterEach(() => {
+        unconfirmedLinkStore.clear(SENDER)
+        unconfirmedLinkStore.clear(OTHER_SENDER)
+    })
+
+    // Chip on ui#4296: a device that refuses storage must still guard a retry in this session.
+    test('a device that refuses storage still keeps the record and password for this session', () => {
+        const setItem = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+            throw new Error('QuotaExceededError')
+        })
+        unconfirmedLinkStore.save(record(SENDER), 'pw')
+        setItem.mockRestore()
+        expect(unconfirmedLinkStore.read(SENDER)).toEqual(record(SENDER))
+        expect(unconfirmedLinkStore.password(record(SENDER))).toBe('pw')
+        unconfirmedLinkStore.clear(SENDER)
+        expect(unconfirmedLinkStore.read(SENDER)).toBeNull()
+    })
 
     test('one record per account: saving or clearing one never touches the other', () => {
-        unconfirmedLinkStore.save(record(SENDER))
-        unconfirmedLinkStore.save(record(OTHER_SENDER))
+        unconfirmedLinkStore.save(record(SENDER), 'pw')
+        unconfirmedLinkStore.save(record(OTHER_SENDER), 'pw')
         unconfirmedLinkStore.clear(OTHER_SENDER)
         expect(unconfirmedLinkStore.read(SENDER)).toEqual(record(SENDER))
         expect(unconfirmedLinkStore.read(OTHER_SENDER)).toBeNull()

@@ -11,7 +11,11 @@ import { decodeFunctionData } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { getContractAddress, getLatestContractVersion, peanutVaultAbi } from '@/utils/peanut-claim.utils'
 import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
-import { LinkDepositUnconfirmedError, UNCONFIRMED_LINK_BLOCK_MS } from '@/utils/send-link-deposit.utils'
+import {
+    LinkDepositUnconfirmedError,
+    UNCONFIRMED_LINK_BLOCK_MS,
+    unconfirmedLinkStore,
+} from '@/utils/send-link-deposit.utils'
 import { captureNetworkTriagedFailure } from '@/utils/network-triage'
 import { sendLinksApi } from '@/services/sendLinks'
 import { SENDER, TX_HASH, USEROP_HASH, depositLog, receiptWith } from '@/utils/__tests__/send-link-deposit.fixtures'
@@ -105,9 +109,14 @@ async function leaveUnconfirmedAttempt() {
 const createLink = (details?: Parameters<ReturnType<typeof useCreateLink>['createLink']>[1]) =>
     renderHook(() => useCreateLink()).result.current.createLink(AMOUNT, details)
 
+const OTHER_ACCOUNT = '0x3333333333333333333333333333333333333333' as Address
+
 beforeEach(() => {
     jest.clearAllMocks()
     localStorage.clear()
+    // the store keeps a session copy in memory too
+    unconfirmedLinkStore.clear(SENDER)
+    unconfirmedLinkStore.clear(OTHER_ACCOUNT)
     mockKernelAddress = SENDER
     mockPersist.mockResolvedValue(undefined)
 })
@@ -257,7 +266,7 @@ describe('useCreateLink', () => {
         test('another account on this device is never blocked, and its link leaves the first record alone', async () => {
             await leaveUnconfirmedAttempt()
             opNow('no receipt')
-            mockKernelAddress = '0x3333333333333333333333333333333333333333'
+            mockKernelAddress = OTHER_ACCOUNT
             mockSendTransactions.mockResolvedValueOnce({
                 receipt: receiptWith([
                     depositLog({ index: 590n, address: VAULT, sender: mockKernelAddress as Address }),
@@ -271,6 +280,33 @@ describe('useCreateLink', () => {
             // back on the first account, its unconfirmed op still blocks
             mockKernelAddress = SENDER
             await expect(createLink()).rejects.toBeInstanceOf(LinkDepositUnconfirmedError)
+        })
+    })
+
+    describe('recoverPendingLink', () => {
+        const recover = () => renderHook(() => useCreateLink()).result.current.recoverPendingLink()
+
+        test('nothing on record: no network call, nothing to show', async () => {
+            expect(await recover()).toBeNull()
+            expect(mockGetReceipt).not.toHaveBeenCalled()
+        })
+
+        test('a landed earlier op comes back recorded, with no new deposit', async () => {
+            const firstPubKey = await leaveUnconfirmedAttempt()
+            opNow('landed')
+
+            const result = await recover()
+
+            expect(result?.recovered).toBeDefined()
+            expect(mockPersist.mock.calls[0][0]).toMatchObject({ pubKey: firstPubKey, depositIdx: 589 })
+            expect(mockSendTransactions).toHaveBeenCalledTimes(1)
+            expect(await recover()).toBeNull()
+        })
+
+        test('an op that may still land is reported, not hidden', async () => {
+            await leaveUnconfirmedAttempt()
+            opNow('no receipt')
+            await expect(recover()).rejects.toBeInstanceOf(LinkDepositUnconfirmedError)
         })
     })
 })

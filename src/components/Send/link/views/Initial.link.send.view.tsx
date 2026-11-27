@@ -18,7 +18,7 @@ import { captureNetworkTriagedFailure } from '@/utils/network-triage'
 import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { LinkDepositUnconfirmedError } from '@/utils/send-link-deposit.utils'
 import { useQueryClient } from '@tanstack/react-query'
-import { useCallback, useContext, useEffect, useMemo } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { formatUnits, parseUnits } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -54,11 +54,17 @@ const LinkSendInitialView = () => {
         setView,
     } = useLinkSendFlow()
 
-    const { createLink } = useCreateLink()
+    const { createLink, recoverPendingLink } = useCreateLink()
 
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
 
-    const { fetchBalance, spendableBalance: balance, formattedSpendableBalance, spendableBalanceDecimal } = useWallet()
+    const {
+        address: walletAddress,
+        fetchBalance,
+        spendableBalance: balance,
+        formattedSpendableBalance,
+        spendableBalanceDecimal,
+    } = useWallet()
     const queryClient = useQueryClient()
     const { hasPendingTransactions } = usePendingTransactions()
 
@@ -73,45 +79,9 @@ const LinkSendInitialView = () => {
     const enteredAmount = parseFloat(tokenValue ?? '')
     const isBelowFiatClaimMinimum = enteredAmount > 0 && enteredAmount < MIN_FIAT_CLAIM_AMOUNT
 
-    const handleOnNext = useCallback(async () => {
-        try {
-            if (isLoading) return
-
-            // Numeric gate, not string truthiness — "0"/"0.00" are truthy and
-            // used to reach createLink as a real zero-value on-chain link.
-            if (!tokenValue || !isValidSendAmount(tokenValue)) {
-                setErrorState({
-                    showError: true,
-                    errorMessage: tWithdraw('errors.invalidAmount'),
-                    errorCode: 'invalidAmount',
-                })
-                return
-            }
-
-            // Re-check affordability at submit too: the Retry button isn't disabled
-            // on a balance error (unlike the other flows), so without this a blocked
-            // amount could reach createLink. Only when the balance has loaded — else
-            // a tap before the query resolves would false-reject. Gates on the
-            // displayed total; an in-transit shortfall fails late with the settling copy.
-            if (balance !== undefined && !isAmountWithinBalance(tokenValue, balance)) {
-                setErrorState({
-                    showError: true,
-                    errorMessage: tErrors('notEnoughBalanceAddFunds'),
-                    errorCode: 'notEnoughBalanceAddFunds',
-                })
-                return
-            }
-
-            setLoadingState('Loading')
-
-            // clear any previous errors
-            setErrorState({ showError: false, errorMessage: '' })
-
-            // Resolves only once the link is funded and recorded (TASK-24270).
-            const { link, chainId, tokenAddress, amount, recovered } = await createLink(
-                parseUnits(tokenValue!, PEANUT_WALLET_TOKEN_DECIMALS),
-                { message: attachmentOptions?.message, attachment: attachmentOptions?.rawFile }
-            )
+    /** The success screen for a recorded link, new or recovered. */
+    const showCreatedLink = useCallback(
+        ({ link, chainId, tokenAddress, amount, recovered }: Awaited<ReturnType<typeof createLink>>) => {
             // An earlier link landed late and came back instead of a new one:
             // the success screen and analytics describe that link, not the form.
             const linkAmount = recovered ? formatUnits(amount, PEANUT_WALLET_TOKEN_DECIMALS) : tokenValue
@@ -119,7 +89,6 @@ const LinkSendInitialView = () => {
                 setTokenValue(linkAmount)
                 setAttachmentOptions({ message: recovered.message, fileUrl: undefined, rawFile: undefined })
             }
-
             posthog.capture(ANALYTICS_EVENTS.SEND_LINK_CREATED, {
                 amount: linkAmount,
                 chain_id: chainId,
@@ -127,14 +96,26 @@ const LinkSendInitialView = () => {
                 has_attachment: !recovered && !!attachmentOptions?.rawFile,
                 recovered: !!recovered,
             })
-
             setLink(link)
             setView('SUCCESS')
             fetchBalance()
-            queryClient.invalidateQueries({
-                queryKey: [TRANSACTIONS],
-            })
-        } catch (error) {
+            queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+        },
+        [
+            attachmentOptions?.rawFile,
+            fetchBalance,
+            queryClient,
+            setAttachmentOptions,
+            setLink,
+            setTokenValue,
+            setView,
+            tokenValue,
+        ]
+    )
+
+    /** Shows why a link attempt failed, and reports it. */
+    const showCreateFailure = useCallback(
+        (error: unknown) => {
             // Card re-approval dismissed, or the screen left, before the link's
             // deposit was prepared or signed — no link exists and nothing was
             // spent. Control flow, not a failed link creation.
@@ -169,26 +150,111 @@ const LinkSendInitialView = () => {
                     },
                 },
             })
+        },
+        [attachmentOptions?.rawFile, fetchBalance, queryClient, setErrorState, toFriendlyError, tokenValue]
+    )
+
+    // Opening the screen settles an earlier link that may have landed late
+    // (Chip on ui#4296): a restarted app brings it back, and no amount or
+    // balance check can keep it hidden. The latest handlers are read through a
+    // ref so typing does not settle again.
+    const settleHandlers = useRef({ recoverPendingLink, showCreatedLink, showCreateFailure })
+    settleHandlers.current = { recoverPendingLink, showCreatedLink, showCreateFailure }
+    const settledFor = useRef<string | undefined>(undefined)
+    useEffect(() => {
+        if (!walletAddress || settledFor.current === walletAddress) return
+        settledFor.current = walletAddress
+        let live = true
+        let done = false
+        settleHandlers.current
+            .recoverPendingLink()
+            .then(
+                (recovered) => {
+                    if (live && recovered) settleHandlers.current.showCreatedLink(recovered)
+                },
+                (error: unknown) => {
+                    if (live) settleHandlers.current.showCreateFailure(error)
+                }
+            )
+            .finally(() => {
+                done = true
+            })
+        return () => {
+            live = false
+            // An unmount before the settle finished (StrictMode included) lets the next mount run it.
+            if (!done) settledFor.current = undefined
+        }
+    }, [walletAddress])
+
+    const handleOnNext = useCallback(async () => {
+        try {
+            if (isLoading) return
+
+            // An earlier link that landed late comes first, before the amount
+            // and balance checks: its deposit may have spent the balance the
+            // checks below would ask for (Chip on ui#4296).
+            const recovered = await recoverPendingLink()
+            if (recovered) {
+                setErrorState({ showError: false, errorMessage: '' })
+                showCreatedLink(recovered)
+                return
+            }
+
+            // Numeric gate, not string truthiness — "0"/"0.00" are truthy and
+            // used to reach createLink as a real zero-value on-chain link.
+            if (!tokenValue || !isValidSendAmount(tokenValue)) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: tWithdraw('errors.invalidAmount'),
+                    errorCode: 'invalidAmount',
+                })
+                return
+            }
+
+            // Re-check affordability at submit too: the Retry button isn't disabled
+            // on a balance error (unlike the other flows), so without this a blocked
+            // amount could reach createLink. Only when the balance has loaded — else
+            // a tap before the query resolves would false-reject. Gates on the
+            // displayed total; an in-transit shortfall fails late with the settling copy.
+            if (balance !== undefined && !isAmountWithinBalance(tokenValue, balance)) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: tErrors('notEnoughBalanceAddFunds'),
+                    errorCode: 'notEnoughBalanceAddFunds',
+                })
+                return
+            }
+
+            setLoadingState('Loading')
+
+            // clear any previous errors
+            setErrorState({ showError: false, errorMessage: '' })
+
+            // Resolves only once the link is funded and recorded (TASK-24270).
+            showCreatedLink(
+                await createLink(parseUnits(tokenValue!, PEANUT_WALLET_TOKEN_DECIMALS), {
+                    message: attachmentOptions?.message,
+                    attachment: attachmentOptions?.rawFile,
+                })
+            )
+        } catch (error) {
+            showCreateFailure(error)
         } finally {
             setLoadingState('Idle')
         }
     }, [
         isLoading,
+        recoverPendingLink,
+        showCreatedLink,
+        showCreateFailure,
         tokenValue,
         tWithdraw,
         createLink,
-        fetchBalance,
-        queryClient,
         setLoadingState,
         attachmentOptions,
-        setLink,
-        setTokenValue,
-        setAttachmentOptions,
-        setView,
         setErrorState,
         balance,
         tErrors,
-        toFriendlyError,
     ])
 
     useEffect(() => {

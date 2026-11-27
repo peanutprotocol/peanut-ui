@@ -339,7 +339,8 @@ const classifyError = (error: unknown, opts?: FriendlyErrorOptions): FriendlyErr
     if (name === 'PasskeyCleanupPendingError') return code('passkeyStillOpen')
     if (name === 'PasskeyRequestSettlingError') return code('passkeySettling')
     // The link's deposit may still land. A retry is safe (createLink settles the
-    // earlier op first), so the copy asks the user to wait, then try again.
+    // earlier op first) but is refused for up to UNCONFIRMED_LINK_BLOCK_MS, so
+    // the copy names that wait.
     if (name === 'LinkDepositUnconfirmedError') return code('sendLinkUnconfirmed')
     // iOS Safari's NotAllowedError copy when the passkey ceremony never
     // completes. Third-party credential providers (1Password) can wedge and

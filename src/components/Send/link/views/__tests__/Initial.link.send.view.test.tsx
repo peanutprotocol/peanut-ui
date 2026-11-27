@@ -33,8 +33,9 @@ jest.mock('@/context/loadingStates.context', () => {
 })
 
 const mockCreateLink = jest.fn()
+const mockRecoverPendingLink = jest.fn()
 jest.mock('@/components/Create/useCreateLink', () => ({
-    useCreateLink: () => ({ createLink: mockCreateLink }),
+    useCreateLink: () => ({ createLink: mockCreateLink, recoverPendingLink: mockRecoverPendingLink }),
 }))
 
 const mockUseWallet = jest.fn()
@@ -151,6 +152,7 @@ const rerenderView = (utils: ReturnType<typeof render>, amount: string) => {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockRecoverPendingLink.mockResolvedValue(null)
 })
 
 // ---------- tests ----------
@@ -454,5 +456,61 @@ describe('LinkSendInitialView unconfirmed deposit', () => {
 
         await waitFor(() => expect(screen.getByTestId('error-alert')).toHaveTextContent(en.errors.sendLinkUnconfirmed))
         expect(wallet.fetchBalance).toHaveBeenCalled()
+    })
+})
+
+// Chip on ui#4296: an earlier link that landed late must come back even when
+// its deposit spent the balance the amount checks ask for.
+describe('LinkSendInitialView settles an earlier link first', () => {
+    const recoveredLink = {
+        link: 'https://peanut.me/claim?c=42161&v=v4.4&i=589#p=x',
+        chainId: '42161',
+        tokenAddress: '0x',
+        amount: usdc(5),
+        recovered: { message: undefined },
+    }
+    const ViewProbe = () => <span data-testid="view">{useLinkSendFlow().view}</span>
+    const tree = (amount: string) => (
+        <IntlWrapper>
+            <QueryClientProvider client={queryClient}>
+                <LinkSendFlowProvider>
+                    <SetAmount amount={amount} />
+                    <ViewProbe />
+                    <LinkSendInitialView />
+                </LinkSendFlowProvider>
+            </QueryClientProvider>
+        </IntlWrapper>
+    )
+
+    test('Retry with a fully spent balance still brings back the landed link', async () => {
+        // the unconfirmed error first, so the Retry button shows
+        mockUseWallet.mockReturnValue(walletState(5))
+        mockCreateLink.mockRejectedValueOnce(
+            new LinkDepositUnconfirmedError('0x899B65fd3660F09D1504392A705a9f003316edDe', `0x${'ab'.repeat(32)}`)
+        )
+        const utils = render(tree('5'))
+        fireEvent.click(screen.getByTestId('set-amount'))
+        fireEvent.click(screen.getByText('Create link'))
+        await waitFor(() => expect(screen.getByText('Retry')).toBeInTheDocument())
+
+        // the late deposit spent it all; the retry settles before the balance check
+        mockUseWallet.mockReturnValue(walletState(0))
+        utils.rerender(tree('5'))
+        mockRecoverPendingLink.mockResolvedValueOnce(recoveredLink)
+        fireEvent.click(screen.getByText('Retry'))
+
+        await waitFor(() => expect(screen.getByTestId('view')).toHaveTextContent('SUCCESS'))
+        expect(mockCreateLink).toHaveBeenCalledTimes(1)
+    })
+
+    test('opening the screen brings back a landed link without a tap', async () => {
+        mockUseWallet.mockReturnValue({ ...walletState(0), address: '0x48F3bad83D0Aa198852e52834389Ac48154e64f5' })
+        mockRecoverPendingLink.mockResolvedValueOnce(recoveredLink)
+
+        render(tree(''))
+
+        await waitFor(() => expect(screen.getByTestId('view')).toHaveTextContent('SUCCESS'))
+        expect(mockRecoverPendingLink).toHaveBeenCalledTimes(1)
+        expect(mockCreateLink).not.toHaveBeenCalled()
     })
 })
