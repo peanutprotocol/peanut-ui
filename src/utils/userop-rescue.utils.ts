@@ -76,12 +76,13 @@ export async function waitForUserOpReceiptOrNull(
     const start = Date.now()
     const deadline = start + timeoutMs
     let rescued: { success: boolean; receipt: TransactionReceipt } | null = null
-    while (!rescued && Date.now() < deadline) {
+    for (let left = timeoutMs; !rescued && left > 0; left = deadline - Date.now()) {
         try {
-            rescued = await client.waitForUserOperationReceipt({ hash: userOpHash, timeout: deadline - Date.now() })
+            // viem treats a timeout of 0 as no timeout, so `left` is always > 0 here.
+            rescued = await client.waitForUserOperationReceipt({ hash: userOpHash, timeout: left })
         } catch (error) {
             if ((error as Error)?.name === 'WaitForUserOperationReceiptTimeoutError') break
-            await new Promise((resolve) => setTimeout(resolve, RECEIPT_RETRY_PAUSE_MS))
+            await new Promise((resolve) => setTimeout(resolve, Math.min(RECEIPT_RETRY_PAUSE_MS, left)))
         }
     }
     if (rescued) {

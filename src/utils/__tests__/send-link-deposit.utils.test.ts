@@ -141,62 +141,56 @@ describe('resolveLinkDeposit', () => {
 })
 
 describe('readUserOpFate', () => {
-    const notFound = (name: string) => Object.assign(new Error('not found'), { name })
-    const lookup = (receipt: unknown, op: unknown) => ({
+    const notFound = Object.assign(new Error('not found'), { name: 'UserOperationReceiptNotFoundError' })
+    const lookup = (receipt: unknown) => ({
         getUserOperationReceipt: jest.fn(async () => {
             if (receipt instanceof Error) throw receipt
             return receipt as { success: boolean; receipt: ReturnType<typeof receiptWith> }
-        }),
-        getUserOperation: jest.fn(async () => {
-            if (op instanceof Error) throw op
-            return op
         }),
     })
 
     test('a receipt means the op ran', async () => {
         const receipt = receiptWith([depositLog({ index: 589n })])
-        expect(await readUserOpFate(lookup({ success: true, receipt }, null), USEROP_HASH)).toEqual({
+        expect(await readUserOpFate(lookup({ success: true, receipt }), USEROP_HASH)).toEqual({
             state: 'landed',
             receipt,
         })
-        expect(await readUserOpFate(lookup({ success: false, receipt }, null), USEROP_HASH)).toEqual({
+        expect(await readUserOpFate(lookup({ success: false, receipt }), USEROP_HASH)).toEqual({
             state: 'reverted',
         })
     })
 
-    test('no receipt but a known op: still pending', async () => {
-        const client = lookup(notFound('UserOperationReceiptNotFoundError'), { userOperation: {} })
-        expect(await readUserOpFate(client, USEROP_HASH)).toEqual({ state: 'pending' })
-    })
-
-    test('neither: the bundler dropped it', async () => {
-        const client = lookup(notFound('UserOperationReceiptNotFoundError'), notFound('UserOperationNotFoundError'))
-        expect(await readUserOpFate(client, USEROP_HASH)).toEqual({ state: 'dropped' })
+    // Adversarial review of ui#4296: ERC-4337 bundlers may answer null for an
+    // op still in the mempool, so no receipt never means "dropped".
+    test('no receipt is unknown, never dropped', async () => {
+        expect(await readUserOpFate(lookup(notFound), USEROP_HASH)).toEqual({ state: 'unknown' })
     })
 
     test('an RPC failure is not a fate: it propagates', async () => {
-        const client = lookup(new Error('HTTP request failed. Status: 502'), null)
-        await expect(readUserOpFate(client, USEROP_HASH)).rejects.toThrow('502')
+        await expect(
+            readUserOpFate(lookup(new Error('HTTP request failed. Status: 502')), USEROP_HASH)
+        ).rejects.toThrow('502')
     })
 })
 
 describe('unconfirmedLinkStore', () => {
-    const record = {
+    const record = (sender: typeof SENDER) => ({
         userOpHash: USEROP_HASH,
         pubKey: PUB_KEY,
-        sender: SENDER,
+        sender,
         chainId: '42161',
         contractVersion: 'v4.4',
         tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' as const,
         amount: '5000000',
-    }
-    afterEach(() => unconfirmedLinkStore.clear())
+        savedAt: 1,
+    })
+    afterEach(() => localStorage.clear())
 
-    test('keeps the record for its sender only, until cleared', () => {
-        unconfirmedLinkStore.save(record)
-        expect(unconfirmedLinkStore.read(SENDER)).toEqual(record)
+    test('one record per account: saving or clearing one never touches the other', () => {
+        unconfirmedLinkStore.save(record(SENDER))
+        unconfirmedLinkStore.save(record(OTHER_SENDER))
+        unconfirmedLinkStore.clear(OTHER_SENDER)
+        expect(unconfirmedLinkStore.read(SENDER)).toEqual(record(SENDER))
         expect(unconfirmedLinkStore.read(OTHER_SENDER)).toBeNull()
-        unconfirmedLinkStore.clear()
-        expect(unconfirmedLinkStore.read(SENDER)).toBeNull()
     })
 })

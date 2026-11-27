@@ -11,7 +11,7 @@ import { decodeFunctionData } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { getContractAddress, getLatestContractVersion, peanutVaultAbi } from '@/utils/peanut-claim.utils'
 import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
-import { LinkDepositUnconfirmedError } from '@/utils/send-link-deposit.utils'
+import { LinkDepositUnconfirmedError, UNCONFIRMED_LINK_BLOCK_MS } from '@/utils/send-link-deposit.utils'
 import { captureNetworkTriagedFailure } from '@/utils/network-triage'
 import { sendLinksApi } from '@/services/sendLinks'
 import { SENDER, TX_HASH, USEROP_HASH, depositLog, receiptWith } from '@/utils/__tests__/send-link-deposit.fixtures'
@@ -34,11 +34,9 @@ jest.mock('@/hooks/useZeroDev', () => ({ useZeroDev: () => ({ address: mockKerne
 jest.mock('@/services/sendLinks', () => ({ sendLinksApi: { persist: jest.fn() } }))
 const mockWaitForReceipt = jest.fn()
 const mockGetReceipt = jest.fn()
-const mockGetUserOperation = jest.fn()
 const mockGetClientForChain = jest.fn((_chainId: string) => ({
     waitForUserOperationReceipt: mockWaitForReceipt,
     getUserOperationReceipt: mockGetReceipt,
-    getUserOperation: mockGetUserOperation,
 }))
 jest.mock('@/context/kernelClient.context', () => ({
     useKernelClient: () => ({ getClientForChain: mockGetClientForChain }),
@@ -80,17 +78,20 @@ function bundlerAnswering(receipt: ReturnType<typeof receiptWith> | null) {
 const notFound = (name: string) => Object.assign(new Error('not found'), { name })
 
 /** What the bundler answers now for the op that had no receipt. */
-function opNow(fate: 'landed' | 'pending' | 'dropped') {
-    if (fate === 'landed') {
+function opNow(fate: 'landed' | 'no receipt') {
+    if (fate === 'landed')
         mockGetReceipt.mockResolvedValue({
             success: true,
             receipt: receiptWith([depositLog({ index: 589n, address: VAULT })]),
         })
-        return
-    }
-    mockGetReceipt.mockRejectedValue(notFound('UserOperationReceiptNotFoundError'))
-    if (fate === 'pending') mockGetUserOperation.mockResolvedValue({ userOperation: {} })
-    else mockGetUserOperation.mockRejectedValue(notFound('UserOperationNotFoundError'))
+    else mockGetReceipt.mockRejectedValue(notFound('UserOperationReceiptNotFoundError'))
+}
+
+/** Ages the stored record of `owner` past the block window. */
+function ageRecord(owner: string) {
+    const key = `sendLink::unconfirmed::${owner.toLowerCase()}`
+    const record = JSON.parse(localStorage.getItem(key)!)
+    localStorage.setItem(key, JSON.stringify({ ...record, savedAt: Date.now() - UNCONFIRMED_LINK_BLOCK_MS - 1 }))
 }
 
 /** A first attempt whose op never confirmed in either wait. */
@@ -184,10 +185,11 @@ describe('useCreateLink', () => {
     // Chip on ui#4296: with the first op still able to land, a Retry must not
     // fund a second link. It settles the first op before it signs anything.
     describe('retry after an unconfirmed deposit', () => {
-        test('the first op still pending: no new deposit', async () => {
+        test('no receipt yet: no new deposit, the record stays', async () => {
             await leaveUnconfirmedAttempt()
-            opNow('pending')
+            opNow('no receipt')
 
+            await expect(createLink()).rejects.toBeInstanceOf(LinkDepositUnconfirmedError)
             await expect(createLink()).rejects.toBeInstanceOf(LinkDepositUnconfirmedError)
             expect(mockSendTransactions).toHaveBeenCalledTimes(1)
             expect(mockPersist).not.toHaveBeenCalled()
@@ -197,32 +199,49 @@ describe('useCreateLink', () => {
             const firstPubKey = await leaveUnconfirmedAttempt()
             opNow('landed')
 
-            const result = await createLink()
+            const result = await createLink({ message: 'a new note' })
 
             expect(mockSendTransactions).toHaveBeenCalledTimes(1)
-            expect(result.recovered).toBe(true)
+            expect(result.recovered).toEqual({ message: undefined })
             expect(result.amount).toBe(AMOUNT)
             const params = getParamsFromLink(result.link)
             expect(params.depositIdx).toBe(589)
             expect(generateKeysFromString(params.password).address).toBe(firstPubKey)
+            // the recovered link keeps its own (empty) note, not the new one
             expect(mockPersist.mock.calls[0][0]).toMatchObject({
                 pubKey: firstPubKey,
                 depositIdx: 589,
                 txHash: TX_HASH,
             })
+            expect(mockPersist.mock.calls[0][0].reference).toBeUndefined()
 
             // settled: the next link is a fresh deposit
             mockSendTransactions.mockResolvedValueOnce({
                 receipt: receiptWith([depositLog({ index: 590n, address: VAULT })]),
                 userOpHash: USEROP_HASH,
             })
-            expect((await createLink()).recovered).toBe(false)
+            expect((await createLink()).recovered).toBeUndefined()
             expect(mockSendTransactions).toHaveBeenCalledTimes(2)
         })
 
-        test('the first op was dropped: a new deposit goes ahead', async () => {
+        test('a record survives a failed record call, so the next attempt records the link again', async () => {
             await leaveUnconfirmedAttempt()
-            opNow('dropped')
+            opNow('landed')
+            // the app closes during the record call: persist never settles
+            mockPersist.mockReturnValueOnce(new Promise(() => {}))
+            void createLink()
+            await new Promise((resolve) => setTimeout(resolve, 0))
+
+            mockPersist.mockResolvedValue(undefined)
+            const result = await createLink()
+            expect(result.recovered).toBeDefined()
+            expect(mockSendTransactions).toHaveBeenCalledTimes(1)
+        })
+
+        test('past the block window with no receipt, a new deposit goes ahead', async () => {
+            await leaveUnconfirmedAttempt()
+            opNow('no receipt')
+            ageRecord(SENDER)
             mockSendTransactions.mockResolvedValueOnce({
                 receipt: receiptWith([depositLog({ index: 590n, address: VAULT })]),
                 userOpHash: USEROP_HASH,
@@ -230,14 +249,14 @@ describe('useCreateLink', () => {
 
             const result = await createLink()
 
-            expect(result.recovered).toBe(false)
+            expect(result.recovered).toBeUndefined()
             expect(getParamsFromLink(result.link).depositIdx).toBe(590)
             expect(mockSendTransactions).toHaveBeenCalledTimes(2)
         })
 
-        test('another account on this device is never blocked', async () => {
+        test('another account on this device is never blocked, and its link leaves the first record alone', async () => {
             await leaveUnconfirmedAttempt()
-            opNow('pending')
+            opNow('no receipt')
             mockKernelAddress = '0x3333333333333333333333333333333333333333'
             mockSendTransactions.mockResolvedValueOnce({
                 receipt: receiptWith([
@@ -246,8 +265,12 @@ describe('useCreateLink', () => {
                 userOpHash: USEROP_HASH,
             })
 
-            expect((await createLink()).recovered).toBe(false)
+            expect((await createLink()).recovered).toBeUndefined()
             expect(mockGetReceipt).not.toHaveBeenCalled()
+
+            // back on the first account, its unconfirmed op still blocks
+            mockKernelAddress = SENDER
+            await expect(createLink()).rejects.toBeInstanceOf(LinkDepositUnconfirmedError)
         })
     })
 })

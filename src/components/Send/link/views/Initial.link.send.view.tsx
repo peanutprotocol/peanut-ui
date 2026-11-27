@@ -113,14 +113,19 @@ const LinkSendInitialView = () => {
                 { message: attachmentOptions?.message, attachment: attachmentOptions?.rawFile }
             )
             // An earlier link landed late and came back instead of a new one:
-            // show its own amount on the success screen.
-            if (recovered) setTokenValue(formatUnits(amount, PEANUT_WALLET_TOKEN_DECIMALS))
+            // the success screen and analytics describe that link, not the form.
+            const linkAmount = recovered ? formatUnits(amount, PEANUT_WALLET_TOKEN_DECIMALS) : tokenValue
+            if (recovered) {
+                setTokenValue(linkAmount)
+                setAttachmentOptions({ message: recovered.message, fileUrl: undefined, rawFile: undefined })
+            }
 
             posthog.capture(ANALYTICS_EVENTS.SEND_LINK_CREATED, {
-                amount: tokenValue,
+                amount: linkAmount,
                 chain_id: chainId,
                 token_address: tokenAddress,
-                has_attachment: !!attachmentOptions?.rawFile,
+                has_attachment: !recovered && !!attachmentOptions?.rawFile,
+                recovered: !!recovered,
             })
 
             setLink(link)
@@ -178,6 +183,7 @@ const LinkSendInitialView = () => {
         attachmentOptions,
         setLink,
         setTokenValue,
+        setAttachmentOptions,
         setView,
         setErrorState,
         balance,

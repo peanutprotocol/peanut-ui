@@ -121,4 +121,12 @@ describe('waitForUserOpReceiptOrNull', () => {
         expect(client.waitForUserOperationReceipt).toHaveBeenCalledTimes(2)
         jest.useRealTimers()
     })
+
+    // viem treats timeout 0 as "no timeout": a used-up deadline must not wait at all.
+    it('never waits without a deadline', async () => {
+        const client = waiter({ success: true, receipt: RECEIPT })
+        const spy = jest.spyOn(client, 'waitForUserOperationReceipt')
+        expect(await waitForUserOpReceiptOrNull(client, USEROP_HASH, 'link-create', { timeoutMs: 0 })).toBeNull()
+        expect(spy).not.toHaveBeenCalled()
+    })
 })

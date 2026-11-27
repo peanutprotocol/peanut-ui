@@ -90,7 +90,16 @@ export async function resolveLinkDeposit({
     return parseLinkDeposit(late.receipt, { vault, sender })
 }
 
-const UNCONFIRMED_LINK_KEY = 'sendLink::unconfirmed'
+/** One record per account, so accounts on a shared device never touch each other's. */
+const unconfirmedLinkKey = (sender: Address) => `sendLink::unconfirmed::${sender.toLowerCase()}`
+
+/**
+ * How long a link op with no receipt blocks a new link. A missing receipt
+ * proves nothing (ERC-4337 bundlers may answer null for an op still in the
+ * mempool), so the block lifts only on a receipt or after this time. Bundlers
+ * drop a stuck op long before it.
+ */
+export const UNCONFIRMED_LINK_BLOCK_MS = 60 * 60_000
 
 /**
  * A link-create op with no receipt yet. It stays on the device until the
@@ -108,44 +117,36 @@ export interface UnconfirmedLink {
     amount: string
     preparationId?: string
     message?: string
+    /** Epoch ms when the send came back without a receipt. */
+    savedAt: number
 }
 
 export const unconfirmedLinkStore = {
-    save: (link: UnconfirmedLink) => saveToLocalStorage(UNCONFIRMED_LINK_KEY, link),
-    /** Another account's record on the same device never blocks this one. */
-    read: (sender: Address): UnconfirmedLink | null => {
-        const link = getFromLocalStorage(UNCONFIRMED_LINK_KEY) as UnconfirmedLink | null | undefined
-        return link && isAddressEqual(link.sender, sender) ? link : null
-    },
-    clear: () => {
-        if (typeof localStorage !== 'undefined') localStorage.removeItem(UNCONFIRMED_LINK_KEY)
+    save: (link: UnconfirmedLink) => saveToLocalStorage(unconfirmedLinkKey(link.sender), link),
+    read: (sender: Address): UnconfirmedLink | null =>
+        (getFromLocalStorage(unconfirmedLinkKey(sender)) as UnconfirmedLink | null | undefined) ?? null,
+    clear: (sender: Address) => {
+        if (typeof localStorage !== 'undefined') localStorage.removeItem(unconfirmedLinkKey(sender))
     },
 }
 
-/** The bundler calls that tell what became of an op. */
+/** The bundler call that tells whether an op ran. */
 export interface UserOpLookup {
     getUserOperationReceipt(args: { hash: Hash }): Promise<{ success: boolean; receipt: TransactionReceipt }>
-    getUserOperation(args: { hash: Hash }): Promise<unknown>
 }
 
-export type UserOpFate =
-    | { state: 'landed'; receipt: TransactionReceipt }
-    | { state: 'reverted' | 'pending' | 'dropped' }
-
-const nullWhen = (name: string) => (error: unknown) => {
-    if ((error as Error)?.name === name) return null
-    throw error
-}
+export type UserOpFate = { state: 'landed'; receipt: TransactionReceipt } | { state: 'reverted' } | { state: 'unknown' }
 
 /**
- * What became of an op, as the bundler knows it. A receipt means it ran. No
- * receipt but a known op means it still waits. Neither means the bundler
- * dropped it, so it can no longer land. Any other RPC error propagates: the
- * caller then fails before it signs anything new.
+ * Whether an op ran, as its receipt shows. No receipt is `unknown`, never
+ * "dropped": the op can still be in a mempool. Any other RPC error propagates,
+ * so the caller fails before it signs anything new.
  */
 export async function readUserOpFate(client: UserOpLookup, hash: Hash): Promise<UserOpFate> {
-    const ran = await client.getUserOperationReceipt({ hash }).catch(nullWhen('UserOperationReceiptNotFoundError'))
-    if (ran) return ran.success ? { state: 'landed', receipt: ran.receipt } : { state: 'reverted' }
-    const queued = await client.getUserOperation({ hash }).catch(nullWhen('UserOperationNotFoundError'))
-    return { state: queued ? 'pending' : 'dropped' }
+    const ran = await client.getUserOperationReceipt({ hash }).catch((error: unknown) => {
+        if ((error as Error)?.name === 'UserOperationReceiptNotFoundError') return null
+        throw error
+    })
+    if (!ran) return { state: 'unknown' }
+    return ran.success ? { state: 'landed', receipt: ran.receipt } : { state: 'reverted' }
 }

@@ -25,6 +25,7 @@ import {
     parseLinkDeposit,
     readUserOpFate,
     resolveLinkDeposit,
+    UNCONFIRMED_LINK_BLOCK_MS,
     unconfirmedLinkStore,
 } from '@/utils/send-link-deposit.utils'
 import { withCeremonyFlow } from '@/utils/webauthn-ceremony-telemetry'
@@ -69,17 +70,26 @@ export const useCreateLink = () => {
 
     /**
      * Settles the last link the app could not confirm, before it funds another
-     * (Chip on ui#4296). A landed op comes back as that link; a reverted or
-     * dropped one is cleared; a pending one blocks a second deposit.
+     * (Chip on ui#4296). A landed op comes back as that link, and its record is
+     * cleared once the link is recorded. A reverted op clears the record. With
+     * no receipt the op may still land, so it blocks a second deposit until
+     * UNCONFIRMED_LINK_BLOCK_MS has passed.
      */
     const settleUnconfirmedLink = useCallback(
         async (owner: Address): Promise<FundedLink | null> => {
             const pending = unconfirmedLinkStore.read(owner)
             if (!pending) return null
             const fate = await readUserOpFate(getClientForChain(pending.chainId), pending.userOpHash)
-            if (fate.state === 'pending') throw new LinkDepositUnconfirmedError(pending.pubKey, pending.userOpHash)
-            unconfirmedLinkStore.clear()
-            if (fate.state !== 'landed') return null
+            if (fate.state === 'unknown') {
+                if (Date.now() - pending.savedAt < UNCONFIRMED_LINK_BLOCK_MS)
+                    throw new LinkDepositUnconfirmedError(pending.pubKey, pending.userOpHash)
+                unconfirmedLinkStore.clear(owner)
+                return null
+            }
+            if (fate.state === 'reverted') {
+                unconfirmedLinkStore.clear(owner)
+                return null
+            }
 
             const vault = getContractAddress(pending.chainId, pending.contractVersion)
             const { depositIdx, txHash } = parseLinkDeposit(fate.receipt, { vault, sender: owner })
@@ -168,7 +178,9 @@ export const useCreateLink = () => {
                         }
                     )
                     // No receipt yet: put the op on record before the extra wait,
-                    // so a closed app or a retry still settles it first.
+                    // so a retry, or the app after a restart, settles it first.
+                    // A send that throws after its broadcast leaves no record
+                    // (TASK-25443).
                     if (!receipt && userOpHash) {
                         unconfirmedLinkStore.save({
                             userOpHash,
@@ -180,6 +192,7 @@ export const useCreateLink = () => {
                             amount: amount.toString(),
                             preparationId: intentId,
                             message,
+                            savedAt: Date.now(),
                         })
                     }
                     // The send is over but a timed-out receipt means one more
@@ -198,10 +211,9 @@ export const useCreateLink = () => {
                         })
                     } catch (error) {
                         // Only an op that can still land stays on record.
-                        if (!(error instanceof LinkDepositUnconfirmedError)) unconfirmedLinkStore.clear()
+                        if (!(error instanceof LinkDepositUnconfirmedError)) unconfirmedLinkStore.clear(sender)
                         throw error
                     }
-                    unconfirmedLinkStore.clear()
 
                     return {
                         link: getLinkFromParams(
@@ -251,12 +263,16 @@ export const useCreateLink = () => {
                     extra: deposit,
                 })
             }
+            // Cleared only now: a closed app before this point settles the same
+            // link again on the next attempt, and the replayed record is a 409.
+            if (sender) unconfirmedLinkStore.clear(sender)
             return {
                 link,
                 chainId: deposit.chainId,
                 tokenAddress: deposit.tokenAddress,
                 amount: deposit.amount,
-                recovered: !!recovered,
+                /** Set when an earlier link came back instead of a new one: its own note. */
+                recovered: recovered ? { message: recovered.message } : undefined,
             }
         },
         [getClientForChain, sendTransactions, sender, setLoadingState, settleUnconfirmedLink]
