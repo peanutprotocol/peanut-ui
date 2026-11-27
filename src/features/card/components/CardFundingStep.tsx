@@ -87,10 +87,11 @@ export function CardFundingStep({
         setOpen(true)
     }
 
-    const dismiss = () => {
+    // stable: it reads only a ref, so the effect that closes a blocked bank drawer does not re-run on it
+    const dismiss = useCallback(() => {
         if (shown.current) captureCardAddMoneyDrawerClosed(shown.current.method, shown.current.view)
         setOpen(false)
-    }
+    }, [])
 
     // "I've sent the transfer": the step says the money is on its way until the balance covers the gap,
     // which is the step being funded; a smaller deposit landing meanwhile does not clear it. Session
@@ -167,7 +168,7 @@ export function CardFundingStep({
     useEffect(() => {
         if (!open || !bankBlocked || bankUnknown || shown.current?.method !== 'bank') return
         dismiss()
-    }, [open, bankBlocked, bankUnknown])
+    }, [open, bankBlocked, bankUnknown, dismiss])
     const bankRow = (
         <ListItem
             title={tAdd('methods.bankTransfer')}

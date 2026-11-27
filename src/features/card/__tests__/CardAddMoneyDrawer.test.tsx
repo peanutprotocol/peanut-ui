@@ -107,7 +107,13 @@ jest.mock('@/features/deposit-accounts/useDepositAccounts', () => ({
 }))
 // the deposit view's fresh balance read (its own tests cover the deposit arithmetic)
 let mockLive = 2.5
-jest.mock('@/features/card/readLiveSpendableUsd', () => ({ readLiveSpendableUsd: async () => mockLive }))
+let mockLiveFails = false
+jest.mock('@/features/card/readLiveSpendableUsd', () => ({
+    readLiveSpendableUsd: async () => {
+        if (mockLiveFails) throw new Error('read failed')
+        return mockLive
+    },
+}))
 // account-currency units per dollar from the client rate feed; 0 is the hook's "no rate"
 let usdRate = 0.92
 let rateLoading = false
@@ -133,6 +139,7 @@ beforeAll(() => {
 
 beforeEach(() => {
     mockLive = 2.5
+    mockLiveFails = false
     jest.clearAllMocks()
     localStorage.clear()
     sessionStorage.clear()
@@ -293,21 +300,21 @@ describe('bank views', () => {
         return within(drawer()).getByTestId('card-add-money-bank-details')
     }
 
-    it('asks for about the gap in euros on a euro account, rounded up, at the client rate', () => {
+    it('asks for about the gap in euros on a euro account, rounded up, at the client rate', async () => {
         readiness = { ...readiness, residenceIso2s: ['DE'] }
         depositAccounts = { SEPA_EU: SEPA_ACCOUNT }
         const details = openOnlyAccount('EUR')
         // $7.50 at 0.92 is €6.90, rounded up to a whole euro so a moving rate does not land short
-        expect(within(details).getByText('sendAbout(€8)')).toBeInTheDocument()
+        expect(await within(details).findByText('sendAbout(€8)')).toBeInTheDocument()
         expect(within(details).getByText('DE89370400440532013000')).toBeInTheDocument()
     })
 
-    it('names no euro amount when there is no rate', () => {
+    it('names no euro amount when there is no rate', async () => {
         usdRate = 0
         readiness = { ...readiness, residenceIso2s: ['DE'] }
         depositAccounts = { SEPA_EU: SEPA_ACCOUNT }
         const details = openOnlyAccount('EUR')
-        expect(within(details).getByText('sendInCurrency(EUR)')).toBeInTheDocument()
+        expect(await within(details).findByText('sendInCurrency(EUR)')).toBeInTheDocument()
         expect(within(details).queryByText(/\$7\.50|€/)).not.toBeInTheDocument()
     })
 
@@ -756,6 +763,13 @@ describe('round 2: badges, one heading on details, the residence fix, no back wh
         rerenderWith({})
         await waitFor(() => expect(screen.queryByTestId('card-add-money-status-finish-setup')).not.toBeInTheDocument())
         expect(screen.getByTestId('card-add-money-bank')).toHaveAttribute('aria-disabled', 'true')
+        // closed once: more renders while blocked do not close (and report) again
+        rerenderWith({})
+        rerenderWith({})
+        const closed = mockCapture.mock.calls.filter(
+            ([name]) => name === ANALYTICS_EVENTS.CARD_GATE_ADD_MONEY_DRAWER_CLOSED
+        )
+        expect(closed).toHaveLength(1)
     })
 
     it('keeps a crypto view open when the bank becomes blocked meanwhile', async () => {
@@ -784,14 +798,37 @@ describe('round 2: badges, one heading on details, the residence fix, no back wh
         expect(within(screen.getByTestId('card-add-money-bank')).queryByText(/^list\.badge/)).not.toBeInTheDocument()
     })
 
-    it('names the account once on its details and says the dollar amount in the body', () => {
+    it('names the account once on its details and says the dollar amount in the body', async () => {
         depositAccounts = { ACH_US: ACH_ACCOUNT }
         readiness = { ...readiness, ready: { ...noneReady, account: ['USD'] } }
         renderFunding()
         fireEvent.click(screen.getByTestId('card-add-money-bank'))
         expect(within(drawer()).getAllByText(/^details\.heading\(USD/)).toHaveLength(1)
         expect(within(drawer()).queryByText('title($7.50)')).not.toBeInTheDocument()
-        expect(within(drawer()).getByTestId('card-add-money-bank-amount')).toHaveTextContent('sendAsk($7.50)')
+        expect(await within(drawer()).findByTestId('card-add-money-bank-amount')).toHaveTextContent('sendAsk($7.50)')
+    })
+
+    it("asks for the gap from a fresh balance read, not the step's cached balance", async () => {
+        depositAccounts = { ACH_US: ACH_ACCOUNT }
+        readiness = { ...readiness, ready: { ...noneReady, account: ['USD'] } }
+        mockLive = 4 // the cached balance (props) still leaves $7.50
+        renderFunding()
+        fireEvent.click(screen.getByTestId('card-add-money-bank'))
+        expect(within(drawer()).getByTestId('card-add-money-bank-amount-loading')).toBeInTheDocument()
+        expect(await within(drawer()).findByTestId('card-add-money-bank-amount')).toHaveTextContent('sendAsk($6)')
+    })
+
+    it('promises no amount when the fresh balance read fails', async () => {
+        depositAccounts = { ACH_US: ACH_ACCOUNT }
+        readiness = { ...readiness, ready: { ...noneReady, account: ['USD'] } }
+        mockLiveFails = true
+        renderFunding()
+        fireEvent.click(screen.getByTestId('card-add-money-bank'))
+        await waitFor(() =>
+            expect(within(drawer()).queryByTestId('card-add-money-bank-amount-loading')).not.toBeInTheDocument()
+        )
+        expect(within(drawer()).queryByTestId('card-add-money-bank-amount')).not.toBeInTheDocument()
+        expect(within(drawer()).getByText('sentTransfer')).toBeInTheDocument()
     })
 
     it('puts no dollar amount on a euro transfer and holds the euro line while the rate loads', () => {

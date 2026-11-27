@@ -2,21 +2,28 @@
 
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import type { Address } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Loading from '@/components/Global/Loading'
 import { useAuth } from '@/context/authContext'
-import { CARD_FUNDING_RETURN_TO } from '@/features/card/cardAddMoney'
+import { CARD_FUNDING_RETURN_TO, cardGapUsd } from '@/features/card/cardAddMoney'
+import { readLiveSpendableUsd } from '@/features/card/readLiveSpendableUsd'
 import { DepositAccountDetailsBody } from '@/features/deposit-accounts/components/DepositAccountDetailsBody'
 import { DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import { useDepositAccountCopy } from '@/features/deposit-accounts/useDepositAccountCopy'
 import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccounts'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { formatBankAmount, roundUpToDecimals } from '@/utils/currency'
 import { withReturnTo } from '@/utils/return-to.utils'
+
+/** Margin on a non-dollar ask: the client rate moves and the conversion takes a fee before the dollars land. */
+const BANK_FX_MARGIN = 0.02
 
 /**
  * The held account's bank details, to send the gap from the user's own bank. The body is the
@@ -25,11 +32,9 @@ import { withReturnTo } from '@/utils/return-to.utils'
  */
 export function CardBankDetailsView({
     corridor,
-    gapUsd,
     onSent,
 }: {
     corridor: DepositCorridor
-    gapUsd: number | undefined
     /** "I've sent the transfer"; `inDollars`: the transfer was the dollar gap, so the step may name it */
     onSent: (inDollars: boolean) => void
 }) {
@@ -38,6 +43,22 @@ export function CardBankDetailsView({
     const tBank = useTranslations('addMoney.bankDetails')
     const router = useRouter()
     const { user } = useAuth()
+    const queryClient = useQueryClient()
+    const { address: wallet } = useWallet()
+    const userId = user?.user?.userId
+    // the ask is the gap from a fresh read, as the crypto view's (readLiveSpendableUsd), never the
+    // step's cached balance; undefined while it loads, null when the read failed
+    const [gapUsd, setGapUsd] = useState<number | null>()
+    useEffect(() => {
+        let current = true
+        readLiveSpendableUsd(queryClient, { address: wallet as Address | undefined, userId }).then(
+            (value) => current && setGapUsd(cardGapUsd(value) ?? null),
+            () => current && setGapUsd(null)
+        )
+        return () => {
+            current = false
+        }
+    }, [queryClient, wallet, userId])
     // a provisioning account is re-read by the hook itself, so the skeleton turns into details here
     const { accounts, isLoading, claim } = useDepositAccounts()
     const { t: tAccounts, accountRailName } = useDepositAccountCopy()
@@ -99,11 +120,11 @@ export function CardBankDetailsView({
     }
 
     // The drawer title carries no amount, so the amount is said here, in the currency the user sends.
-    // Another currency is the gap at the client rate with a 2% margin for a moving rate and the
-    // conversion fee, rounded up to a whole unit and never under the account's own minimum; while the
-    // rate loads a skeleton of the same two lines holds its place, and with no rate it promises no amount.
+    // Another currency is the gap at the client rate plus BANK_FX_MARGIN, rounded up to a whole unit and
+    // never under the account's own minimum. While the balance or the rate loads, a skeleton of the same
+    // two lines holds its place; with no fresh balance or no rate it promises no amount.
     let amountLine: string | undefined
-    const rateLoading = !!gapUsd && nonUsd && isRateLoading
+    const rateLoading = gapUsd === undefined || (!!gapUsd && nonUsd && isRateLoading)
     if (gapUsd && !nonUsd) amountLine = t('sendAsk', { amount: formatBankAmount(gapUsd, 'USD') })
     else if (gapUsd && !rateLoading) {
         const minimum = account.rules?.min?.currency === rail.currency ? Number(account.rules.min.amount) || 0 : 0
@@ -111,7 +132,7 @@ export function CardBankDetailsView({
             exchangeRate > 0
                 ? t('sendAbout', {
                       amount: formatBankAmount(
-                          Math.max(roundUpToDecimals(gapUsd * exchangeRate * 1.02, 0), minimum),
+                          Math.max(roundUpToDecimals(gapUsd * exchangeRate * (1 + BANK_FX_MARGIN), 0), minimum),
                           rail.currency
                       ),
                   })

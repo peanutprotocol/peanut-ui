@@ -120,8 +120,7 @@ export function CardAddMoneyDrawer({
             return (
                 <CardCryptoDepositView network={view.network} onDone={onDismiss} onProcessingChange={setProcessing} />
             )
-        if (view.kind === 'details')
-            return <CardBankDetailsView corridor={view.corridor} gapUsd={gapUsd} onSent={onBankSent} />
+        if (view.kind === 'details') return <CardBankDetailsView corridor={view.corridor} onSent={onBankSent} />
         if (code === 'networks') {
             return (
                 <div className="flex flex-col gap-4">
@@ -139,7 +138,7 @@ export function CardAddMoneyDrawer({
         switch (plan.kind) {
             case 'rows':
                 return code === 'details' ? (
-                    <CardBankDetailsView corridor={plan.rows[0].corridor} gapUsd={gapUsd} onSent={onBankSent} />
+                    <CardBankDetailsView corridor={plan.rows[0].corridor} onSent={onBankSent} />
                 ) : (
                     <CardBankRowsView rows={plan.rows} onPick={pickRow} />
                 )

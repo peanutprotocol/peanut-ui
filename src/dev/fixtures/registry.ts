@@ -2698,13 +2698,15 @@ const CARD_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
         {}
     ),
     'card-add-money-not-verified': cardAddMoney(
-        'Card $10 step, bank: identity not verified, every bank rail waits on it (Verify identity, or use crypto).',
+        'Card $10 step, bank: identity not verified, every bank rail waits on it (Verify identity, or use crypto). Verify identity opens the US identity check on its first question.',
         {
             identityVerification: { status: 'not_started' },
             residence: { verified: null, declared: { country: 'US', status: 'UNVERIFIED', updatedAt: null } },
             capabilities: BLOCKED_BANK_CAPABILITIES,
         },
-        {}
+        {},
+        // the identity check's own answers, so /verify shows its questions instead of sending the user Home
+        { responses: PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-us'].responses }
     ),
     'card-add-money-under-review': cardAddMoney(
         'Card $10 step, bank: verified, and the payment partner is reviewing every bank account (under review).',
