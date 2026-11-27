@@ -20,6 +20,19 @@ export interface LinkDeposit {
 }
 
 /**
+ * The device would not store the link's password, so nothing is signed (Chip
+ * on ui#4296). Without durable storage a restart loses both the password (the
+ * sender could not open the link again) and the record that guards a retry
+ * against a second deposit while the first can still land.
+ */
+export class LinkStorageUnavailableError extends Error {
+    constructor() {
+        super('The device refused to store the send link password')
+        this.name = 'LinkStorageUnavailableError'
+    }
+}
+
+/**
  * No receipt came for the link's userOp, in the send's wait or in the extra
  * wait. The op can still land later, so a blind retry could fund a second
  * link. The pubKey and userOpHash let support find the deposit.
@@ -123,9 +136,10 @@ export interface UnconfirmedLink {
 }
 
 /**
- * A copy for this app session, kept in memory only: when the device refuses
- * storage (quota, storage turned off), a retry in this session is still
- * guarded, and the password to rebuild the link is still at hand.
+ * A copy for this app session, kept in memory only. createLink fails closed
+ * when the password cannot be stored (LinkStorageUnavailableError); this covers
+ * the rest: a record write that fails after the password write worked, so a
+ * retry in this session is still guarded.
  */
 const sessionCopies = new Map<string, { link: UnconfirmedLink; password: string }>()
 

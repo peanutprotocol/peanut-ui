@@ -13,6 +13,7 @@ import { getContractAddress, getLatestContractVersion, peanutVaultAbi } from '@/
 import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
 import {
     LinkDepositUnconfirmedError,
+    LinkStorageUnavailableError,
     UNCONFIRMED_LINK_BLOCK_MS,
     unconfirmedLinkStore,
 } from '@/utils/send-link-deposit.utils'
@@ -183,6 +184,20 @@ describe('useCreateLink', () => {
                 extra: expect.objectContaining({ depositIdx: 589, txHash: TX_HASH, pubKey: depositedPubKey() }),
             })
         )
+    })
+
+    // Chip on ui#4296: without durable storage a restart would lose the
+    // password and the retry guard, so nothing is signed.
+    test('a device that refuses storage: nothing is signed', async () => {
+        const setItem = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+            throw new Error('QuotaExceededError')
+        })
+        try {
+            await expect(createLink()).rejects.toBeInstanceOf(LinkStorageUnavailableError)
+        } finally {
+            setItem.mockRestore()
+        }
+        expect(mockSendTransactions).not.toHaveBeenCalled()
     })
 
     test('without a kernel address nothing is signed', async () => {

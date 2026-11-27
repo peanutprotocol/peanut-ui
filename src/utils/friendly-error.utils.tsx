@@ -91,6 +91,7 @@ export type FriendlyErrorCode =
     | 'claimLinkFailed'
     | 'sendLinkAlreadyClaimed'
     | 'sendLinkUnconfirmed'
+    | 'sendLinkStorageUnavailable'
     | 'lowLiquidity'
     | 'networkBusyTimeout'
     | 'connectionLost'
@@ -342,6 +343,7 @@ const classifyError = (error: unknown, opts?: FriendlyErrorOptions): FriendlyErr
     // earlier op first) but is refused for up to UNCONFIRMED_LINK_BLOCK_MS, so
     // the copy names that wait.
     if (name === 'LinkDepositUnconfirmedError') return code('sendLinkUnconfirmed')
+    if (name === 'LinkStorageUnavailableError') return code('sendLinkStorageUnavailable')
     // iOS Safari's NotAllowedError copy when the passkey ceremony never
     // completes. Third-party credential providers (1Password) can wedge and
     // refuse every assertion until unlocked or the device restarts

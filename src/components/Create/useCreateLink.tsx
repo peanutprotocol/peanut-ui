@@ -22,6 +22,7 @@ import { captureNetworkTriagedFailure } from '@/utils/network-triage'
 import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import {
     LinkDepositUnconfirmedError,
+    LinkStorageUnavailableError,
     parseLinkDeposit,
     readUserOpFate,
     resolveLinkDeposit,
@@ -204,7 +205,9 @@ export const useCreateLink = () => {
                     setLoadingState('Generating details')
                     const password = await generatePassword()
                     const { address: pubKey } = generateKeysFromString(password)
-                    saveToLocalStorage(sendLinkPasswordKey(pubKey), password)
+                    // Fail closed before signing: see LinkStorageUnavailableError.
+                    if (!saveToLocalStorage(sendLinkPasswordKey(pubKey), password))
+                        throw new LinkStorageUnavailableError()
 
                     const chainId = PEANUT_WALLET_CHAIN.id.toString()
                     const contractVersion = getLatestContractVersion({ chainId, type: 'normal' })

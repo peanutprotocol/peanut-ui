@@ -105,6 +105,7 @@
         "claimLinkFailed": "Could not claim link, please refresh page. If problem persist confirm link with sender",
         "sendLinkAlreadyClaimed": "Send link already claimed",
         "sendLinkUnconfirmed": "We couldn’t confirm your link yet. This can take up to an hour. Try again later.",
+        "sendLinkStorageUnavailable": "We couldn’t save this link on your device. Free up some storage, then try again.",
         "lowLiquidity": "Low liquidity. Please try a smaller amount or different route.",
         "networkBusyTimeout": "The network is busy and your request timed out. Please try again in a moment.",
         "sessionExpired": "Your session has expired. Please log in again.",

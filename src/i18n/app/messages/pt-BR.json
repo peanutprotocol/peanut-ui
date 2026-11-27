@@ -4912,6 +4912,7 @@
         "claimLinkFailed": "Não foi possível resgatar o link, atualize a página. Se o problema persistir, confirme o link com quem enviou.",
         "sendLinkAlreadyClaimed": "O link de envio já foi resgatado.",
         "sendLinkUnconfirmed": "Ainda não conseguimos confirmar seu link. Isso pode levar até uma hora. Tente novamente mais tarde.",
+        "sendLinkStorageUnavailable": "Não conseguimos salvar este link no seu dispositivo. Libere um pouco de espaço e tente novamente.",
         "lowLiquidity": "Baixa liquidez. Tente um valor menor ou uma rota diferente.",
         "networkBusyTimeout": "A rede está congestionada e sua solicitação expirou. Tente novamente em instantes.",
         "sessionExpired": "Sua sessão expirou. Faça login novamente.",

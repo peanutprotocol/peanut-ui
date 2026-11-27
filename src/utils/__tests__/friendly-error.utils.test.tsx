@@ -102,6 +102,11 @@ describe('friendlyError', () => {
         expect(friendlyError(unconfirmed)).toEqual({ kind: 'code', code: 'sendLinkUnconfirmed' })
     })
 
+    test('a device that refuses storage gets the free-up-storage copy', () => {
+        const refused = Object.assign(new Error('refused'), { name: 'LinkStorageUnavailableError' })
+        expect(friendlyError(refused)).toEqual({ kind: 'code', code: 'sendLinkStorageUnavailable' })
+    })
+
     test('unknown errors still fall through to the support-fallback code', () => {
         expect(friendlyError(new Error('something nobody mapped'))).toEqual({ kind: 'code', code: 'genericSupport' })
     })
@@ -180,6 +185,7 @@ describe('friendly error copy catalog', () => {
         'claimLinkFailed',
         'sendLinkAlreadyClaimed',
         'sendLinkUnconfirmed',
+        'sendLinkStorageUnavailable',
         'lowLiquidity',
         'networkBusyTimeout',
         'connectionLost',
