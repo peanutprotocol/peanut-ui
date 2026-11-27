@@ -2266,7 +2266,6 @@
             "bankTransfer": "Transferência bancária",
             "bankDetails": "Da sua conta bancária",
             "kycRequired": "Precisa de verificação",
-            "bankTransferDescription": "Dados bancários reutilizáveis para receber",
             "mercadoPagoOrBank": "Mercado Pago ou Banco",
             "mercadoPago": "Mercado Pago",
             "pix": "Pix",

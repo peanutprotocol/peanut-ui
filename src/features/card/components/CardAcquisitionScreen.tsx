@@ -4,15 +4,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { useReducedMotion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
-import { useRouter } from 'next/navigation'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { Button } from '@/components/0_Bruddle/Button'
-import { ListGroup } from '@/components/0_Bruddle/ListGroup'
-import { ListItem } from '@/components/0_Bruddle/ListItem'
 import NavHeader from '@/components/Global/NavHeader'
-import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { HoldToClaimButton } from '@/components/Global/HoldToClaimButton'
 import { ScaledPixelatedCardFace } from '@/components/Card/share-asset/ScaledPixelatedCardFace'
 import AddCardEntryScreen from '@/components/Card/AddCardEntryScreen'
@@ -21,7 +16,7 @@ import type { ShakeIntensity } from '@/hooks/useHoldToClaim'
 import { getShakeClass } from '@/utils/perk.utils'
 import { readStoredValue, writeStoredValue } from '@/utils/safe-storage'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
-import { withReturnTo } from '@/utils/return-to.utils'
+import { AddMoneyMethodList } from '@/features/add-money/AddMoneyMethodList'
 import {
     captureCardGateAddFundsTapped,
     captureCardGateStepViewed,
@@ -29,6 +24,8 @@ import {
 } from '@/features/card/card-gate-analytics'
 
 const STEPS = ['eligibility', 'looking-up', 'available', 'funding', 'entry'] as const
+/** where a deposit opened from the funding step goes back to */
+const CARD_FUNDING_PATH = '/card?card_step=funding'
 
 export function CardMilestoneScreen({
     issued = false,
@@ -115,7 +112,6 @@ export function CardAcquisitionScreen({
     const t = useTranslations('card')
     const tAdd = useTranslations('addMoney')
     const tCommon = useTranslations('common')
-    const router = useRouter()
     const [step, setStep] = useQueryState('card_step', parseAsStringEnum([...STEPS]))
     const seenKey = `card_anticipation_completed_v1:${userId}`
     const [seen] = useState(() => readStoredValue(seenKey) === '1')
@@ -180,28 +176,10 @@ export function CardAcquisitionScreen({
                 <NavHeader title={t('onboarding.navTitle')} onPrev={onPrev} />
                 <h1 className="text-heading-s text-foreground-primary">{tAdd('title')}</h1>
                 <p className="text-body-m text-foreground-secondary">{t('onboarding.fundingBody')}</p>
-                <ListGroup>
-                    <ListItem
-                        title={tAdd('methods.bankTransfer')}
-                        body={tAdd('methods.bankTransferDescription')}
-                        leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />}
-                        chevron
-                        onClick={() => {
-                            captureCardGateAddFundsTapped('funding', funded, 'bank')
-                            router.push(withReturnTo('/add-money?method=bank', '/card?card_step=funding'))
-                        }}
-                    />
-                    <ListItem
-                        title={tAdd('methods.crypto')}
-                        body={tAdd('methods.cryptoDescription')}
-                        leading={<IconBubble {...CONCEPT_ICONS.crypto} size="s" />}
-                        chevron
-                        onClick={() => {
-                            captureCardGateAddFundsTapped('funding', funded, 'crypto')
-                            router.push(withReturnTo('/add-money/crypto', '/card?card_step=funding'))
-                        }}
-                    />
-                </ListGroup>
+                <AddMoneyMethodList
+                    returnTo={CARD_FUNDING_PATH}
+                    onSelect={(method) => captureCardGateAddFundsTapped('funding', funded, method)}
+                />
                 <PageStack.Footer>
                     <Button
                         variant="primary"

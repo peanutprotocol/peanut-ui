@@ -1,5 +1,6 @@
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import type { AddMoneyPickerMethod } from '@/features/add-money/addMoneyMethods'
 
 /*
  * The card gate funnel: card_state_viewed (state add-card) → card_gate_step_viewed
@@ -8,7 +9,6 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
  */
 
 export type CardGateStep = 'eligibility' | 'available' | 'funding' | 'entry'
-export type CardFundingMethod = 'bank' | 'crypto'
 
 export function captureCardGateStepViewed(step: CardGateStep, funded: boolean, minBalanceShown: boolean): void {
     posthog.capture(ANALYTICS_EVENTS.CARD_GATE_STEP_VIEWED, {
@@ -21,7 +21,7 @@ export function captureCardGateStepViewed(step: CardGateStep, funded: boolean, m
 export function captureCardGateAddFundsTapped(
     step: CardGateStep,
     funded: boolean,
-    method: CardFundingMethod | null = null
+    method: AddMoneyPickerMethod | null = null
 ): void {
     posthog.capture(ANALYTICS_EVENTS.CARD_GATE_ADD_FUNDS_TAPPED, { step, method, funded })
 }
