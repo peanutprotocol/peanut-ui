@@ -4233,6 +4233,30 @@ export const FIXTURES: Record<string, Fixture> = {
             'POST /rain/cards': { status: 'terms-required', isUsResident: false },
         },
     },
+    // TASK-25444: the funding step shows the Add picker's rows, so ARS and Pix lead where they lead there.
+    'card-funding-ars': {
+        capture: { expectSelector: '[data-testid="add-money-method-ars"]' },
+        route: '/card?card_step=funding',
+        balance: '0',
+        geoCountry: 'AR',
+        about: 'Card onboarding: funding for a resident of Argentina. ARS leads, as on the Add picker.',
+        responses: {
+            'GET /users/me': { ...ARS_TOP_UP_RESIDENT, user: { fullName: 'Lucía Gómez' } },
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+        },
+    },
+    'card-funding-pix': {
+        capture: { expectSelector: '[data-testid="add-money-method-pix"]' },
+        route: '/card?card_step=funding',
+        balance: '0',
+        about: 'Card onboarding: funding for a resident of Brazil on Avenia. Pix leads, as on the Add picker.',
+        responses: {
+            ...aveniaResponses('enabled'),
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+        },
+    },
     'card-holder': {
         route: '/card',
         about: 'Existing holder keeps card management even when new issuance is prohibited for their residence.',

@@ -1298,7 +1298,6 @@
             "cryptoDetails": "Desde billeteras o exchanges",
             "openAccount": "Abrir una cuenta bancaria",
             "cryptoDescription": "Depositá desde una billetera o exchange",
-            "bankTransferDescription": "Datos bancarios reutilizables para cobrar",
             "pix": "Pix",
             "pixDescription": "Transferencias instantáneas en reales"
         },
