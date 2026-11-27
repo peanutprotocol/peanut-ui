@@ -2234,13 +2234,38 @@
             "addFunds": "Agregar dinero",
             "issuedTitle": "Conoce tu Peanut Card.",
             "issuedBody": "Está lista para pagos en línea y sin contacto.",
-            "viewCard": "Ver tarjeta"
+            "viewCard": "Ver tarjeta",
+            "fundingBodyGap": "Tu tarjeta necesita {minimum} en tu saldo. Tienes {balance}, así que agrega {gap}. El dinero sigue siendo tuyo."
         },
         "addressStep": {
             "required": "Para continuar con la solicitud de tu tarjeta, agrega tu dirección de residencia.",
             "rejected": "Revisa tu dirección de residencia y envíala de nuevo para continuar con la solicitud de tu tarjeta.",
             "in_review": "Estamos revisando tu dirección. Podrás continuar con la solicitud de tu tarjeta cuando sea aceptada.",
             "unavailable": "No pudimos cargar el paso de dirección. Inténtalo de nuevo."
+        },
+        "addMoney": {
+            "pickNetwork": "Elige la red desde la que envías. Si envías desde un exchange, elige la red en la que retiras allí.",
+            "networkOnlyTitle": "Enviar solo en {network}",
+            "sendAsk": "Envía {amount}",
+            "raisedToMinimum": "El mínimo por transferencia en {network} es {minimum}. Los {extra} de más se suman a tu saldo.",
+            "waiting": "Esperando el depósito…",
+            "doneTitle": "Dinero agregado",
+            "stillLandingBody": "Recibimos tu depósito y todavía se está acreditando. Puede tardar unos minutos.",
+            "sendMore": "Enviar más",
+            "stillLandingSupportMessage": "¡Hola! Envié un depósito en cripto por {network} para mi tarjeta y todavía no llegó a mi saldo. ¿Me ayudan a revisarlo?",
+            "shortReceived": "Recibimos {received}",
+            "shortStillNeeded": "Todavía faltan {remaining}.",
+            "sendAbout": "Envía unos {amount}. El monto exacto depende del tipo de cambio.",
+            "sendInCurrency": "Envía {currency} desde tu banco. Llega en dólares.",
+            "notVerifiedTitle": "Todavía no hay una cuenta bancaria lista",
+            "notVerifiedBody": "Verifica tu identidad una sola vez para obtener los datos bancarios.",
+            "finishSetupTitle": "Falta un paso para la transferencia bancaria",
+            "finishSetupBody": "Termínalo en la página del banco.",
+            "useCryptoInstead": "Mejor agregar dinero con cripto",
+            "bankSentPending": "Tu transferencia de {amount} está en camino. Te avisamos cuando llegue.",
+            "bankSentPendingNoAmount": "Tu transferencia está en camino. Te avisamos cuando llegue.",
+            "statusCheckFailedTitle": "No pudimos revisar esta dirección",
+            "statusCheckFailedBody": "Puede que haya un depósito en camino. Intenta de nuevo antes de enviar."
         }
     },
     "addMoney": {
@@ -2266,6 +2291,7 @@
             "bankTransfer": "Transferencia bancaria",
             "bankDetails": "Desde tu cuenta bancaria",
             "kycRequired": "Requiere verificación",
+            "bankTransferDescription": "Desde tu banco",
             "mercadoPagoOrBank": "Mercado Pago o Banco",
             "mercadoPago": "Mercado Pago",
             "pix": "Pix",
@@ -5188,7 +5214,7 @@
             "badgeReady": "Lista",
             "badgeActive": "Activo",
             "badgeSetUp": "Configurar",
-            "badgeVerifyId": "Verificar",
+            "badgeVerifyId": "Verificar ID",
             "badgeNotOffered": "No disponible",
             "badgeRevoked": "Revocada",
             "accountCounter": "{used} de {cap} usadas",
