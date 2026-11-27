@@ -2057,6 +2057,49 @@ const VA_READY_RESPONSE = {
  * A UK top-up as the API returns it: GBP over Faster Payments, so the bank
  * details are a sort code and an account number, not an IBAN and a BIC.
  */
+// HANDOFF rule 7: a deposit that lands while its bank details are up ends on the
+// success screen. Each poll answers in turn (Fixture.sequences): open, then done.
+const EUR_ONRAMP = {
+    transferId: 'fixture-onramp-eur',
+    depositInstructions: {
+        amount: '20.00',
+        currency: 'eur',
+        depositMessage: 'BRGFIXTURE20EUR',
+        bankName: 'Fixture Bank AG',
+        bankAddress: '1 Fixture Strasse, Berlin',
+        accountHolderName: 'Fixture Payments S.A.',
+        iban: 'DE00000000000000000000',
+        bic: 'FIXTDEFFXXX',
+    },
+}
+const RECEIVED_DEPOSIT_ENTRY = {
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-09-01T11:00:00.000Z'),
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    userRole: 'RECIPIENT',
+    recipientAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+}
+const ARS_RECEIVED_ENTRY = {
+    ...RECEIVED_DEPOSIT_ENTRY,
+    uuid: 'fixture-ars-deposit',
+    status: 'COMPLETED',
+    amount: '10',
+    senderAccount: { identifier: 'bank', type: 'BANK_CBU', isUser: true },
+    currency: { amount: '10000', code: 'ARS' },
+    extraData: { kind: 'ONRAMP', provider: 'MANTECA', usdAmount: '10' },
+}
+const eurTransferEntry = (status: string) => ({
+    ...RECEIVED_DEPOSIT_ENTRY,
+    uuid: EUR_ONRAMP.transferId,
+    status,
+    amount: '21.62',
+    senderAccount: { identifier: 'bank', type: 'BANK_IBAN', isUser: true },
+    currency: { amount: '20', code: 'EUR' },
+    extraData: { kind: 'ONRAMP', provider: 'BRIDGE', usdAmount: '21.62' },
+})
+
 const GBP_ONRAMP = {
     transferId: 'fixture-onramp-gbp',
     depositInstructions: {
@@ -2843,6 +2886,40 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/add-money/united-kingdom/bank?step=inputAmount&amount=7',
         about: 'Add money by bank, UK: continue to the GBP bank details (sort code and account number).',
         responses: { ...VA_READY_RESPONSE, 'POST /bridge/onramp/create': GBP_ONRAMP },
+    },
+    // Tap Continue: the order opens, and the next status poll (5 s) says it completed.
+    'add-money-argentina-deposit-received': {
+        route: '/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS',
+        geoCountry: 'AR',
+        about: 'ARS deposit that lands while the transfer details are up: the success screen, "Added $10".',
+        capture: { actions: [{ clickSelector: '[data-testid="deposit-amount-continue"]' }] },
+        responses: {
+            'GET /users/me': {
+                residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
+                capabilities: MANTECA_AR_CAPABILITIES,
+            },
+            'POST /manteca/deposit': ARS_DEPOSIT,
+        },
+        sequences: {
+            'GET /manteca/deposit/fixture-ars-deposit/status': [
+                { id: 'fixture-ars-deposit', status: 'PROCESSING', stage: 1, expired: false },
+                { id: 'fixture-ars-deposit', status: 'COMPLETED', stage: 3, expired: false },
+            ],
+            'GET /history/fixture-ars-deposit': [ARS_RECEIVED_ENTRY],
+        },
+    },
+    // Tap Continue and slide to confirm: the transfer's entry reads AWAITING_FUNDS,
+    // and the next poll (15 s) PAYMENT_PROCESSED.
+    'add-money-bank-transfer-received': {
+        route: '/add-money/germany/bank?step=inputAmount&amount=20',
+        about: 'Bridge one-time transfer that lands while the bank details are up: the success screen.',
+        responses: { ...VA_READY_RESPONSE, 'POST /bridge/onramp/create': EUR_ONRAMP },
+        sequences: {
+            [`GET /history/${EUR_ONRAMP.transferId}`]: [
+                eurTransferEntry('AWAITING_FUNDS'),
+                eurTransferEntry('PAYMENT_PROCESSED'),
+            ],
+        },
     },
     // Open /add-money/spain?__fixture=add-money-country-provider-wait and tap
     // "From Bank". The euro rail is under provider review (waiting-on-provider),

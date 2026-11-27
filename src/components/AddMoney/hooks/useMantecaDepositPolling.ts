@@ -2,6 +2,7 @@
 
 import { mantecaApi } from '@/services/manteca'
 import { useQuery } from '@tanstack/react-query'
+import type { DepositWatchPhase } from '@/features/add-money/useDepositSuccessEntry'
 import { useEffect, useMemo, useRef } from 'react'
 
 const POLLING_INTERVAL = 5000
@@ -55,5 +56,15 @@ export function useMantecaDepositPolling(depositId: string | undefined, onComple
         }
     }, [status, depositId, onComplete])
 
-    return { status }
+    // the success screen's signal: undefined until the first read, so an order
+    // that was already complete when the screen opened never reads as open
+    const watchPhase: DepositWatchPhase | undefined = !data?.data?.status
+        ? undefined
+        : status === 'completed'
+          ? 'completed'
+          : status === 'pending' || status === 'processing'
+            ? 'open'
+            : 'closed'
+
+    return { status, watchPhase }
 }

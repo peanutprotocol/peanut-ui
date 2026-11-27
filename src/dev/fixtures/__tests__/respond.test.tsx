@@ -324,3 +324,13 @@ describe('fixtureRespond capability report', () => {
         expect(otherWays.some((row) => row.labelKey === 'usd')).toBe(true)
     })
 })
+
+describe('fixtureRespond sequences', () => {
+    it('answers a polled route in turn, then repeats the last answer', async () => {
+        activateFixture('add-money-argentina-deposit-received')
+        const path = '/manteca/deposit/fixture-ars-deposit/status'
+        const statuses = []
+        for (let turn = 0; turn < 3; turn++) statuses.push((await (await fixtureRespond(path)).json()).status)
+        expect(statuses).toEqual(['PROCESSING', 'COMPLETED', 'COMPLETED'])
+    })
+})

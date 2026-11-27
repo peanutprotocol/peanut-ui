@@ -24,6 +24,9 @@ import { useOnrampQuote } from '@/hooks/useOnrampQuote'
 import { currencyToAccountType } from '@/utils/bridge.utils'
 import { useQueryState, parseAsString } from 'nuqs'
 import { useTranslations } from 'next-intl'
+import { useHistoryEntry } from '@/hooks/useHistoryEntry'
+import { historyEntryPhase, useDepositSuccessEntry } from '@/features/add-money/useDepositSuccessEntry'
+import { BankDepositSuccessView } from '@/features/add-money/components/BankDepositSuccessView'
 
 /**
  * TODO(architecture): Quote math is computed client-side instead of trusting backend.
@@ -101,6 +104,11 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
     }, [isAddMoneyFlow, requestFulfilmentSelectedCountry, currentCountryName])
 
     const onrampData = isAddMoneyFlow ? onrampContext.onrampData : requestFulfilmentOnrampData
+    // no status route for a one-time transfer: its history entry is the signal,
+    // polled every 15 s while not final. add money only; a request payer is not the one credited.
+    const transferId = isAddMoneyFlow ? onrampData?.transferId : undefined
+    const { data: transferEntry } = useHistoryEntry(transferId, 'ONRAMP')
+    const depositSuccess = useDepositSuccessEntry(transferId, historyEntryPhase(transferEntry))
     // The API's answer names the currency and carries the bank details, so it
     // decides which rows show; the country only stands in for an answer
     // without a currency (see bankDepositCurrency).
@@ -258,6 +266,10 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
 
     if (!amount) {
         return null
+    }
+
+    if (depositSuccess) {
+        return <BankDepositSuccessView entry={depositSuccess} redirectTo={exitTarget} />
     }
 
     return (

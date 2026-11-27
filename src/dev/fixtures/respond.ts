@@ -16,6 +16,8 @@ import { withFixtureFeatureReport, withFixtureRoutes } from './featureReport'
 const JSON_HEADERS = { 'content-type': 'application/json' }
 
 let warned = false
+// calls served per sequence, so a poll sees its answers in turn
+const sequenceCalls = new Map<string, number>()
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -57,6 +59,14 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
     const rejection = fixture.rejects?.[key]
     if (rejection) {
         return new Response(JSON.stringify(rejection.body), { status: rejection.status, headers: JSON_HEADERS })
+    }
+
+    const sequence = fixture.sequences?.[key]
+    if (sequence?.length) {
+        const turn = sequenceCalls.get(`${name} ${key}`) ?? 0
+        sequenceCalls.set(`${name} ${key}`, turn + 1)
+        const answer = sequence[Math.min(turn, sequence.length - 1)]
+        return new Response(JSON.stringify(answer), { status: 200, headers: JSON_HEADERS })
     }
 
     // demo-api already answers every route the app calls, with a shape-aware

@@ -30,6 +30,7 @@ jest.mock('@/context/RequestFulfillmentFlowContext', () => ({
     }),
     RequestFulfillmentBankFlowStep: {},
 }))
+jest.mock('@/hooks/useHistoryEntry', () => ({ useHistoryEntry: () => ({ data: undefined }) }))
 jest.mock('@/hooks/useOnrampQuote', () => ({ useOnrampQuote: (...args: unknown[]) => mockQuote(args[0]) }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/CopyToClipboard', () => ({
