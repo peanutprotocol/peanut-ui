@@ -7,8 +7,6 @@ import { type FC, useEffect, useMemo, useState, useCallback } from 'react'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
 import { useMantecaDepositPolling } from '@/components/AddMoney/hooks/useMantecaDepositPolling'
 import { useOpenMantecaDeposit } from '@/components/AddMoney/hooks/useOpenMantecaDeposit'
-import { useDepositSuccessEntry } from '@/features/add-money/useDepositSuccessEntry'
-import { BankDepositSuccessView } from '@/features/add-money/components/BankDepositSuccessView'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { formatAmountNumber } from '@/utils/currency'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
@@ -121,13 +119,11 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     const residenceGatedCountry = selectedCountry?.id === 'AR' ? 'AR' : null
     // an ARS transfer Manteca let lapse unpaid: the details screen says so and offers a new one
     const arsDeposit = residenceGatedCountry && step === 'depositDetails' ? depositDetails : undefined
-    const { status: arsDepositStatus, watchPhase: arsWatchPhase } = useMantecaDepositPolling(arsDeposit?.id, () => {
+    const { status: arsDepositStatus } = useMantecaDepositPolling(arsDeposit?.id, () => {
         void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
         // COMPLETED means Manteca sent the USDC to the wallet; the success view says the balance has it
         void queryClient.invalidateQueries({ queryKey: ['balance'] })
     })
-    // the pesos landed while the details were up: the crypto deposit's success screen
-    const arsDepositSuccess = useDepositSuccessEntry(arsDeposit?.id, arsWatchPhase)
     const localAccount = residenceGatedCountry ? bankEntryFor('ars') : null
     const accountRejected = isMantecaAccountClosed(localAccount ?? undefined)
     const refusal = refusalOf(localAccount ?? undefined)
@@ -566,11 +562,6 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
         // Show nothing while useEffect redirects if data is missing
         if (!depositDetails) {
             return null
-        }
-        if (arsDepositSuccess) {
-            return (
-                <BankDepositSuccessView entry={arsDepositSuccess} redirectTo={readReturnTo(searchParams) ?? '/home'} />
-            )
         }
         return (
             <MantecaDepositShareDetails

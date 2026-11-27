@@ -17,11 +17,10 @@ export type DepositWatchPhase = 'open' | 'completed' | 'closed'
  * elsewhere (the push, Activity). Once shown, the answer holds for that deposit
  * across re-renders, so the screen cannot flash back to the details.
  *
- * `phase` is the screen's completion signal, undefined until its first read:
- * pesos poll /manteca/deposit/:id/status every 5 s; a Bridge one-time transfer
- * has no status route, so it reads its own history entry (`historyEntryPhase`),
- * which GET /history/:transferId refreshes every 15 s while not final. The
- * entry is read here once the deposit completes, for the amount and receipt.
+ * `phase` is the screen's completion signal, undefined until its first read.
+ * A Bridge one-time transfer has no status route, so it reads its own history
+ * entry (`historyEntryPhase`), which GET /history/:transferId refreshes every
+ * 15 s while not final. Pesos have their own success (TASK-25444).
  */
 export function useDepositSuccessEntry(
     entryId: string | undefined,

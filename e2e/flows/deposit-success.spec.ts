@@ -1,9 +1,10 @@
 /**
- * HANDOFF rule 7: a bank deposit that lands while its details are up ends on
- * the crypto deposit's success screen. The fixtures answer each status poll in
- * turn (Fixture.sequences): open first, then done, as a real deposit does.
+ * HANDOFF rule 7: a Bridge one-time transfer that lands while its bank details
+ * are up ends on the crypto deposit's success screen. The fixture answers each
+ * history poll in turn (Fixture.sequences): open first, then done. Pesos have
+ * their own success inside MantecaDepositShareDetails (TASK-25444).
  *
- * DEPOSIT_SHOTS_OUT writes a 375×667 capture of each success screen.
+ * DEPOSIT_SHOTS_OUT writes a 375×667 capture of the success screen.
  */
 import { expect, test, type Page } from '@playwright/test'
 
@@ -23,24 +24,6 @@ test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
         ;(window as Window & { __screenCapture?: boolean }).__screenCapture = true
     })
-})
-
-test('a peso deposit that lands on screen ends on "Added $10"', async ({ page }) => {
-    await page.route('**/api/geo-country', (route) =>
-        route.fulfill({ json: { country: 'AR' }, headers: { 'access-control-allow-origin': '*' } })
-    )
-    await page.goto(
-        '/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS&__fixture=add-money-argentina-deposit-received'
-    )
-    await page.getByTestId('deposit-amount-continue').click()
-
-    // the details first, then the next 5 s poll completes the order
-    await expect(page.getByText('fixture.deposit.test').first()).toBeVisible()
-    await expect(page.getByRole('button', { name: 'See receipt' })).toBeVisible({ timeout: 20_000 })
-    await expect(page.getByText('Added', { exact: true })).toBeVisible()
-    await expect(page.getByText('$10')).toBeVisible()
-    await expect(page.getByText('ARS 10,000')).toBeVisible()
-    await shot(page, 'pesos-received')
 })
 
 test('a Bridge one-time transfer that lands on screen ends on the success screen', async ({ page }) => {
