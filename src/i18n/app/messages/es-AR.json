@@ -1345,7 +1345,7 @@
         },
         "bankDetails": {
             "sendExactAmount": "¡Enviá exactamente este monto!",
-            "sendAnyAmount": "Enviá cualquier monto. Incluí la referencia.",
+            "sendAnyAmount": "Enviá cualquier monto desde {minimum}. Incluí la referencia.",
             "pasteInReferenceField": "Obligatoria: pegala en el campo de referencia del banco. Sin ella, la transferencia no se puede asociar y podría devolverse.",
             "doubleCheckTitle": "Revisá bien antes de enviar:",
             "shareOutro": "Usá estos datos para completar tu transferencia bancaria.",

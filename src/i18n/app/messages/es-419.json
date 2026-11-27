@@ -2372,7 +2372,7 @@
         "bankDetails": {
             "amountToSend": "Monto a enviar",
             "sendExactAmount": "¡Envía exactamente este monto!",
-            "sendAnyAmount": "Envía cualquier monto. Incluye la referencia.",
+            "sendAnyAmount": "Envía cualquier monto desde {minimum}. Incluye la referencia.",
             "depositReference": "Referencia del depósito",
             "pasteInReferenceField": "Obligatoria: pégala en el campo de referencia del banco. Sin ella, la transferencia no se puede asociar y podría devolverse.",
             "title": "Datos bancarios",
