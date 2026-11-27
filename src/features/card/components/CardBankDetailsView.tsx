@@ -11,7 +11,7 @@ import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Loading from '@/components/Global/Loading'
 import { useAuth } from '@/context/authContext'
 import { CARD_FUNDING_RETURN_TO, cardGapUsd } from '@/features/card/cardAddMoney'
-import { readLiveSpendableUsd } from '@/features/card/readLiveSpendableUsd'
+import { canReadLiveSpendable, readLiveSpendableUsd } from '@/features/card/readLiveSpendableUsd'
 import { DepositAccountDetailsBody } from '@/features/deposit-accounts/components/DepositAccountDetailsBody'
 import { DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
@@ -47,9 +47,11 @@ export function CardBankDetailsView({
     const { address: wallet } = useWallet()
     const userId = user?.user?.userId
     // the ask is the gap from a fresh read, as the crypto view's (readLiveSpendableUsd), never the
-    // step's cached balance; undefined while it loads, null when the read failed
+    // step's cached balance; undefined while it loads, null when the read failed. Until the wallet
+    // address is known the read cannot run: the skeleton holds, rather than a failed read's "no amount"
     const [gapUsd, setGapUsd] = useState<number | null>()
     useEffect(() => {
+        if (!canReadLiveSpendable(wallet as Address | undefined)) return
         let current = true
         readLiveSpendableUsd(queryClient, { address: wallet as Address | undefined, userId }).then(
             (value) => current && setGapUsd(cardGapUsd(value) ?? null),

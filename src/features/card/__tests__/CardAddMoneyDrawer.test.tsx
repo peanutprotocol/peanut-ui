@@ -42,7 +42,9 @@ let identityStatus: string | undefined
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { user: { userId: 'u1' }, identityVerification: { status: identityStatus } } }),
 }))
-jest.mock('@/hooks/wallet/useWallet', () => ({ useWallet: () => ({ address: '0xwallet' }) }))
+// undefined: the wallet has not resolved its address yet
+let mockWalletAddress: string | undefined = '0xwallet'
+jest.mock('@/hooks/wallet/useWallet', () => ({ useWallet: () => ({ address: mockWalletAddress }) }))
 jest.mock('@/hooks/useBridgeProviderId', () => ({ useBridgeProviderId: () => null }))
 
 const mockCreateDepositAddress = jest.fn()
@@ -108,8 +110,11 @@ jest.mock('@/features/deposit-accounts/useDepositAccounts', () => ({
 // the deposit view's fresh balance read (its own tests cover the deposit arithmetic)
 let mockLive = 2.5
 let mockLiveFails = false
+const mockLiveReads = jest.fn()
 jest.mock('@/features/card/readLiveSpendableUsd', () => ({
+    canReadLiveSpendable: (address: string | undefined) => !!address,
     readLiveSpendableUsd: async () => {
+        mockLiveReads()
         if (mockLiveFails) throw new Error('read failed')
         return mockLive
     },
@@ -140,6 +145,8 @@ beforeAll(() => {
 beforeEach(() => {
     mockLive = 2.5
     mockLiveFails = false
+    mockWalletAddress = '0xwallet'
+    mockLiveReads.mockClear()
     jest.clearAllMocks()
     localStorage.clear()
     sessionStorage.clear()
@@ -816,6 +823,22 @@ describe('round 2: badges, one heading on details, the residence fix, no back wh
         fireEvent.click(screen.getByTestId('card-add-money-bank'))
         expect(within(drawer()).getByTestId('card-add-money-bank-amount-loading')).toBeInTheDocument()
         expect(await within(drawer()).findByTestId('card-add-money-bank-amount')).toHaveTextContent('sendAsk($6)')
+    })
+
+    it('holds the skeleton, not "no amount", until the wallet address is known', async () => {
+        depositAccounts = { ACH_US: ACH_ACCOUNT }
+        readiness = { ...readiness, ready: { ...noneReady, account: ['USD'] } }
+        mockWalletAddress = undefined
+        const { rerenderWith } = renderFunding()
+        fireEvent.click(screen.getByTestId('card-add-money-bank'))
+        await act(async () => undefined)
+        expect(within(drawer()).getByTestId('card-add-money-bank-amount-loading')).toBeInTheDocument()
+        expect(within(drawer()).queryByTestId('card-add-money-bank-amount')).not.toBeInTheDocument()
+        expect(mockLiveReads).not.toHaveBeenCalled()
+        // the address arrives: the read runs and the amount shows
+        mockWalletAddress = '0xwallet'
+        rerenderWith({})
+        expect(await within(drawer()).findByTestId('card-add-money-bank-amount')).toHaveTextContent('sendAsk($7.50)')
     })
 
     it('promises no amount when the fresh balance read fails', async () => {

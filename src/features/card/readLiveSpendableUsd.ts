@@ -9,6 +9,11 @@ import { computeAvailableSpendable, isRainBalanceKnown } from '@/utils/balance.u
 import { isDemoMode } from '@/utils/demo'
 import { getDemoBalanceUnits } from '@/utils/demo-balance'
 
+/** A live read needs the wallet address, except in demo mode and fixtures, which read the demo balance. */
+export function canReadLiveSpendable(address: Address | undefined): boolean {
+    return !!address || isDemoMode() || !!peekActiveFixture()
+}
+
 /**
  * The spendable balance in dollars, read fresh now: the smart account on-chain and the Rain collateral
  * from a new card overview (the same sum `useWallet` shows). Both reads write their queries, so the
@@ -29,8 +34,8 @@ export async function readLiveSpendableUsd(
             throw error
         }
     }
+    if (!canReadLiveSpendable(address)) throw new Error('wallet address unknown')
     const demo = isDemoMode() || !!peekActiveFixture()
-    if (!demo && !address) throw new Error('wallet address unknown')
     const [smart, overview] = await Promise.all([
         demo ? Promise.resolve(getDemoBalanceUnits()) : fresh(() => fetchLiveSmartUsdcBalance(queryClient, address!)),
         fresh(() =>

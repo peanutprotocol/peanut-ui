@@ -112,7 +112,10 @@ export const CARD_FUNDING_RETURN_TO = '/card?card_step=funding'
 /**
  * The page a bank row opens, with the gap prefilled where the page reads a dollar amount: the ARS
  * flow takes `currency=USD`; a Bridge top-up takes its amount in the rail's own currency, so only a
- * dollar rail gets it; the Pix page reads no amount.
+ * dollar rail gets it; the Pix page reads no amount. The step's cached gap is enough here, unlike the
+ * drawer's own ask (CardBankDetailsView reads fresh): this only prefills an amount field the user edits
+ * on the page, always in dollars (the page converts and quotes the rest), and a fresh read would hold
+ * the tap on a network round trip.
  */
 export function cardBankPageHref(
     corridor: DepositCorridor,
