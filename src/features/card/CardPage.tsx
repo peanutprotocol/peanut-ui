@@ -127,16 +127,6 @@ export const CardPage: FC = () => {
     const showCardIntro =
         sumsubToken !== null && user?.identityVerification?.status === 'not_started' && introDoneFor !== sumsubToken
 
-    if (state === 'loading') {
-        return (
-            <PageContainer>
-                <div className="flex min-h-inherit w-full items-center justify-center">
-                    <Loading />
-                </div>
-            </PageContainer>
-        )
-    }
-
     if (cardInfoError || overviewError || issuanceReadError) {
         return (
             <PageContainer>
@@ -154,6 +144,16 @@ export const CardPage: FC = () => {
                             {tCommon('retry')}
                         </Button>
                     </CenteredStatusCard>
+                </div>
+            </PageContainer>
+        )
+    }
+
+    if (state === 'loading') {
+        return (
+            <PageContainer>
+                <div className="flex min-h-inherit w-full items-center justify-center">
+                    <Loading />
                 </div>
             </PageContainer>
         )
@@ -480,10 +480,19 @@ export const CardPage: FC = () => {
                         />
                     )
                 }
-                const card = findActiveCard(overview)!
+                const card = findActiveCard(overview)
+                if (!overview || !card) {
+                    return (
+                        <ApplicationStatusScreen
+                            variant="requires-support"
+                            onContactSupport={() => setIsSupportModalOpen(true)}
+                            onPrev={onBack}
+                        />
+                    )
+                }
                 return (
                     <YourCardScreen
-                        overview={overview!}
+                        overview={overview}
                         card={card}
                         onPrev={onBack}
                         onStopAttempt={setStopAttempt}
@@ -497,7 +506,13 @@ export const CardPage: FC = () => {
                 )
             }
             default:
-                return null
+                return (
+                    <ApplicationStatusScreen
+                        variant="requires-support"
+                        onContactSupport={() => setIsSupportModalOpen(true)}
+                        onPrev={onBack}
+                    />
+                )
         }
     }
 

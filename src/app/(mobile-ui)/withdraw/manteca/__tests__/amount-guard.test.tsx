@@ -12,7 +12,13 @@ let mockBalance: bigint | undefined = parseUnits('10', 6)
 // The first-use activation has its own tests; the amount screen behind it is what these cover.
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
-        user: { user: { userId: 'user-1' }, accounts: [{ id: 'qa-ar-1', type: 'manteca', identifier: 'qa.account' }] },
+        user: {
+            user: { userId: 'user-1' },
+            accounts: [
+                { id: 'qa-ar-1', type: 'manteca', identifier: 'qa.account' },
+                { id: 'acct-qa', type: 'manteca', identifier: 'qa.account' },
+            ],
+        },
         isAuthed: true,
         fetchUser: jest.fn(),
     }),

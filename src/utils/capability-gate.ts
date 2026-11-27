@@ -487,6 +487,8 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
     if (state.isLoading) return { kind: 'loading' }
     if (!state.features) return deriveGateFromRails(state, op, scope)
     const entry = reportEntry(state.features, op, scope, state.rails)
+    // A hold only support can lift outranks every non-working feature entry: no verify, restart or email step clears it.
+    if (state.identityHold && entry.state !== 'on') return supportCaseGate(state.identityHold, undefined, null)
     // A verified identity with no account of this kind to open is an enrollment, not a new identity check.
     if (isUnmappedEntry(entry) && state.identityVerified) return { kind: 'needs-enrollment' }
     // A failed identity has nothing to verify again: the API's identity entry, read where the report has no account.
@@ -669,6 +671,7 @@ export function gateFromEntry(
             if (action?.kind === 'restart-identity') return { kind: 'restart-identity', userMessage, reason }
             if (action?.kind === 'provide-email') return { kind: 'provide-email', userMessage, reason }
             if (action?.kind === 'accept-tos') return { kind: 'accept-tos', tosUrl: action.tosUrl, userMessage, reason }
+            if (action?.kind === 'contact-support') return { kind: 'blocked-rejection', userMessage, reason }
             return {
                 kind: 'fixable-rejection',
                 userMessage,
@@ -683,6 +686,8 @@ export function gateFromEntry(
                 return { kind: 'blocked-rejection', userMessage, reason, byIdentity: true }
             return { kind: 'blocked-rejection', userMessage, reason }
         }
+        default:
+            return { kind: 'blocked-rejection', userMessage, reason }
     }
 }
 

@@ -15,6 +15,7 @@ jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn(), prefetch: jest.fn() }),
 }))
 jest.mock('next-intl', () => ({
+    useLocale: () => 'en',
     useTranslations: (ns: string) => (key: string, params?: Record<string, unknown>) =>
         params ? `${ns}.${key} ${JSON.stringify(params)}` : `${ns}.${key}`,
 }))

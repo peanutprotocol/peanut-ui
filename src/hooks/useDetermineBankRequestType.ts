@@ -1,6 +1,5 @@
 import { getUserById } from '@/app/actions/users'
 import { useAuth } from '@/context/authContext'
-import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { useEffect, useState } from 'react'
 import { useVerification } from './useVerification'
 
@@ -22,7 +21,6 @@ export function useDetermineBankRequestType(requesterUserId: string): {
 } {
     const { user } = useAuth()
     const [requestType, setRequestType] = useState<BankRequestType>(BankRequestType.PayerKycNeeded)
-    const { setRequesterDetails } = useRequestFulfillmentFlow()
     // The payer is the current user: an enabled rail means they can pay by bank.
     const { hasAnyEnabledRail } = useVerification()
 
@@ -52,7 +50,6 @@ export function useDetermineBankRequestType(requesterUserId: string): {
                 const requesterKycApproved = requesterDetails?.canReceiveBankOfframp ?? false
 
                 if (requesterKycApproved) {
-                    setRequesterDetails(requesterDetails)
                     setRequestType(BankRequestType.GuestBankRequest)
                 } else {
                     if (user?.user.userId) {
@@ -71,7 +68,7 @@ export function useDetermineBankRequestType(requesterUserId: string): {
         }
 
         determineBankRequestType()
-    }, [user, requesterUserId, setRequesterDetails, hasAnyEnabledRail])
+    }, [user, requesterUserId, hasAnyEnabledRail])
 
     return { requestType, setRequestType }
 }

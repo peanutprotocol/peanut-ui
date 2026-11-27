@@ -444,6 +444,14 @@ jobs:
 
             - run: pnpm install --frozen-lockfile
 
+            - name: Cache Jest transform cache
+              uses: actions/cache@v4
+              with:
+                  path: node_modules/.cache/jest
+                  key: jest-transform-${{ runner.os }}-s${{ matrix.shard }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.test.json') }}
+                  restore-keys: |
+                      jest-transform-${{ runner.os }}-s${{ matrix.shard }}-
+
             - name: Generate Next types
               run: pnpm next typegen
 
@@ -469,7 +477,7 @@ jobs:
                       src/components/TransactionDetails/__tests__/fixtures/be-entries.json
 
             - name: Run unit tests
-              run: pnpm test:unit:ci --shard=${{ matrix.shard }}/3 ${{ github.event_name == 'push' && '--coverage' || '' }}
+              run: pnpm test:unit:ci --cacheDirectory=node_modules/.cache/jest --shard=${{ matrix.shard }}/3 ${{ github.event_name == 'push' && '--coverage' || '' }}
 
             - name: Publish unit test report
               uses: dorny/test-reporter@3eeb9fc888e82e8be2fb356bbeec2750231672bc # v1
@@ -1120,6 +1128,14 @@ jobs:
                   done
                   echo "::error::playwright install-deps failed after 3 attempts"
                   exit 1
+
+            - name: Cache Next.js build
+              uses: actions/cache@v4
+              with:
+                  path: .next/cache
+                  key: next-press-contract-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+                  restore-keys: |
+                      next-press-contract-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
 
             # The regression config starts `next start`, so the build has to
             # run first. NEXT_PUBLIC_VERCEL_ENV and NEXT_PUBLIC_BASE_URL are

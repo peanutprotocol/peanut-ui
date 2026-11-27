@@ -545,12 +545,15 @@ export function useSemanticRequestFlow() {
         t,
     ])
 
+    const isPendingSendRef = useRef(pendingSend.isPending)
+    isPendingSendRef.current = pendingSend.isPending
+
     // call prepareRoute when entering confirm view and charge is ready
     useEffect(() => {
-        if (currentView === 'CONFIRM' && charge && !pendingSend.isPending) {
+        if (currentView === 'CONFIRM' && charge && !isPendingSendRef.current) {
             prepareRoute()
         }
-    }, [currentView, charge, pendingSend.isPending, prepareRoute])
+    }, [currentView, charge, prepareRoute])
 
     // SDA deposit addresses don't expire — no route-expiry handlers needed.
 
