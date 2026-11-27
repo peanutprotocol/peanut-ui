@@ -16,8 +16,9 @@ jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('framer-motion', () => ({ useReducedMotion: () => false }))
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: mockHaptic }) }))
 let mockPickerMethods = ['bank', 'crypto']
+let mockMethodsLoading = false
 jest.mock('@/features/add-money/useAddMoneyReadiness', () => ({
-    useAddMoneyReadiness: () => ({ pickerMethods: mockPickerMethods }),
+    useAddMoneyReadiness: () => ({ pickerMethods: mockPickerMethods, isLoading: mockMethodsLoading }),
 }))
 jest.mock('@/utils/confetti', () => ({ shootDoubleStarConfetti: jest.fn() }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
@@ -49,6 +50,7 @@ beforeEach(() => {
     jest.clearAllMocks()
     localStorage.clear()
     mockPickerMethods = ['bank', 'crypto']
+    mockMethodsLoading = false
 })
 
 const row = (method: string) => screen.getByTestId(`add-money-method-${method}`)
@@ -106,6 +108,26 @@ describe('the funding rows', () => {
         expect(screen.getAllByTestId(/^add-money-method-/).map((item) => item.getAttribute('data-testid'))).toEqual(
             methods.map((method) => `add-money-method-${method}`)
         )
+    })
+
+    // Aleks, 26 Nov: Bank transfer and Crypto showed while the methods loaded, then ARS or Pix appeared
+    // above them, so a fast tap could open the wrong deposit
+    it('hold until the methods resolve, then show them in their final order', () => {
+        mockMethodsLoading = true
+        const { rerender } = render(<CardAcquisitionScreen {...props} />, {
+            wrapper: withNuqsTestingAdapter({ searchParams: '?card_step=funding' }),
+        })
+        expect(screen.getByTestId('add-money-methods-loading')).toHaveAttribute('aria-busy', 'true')
+        expect(screen.queryAllByTestId(/^add-money-method-/)).toHaveLength(0)
+        mockMethodsLoading = false
+        mockPickerMethods = ['ars', 'bank', 'crypto']
+        rerender(<CardAcquisitionScreen {...props} />)
+        expect(screen.queryByTestId('add-money-methods-loading')).not.toBeInTheDocument()
+        expect(screen.getAllByTestId(/^add-money-method-/).map((item) => item.getAttribute('data-testid'))).toEqual([
+            'add-money-method-ars',
+            'add-money-method-bank',
+            'add-money-method-crypto',
+        ])
     })
 
     it.each([
