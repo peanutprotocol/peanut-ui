@@ -1248,7 +1248,7 @@
             "desc": "Una Visa virtual para gastar tu saldo donde se acepte Visa. Ah, y es <pink>rosa</pink>."
         },
         "residence": {
-            "sentence": "Mi país de residencia <nw>es <residence></residence>,</nw> <nw>el de nacionalidad</nw> <nw>es <nationality></nationality>.</nw>",
+            "sentence": "Mi país de residencia <nw>es <residence></residence>,</nw> <nw>el de nacionalidad</nw> <nw>es <nationality></nationality></nw>",
             "choose": "Elegir",
             "sheetResidence": "¿Dónde vives?",
             "sheetNationality": "¿Cuál es tu nacionalidad?",
@@ -2623,6 +2623,7 @@
             "invalidAmount": "Ingresa un monto válido.",
             "minimumSend": "El monto mínimo de envío es {amount}.",
             "minimumWithdrawal": "El retiro mínimo es {amount}.",
+            "minimumCryptoWithdrawal": "El mínimo de esta red es {amount}.",
             "countryUnresolved": "No pudimos determinar el país de esta cuenta. Contacta a soporte.",
             "setupFailed": "Algo salió mal al configurar tu retiro. Contacta a soporte.",
             "amountMissing": "Falta el monto del retiro.",
@@ -4961,6 +4962,7 @@
         "mantecaAccountRejected": "Los depósitos y retiros en este país no están disponibles para tu cuenta. Los pagos con QR siguen funcionando. El equipo de soporte puede ayudarte.",
         "mantecaAccountRejectedForCountry": "No puedes agregar ni retirar dinero en {country}. Puedes seguir pagando con QR.",
         "bankAccountNotUsable": "Esta cuenta bancaria ya no se puede usar. Agrégala de nuevo.",
+        "belowMinBridgeAmount": "Este monto está por debajo del mínimo para esta red. Prueba con un monto mayor o con otra red.",
         "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Espera un momento e inténtalo de nuevo.",
         "linkTransactionHashFetch": "No pudimos cargar la transacción de este enlace. Actualiza la página e inténtalo de nuevo.",
         "cardApprovalCancelled": "Aprobación cancelada: puedes volver a intentarlo cuando quieras.",
