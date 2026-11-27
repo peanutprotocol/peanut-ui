@@ -2253,6 +2253,7 @@
             "stillLandingBody": "Recibimos tu depósito y todavía se está acreditando. Puede tardar unos minutos.",
             "sendMore": "Enviar más",
             "stillLandingSupportMessage": "¡Hola! Envié un depósito en cripto por {network} para mi tarjeta y todavía no llegó a mi saldo. ¿Me ayudan a revisarlo?",
+            "stillLandingSupportMessageBalance": "¡Hola! Envié un depósito en cripto por {network} y todavía no llegó a mi saldo. ¿Me ayudan a revisarlo?",
             "shortReceived": "Recibimos {received}",
             "shortStillNeeded": "Todavía faltan {remaining}.",
             "sendAbout": "Envía unos {amount}. El monto exacto depende del tipo de cambio.",
@@ -2270,6 +2271,7 @@
     },
     "addMoney": {
         "title": "Agregar dinero",
+        "addAmount": "Agregar {amount}",
         "transferDetails": "Datos de la transferencia",
         "selectYourCountry": "Selecciona el país",
         "addMoneyVia": "Agregar dinero con",

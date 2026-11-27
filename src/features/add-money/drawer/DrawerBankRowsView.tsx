@@ -1,6 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
+import type { ReactNode } from 'react'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
@@ -15,7 +16,16 @@ import type { DrawerBankRow } from './addMoneyDrawerPlan'
  * The bank ways ready now, titled as the Add money picker and options title them. A held account
  * names its own rails, the same name its details title shows.
  */
-export function DrawerBankRowsView({ rows, onPick }: { rows: DrawerBankRow[]; onPick: (row: DrawerBankRow) => void }) {
+export function DrawerBankRowsView({
+    rows,
+    onPick,
+    children,
+}: {
+    rows: DrawerBankRow[]
+    onPick: (row: DrawerBankRow) => void
+    /** rows after the bank ones in the same group: the drawer's choice adds crypto */
+    children?: ReactNode
+}) {
     const tMethods = useTranslations('addMoney.methods')
     const { accountRailName } = useDepositAccountCopy()
     // only a held account's row names its rails from its details
@@ -48,6 +58,7 @@ export function DrawerBankRowsView({ rows, onPick }: { rows: DrawerBankRow[]; on
                     />
                 )
             })}
+            {children}
         </ListGroup>
     )
 }

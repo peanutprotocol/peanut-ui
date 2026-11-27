@@ -2729,8 +2729,84 @@ const CARD_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
     ),
 }
 
+/**
+ * TASK-25467: the same drawer on Send to a Peanut user. $10 to alice with $3.20 spendable, so the
+ * button reads "Add $6.80" and opens the drawer on the choice of methods; each view below taps on
+ * from there. The card's answers above (no card collateral) keep the numbers the same.
+ */
+// the native route: the web /send/[username] route lives outside the fixture app group
+const SEND_ADD_MONEY_ROUTE = '/send?recipient=alice&amount=10'
+const OPEN_DRAWER = '[role="dialog"][data-state="open"]'
+const sendAddMoney = (
+    about: string,
+    user: Record<string, unknown>,
+    depositAccounts: Record<string, unknown>,
+    extra: Partial<Fixture> = {}
+): Fixture => ({ ...cardAddMoney(about, user, depositAccounts, extra), route: SEND_ADD_MONEY_ROUTE })
+const sendView = (id: string, name: string, clickTestIds: string[], expectTestId: string) => ({
+    id,
+    name,
+    flow: 'Send',
+    route: SEND_ADD_MONEY_ROUTE,
+    clickTestIds,
+    expectSelector: `${OPEN_DRAWER} [data-testid="${expectTestId}"]`,
+})
+
+const SEND_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
+    'send-add-money': sendAddMoney(
+        'Send $10 with $3.20 spendable: the error stays and the button reads "Add $6.80"; it opens the add-money drawer on this step.',
+        CARD_US_USER,
+        {},
+        {
+            capture: { expectSelector: '[data-testid="send-add-money"]' },
+            views: [
+                sendView(
+                    'send-add-money-methods',
+                    'Send: the drawer lists the ready bank way and crypto',
+                    ['send-add-money'],
+                    'add-money-method-crypto'
+                ),
+                sendView(
+                    'send-add-money-networks',
+                    'Send: crypto asks the network first',
+                    ['send-add-money', 'add-money-method-crypto'],
+                    'choose-network-evm'
+                ),
+                sendView(
+                    'send-add-money-address',
+                    'Send: the EVM address, asking for the gap',
+                    ['send-add-money', 'add-money-method-crypto', 'choose-network-evm'],
+                    'card-add-money-address'
+                ),
+            ],
+        }
+    ),
+    'send-add-money-bank-details': sendAddMoney(
+        'Send $10 with $3.20 spendable: a held USD account (ACH) next to crypto; tap it for its details in the drawer.',
+        CARD_US_USER,
+        { depositAccounts: [DEPOSIT_ACCOUNT_USD] },
+        {
+            views: [
+                sendView(
+                    'send-add-money-bank-details-view',
+                    "Send: the held account's details in the drawer",
+                    ['send-add-money', 'card-add-money-rail-ach_us'],
+                    'card-add-money-bank-details'
+                ),
+            ],
+        }
+    ),
+    'send-add-money-funded': sendAddMoney(
+        'Send $10 with $3.20 spendable: tap Add $6.80, Crypto, EVM; a $10 deposit lands, the drawer closes and Send turns on, unsent (wait ~15 s).',
+        CARD_US_USER,
+        {},
+        { balanceAfterDeposit: '13.20', responses: { [RHINO_STATUS]: { status: 'completed', amount: 10 } } }
+    ),
+}
+
 export const FIXTURES: Record<string, Fixture> = {
     ...SETUP_REDESIGN_FIXTURES,
+    ...SEND_ADD_MONEY_FIXTURES,
     'setup-signup-reserved': {
         capture: {
             actions: [

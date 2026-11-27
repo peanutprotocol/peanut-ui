@@ -27,11 +27,16 @@ import { useAuth } from '@/context/authContext'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
 import { useTranslations } from 'next-intl'
+import { Button } from '@/components/0_Bruddle/Button'
+import { useAddMoneyAction } from '@/features/add-money/drawer/useAddMoneyAction'
+import { formatBankAmount } from '@/utils/currency'
 
 export function SendInputView() {
     const onBack = useSafeBack('/home')
     const t = useTranslations('payment')
     const tCommon = useTranslations('common')
+    const tAdd = useTranslations('addMoney')
+    const tCard = useTranslations('card.addMoney')
     const { isFetchingUser } = useAuth()
     const {
         amount,
@@ -50,6 +55,13 @@ export function SendInputView() {
         executePayment,
     } = useDirectSendFlow()
 
+    // a short balance adds the gap in place (TASK-25467): the drawer comes back to this URL, amount in it
+    const addMoney = useAddMoneyAction({
+        place: 'send',
+        targetUsd: parseFloat(amount) || 0,
+        spendableUsd: balanceFillAmount,
+    })
+
     // handle submit - directly execute payment
     const handleSubmit = () => {
         if (canProceed && hasSufficientBalance && !isLoading) {
@@ -57,8 +69,8 @@ export function SendInputView() {
         }
     }
 
-    // determine button text and state. A known short balance keeps the CTA on:
-    // it reads "Add money to Peanut" and opens Add money (TASK-23929)
+    // determine button text and state. A known short balance keeps a CTA on: "Add $X" opens the
+    // add-money drawer here (TASK-23929, TASK-25467)
     const isButtonDisabled = !canProceed || (isLoggedIn && !hasSufficientBalance && !isInsufficientBalance) || isLoading
     const isAmountEntered = !!amount && parseFloat(amount) > 0
 
@@ -109,12 +121,31 @@ export function SendInputView() {
 
                 {/* button and error */}
                 <div className="space-y-4">
-                    <SendWithPeanutCta
-                        onClick={handleSubmit}
-                        disabled={isButtonDisabled}
-                        loading={isLoading}
-                        insufficientBalance={isInsufficientBalance}
-                    />
+                    {addMoney.bankSent && (
+                        <Callout priority="info" data-testid="send-add-money-bank-sent">
+                            {addMoney.bankSent.usd
+                                ? tCard('bankSentPending', { amount: formatBankAmount(addMoney.bankSent.usd, 'USD') })
+                                : tCard('bankSentPendingNoAmount')}
+                        </Callout>
+                    )}
+                    {isInsufficientBalance ? (
+                        <Button
+                            variant="primary"
+                            shadowSize="4"
+                            className="w-full"
+                            icon="arrow-down"
+                            iconSize={16}
+                            onClick={addMoney.openAddMoney}
+                            data-testid="send-add-money"
+                        >
+                            {addMoney.gapUsd
+                                ? tAdd('addAmount', { amount: formatBankAmount(addMoney.gapUsd, 'USD') })
+                                : tAdd('title')}
+                        </Button>
+                    ) : (
+                        <SendWithPeanutCta onClick={handleSubmit} disabled={isButtonDisabled} loading={isLoading} />
+                    )}
+                    {addMoney.drawer}
                     {error.showError && (
                         <Callout priority="error">
                             <CooldownErrorText message={error.errorMessage} />

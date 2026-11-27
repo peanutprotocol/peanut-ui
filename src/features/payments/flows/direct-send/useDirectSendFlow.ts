@@ -198,6 +198,8 @@ export function useDirectSendFlow() {
             setPayment(paymentResult)
             setIsSuccess(true)
             setCurrentView('STATUS')
+            // a refresh after a sent payment must not open Send filled in again
+            setAmount('')
 
             // Client-leg latency split. Prod DB timing only sees intent
             // creation → POST /payments as one opaque 7.9s-median block
@@ -276,6 +278,7 @@ export function useDirectSendFlow() {
         setPayment,
         setIsSuccess,
         setCurrentView,
+        setAmount,
         setError,
         setIsLoading,
         setLoadingState,

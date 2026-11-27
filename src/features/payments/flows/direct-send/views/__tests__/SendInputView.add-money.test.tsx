@@ -1,8 +1,17 @@
-import { render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
+import type { ReactNode } from 'react'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { IntlWrapper } from '@/test-utils/intl'
 
+const mockCapture = jest.fn()
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: (...args: unknown[]) => mockCapture(...args) },
+}))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ isFetchingUser: false }) }))
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ isFetchingUser: false, user: { user: { userId: 'u1' } } }),
+}))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/AmountInput', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/User/UserCard', () => ({ __esModule: true, default: () => null }))
@@ -12,11 +21,30 @@ jest.mock('@/features/payments/shared/components/PaymentMethodActionList', () =>
 }))
 jest.mock('@/features/payments/shared/components/SendWithPeanutCta', () => ({
     __esModule: true,
-    default: ({ disabled, insufficientBalance }: { disabled?: boolean; insufficientBalance?: boolean }) => (
-        <button disabled={disabled} data-insufficient={String(insufficientBalance)}>
-            cta
+    default: ({ disabled, onClick }: { disabled?: boolean; onClick?: () => void }) => (
+        <button disabled={disabled} onClick={onClick}>
+            send
         </button>
     ),
+}))
+jest.mock('@/features/add-money/useAddMoneyReadiness', () => ({
+    useAddMoneyReadiness: () => ({ isLoading: true, residenceIso2s: [], ready: {}, topUpGates: {} }),
+}))
+// the drawer's own views have their own tests; this one checks what Send hands it and gets back
+type DrawerProps = {
+    open: boolean
+    targetUsd: number
+    gapUsd?: number
+    returnTo: string
+    onShow: (method: 'bank' | 'crypto' | null, view: string) => void
+    onBankSent: (inDollars: boolean) => void
+}
+let drawerProps: DrawerProps | undefined
+jest.mock('@/features/add-money/drawer/AddMoneyDrawer', () => ({
+    AddMoneyDrawer: (props: DrawerProps) => {
+        drawerProps = props
+        return props.open ? <div data-testid="drawer" /> : null
+    },
 }))
 
 let mockFlow: Record<string, unknown>
@@ -30,9 +58,10 @@ const flow = (overrides: Record<string, unknown>) => ({
     attachment: {},
     error: { showError: false, errorMessage: '' },
     formattedBalance: '10',
+    balanceFillAmount: 10,
     canProceed: true,
-    hasSufficientBalance: true,
-    isInsufficientBalance: false,
+    hasSufficientBalance: false,
+    isInsufficientBalance: true,
     isLoggedIn: true,
     isLoading: false,
     setAmount: jest.fn(),
@@ -40,20 +69,87 @@ const flow = (overrides: Record<string, unknown>) => ({
     executePayment: jest.fn(),
     ...overrides,
 })
+const funded = { balanceFillAmount: 60, hasSufficientBalance: true, isInsufficientBalance: false }
 
-const renderView = () => render(<SendInputView />, { wrapper: IntlWrapper })
+const renderView = () => {
+    const view = render(<SendInputView />, { wrapper: IntlWrapper as (p: { children: ReactNode }) => JSX.Element })
+    return { ...view, rerender: () => view.rerender(<SendInputView />) }
+}
 
-// TASK-23929 item 2: the CTA read "Add money to Peanut" but was disabled, a dead end
-it('keeps the Add money CTA tappable when the balance is short', () => {
-    mockFlow = flow({ hasSufficientBalance: false, isInsufficientBalance: true })
+beforeEach(() => {
+    jest.clearAllMocks()
+    sessionStorage.clear()
+    drawerProps = undefined
+    window.history.replaceState({}, '', '/send/ana?amount=50')
+})
+
+it('a short balance offers "Add $X" for the gap, and the drawer opens on this step with a way back to it', () => {
+    mockFlow = flow({})
     renderView()
-    const cta = screen.getByRole('button', { name: 'cta' })
-    expect(cta).toHaveAttribute('data-insufficient', 'true')
-    expect(cta).toBeEnabled()
+    expect(screen.queryByRole('button', { name: 'send' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Add $40' }))
+    expect(screen.getByTestId('drawer')).toBeInTheDocument()
+    expect(drawerProps).toMatchObject({ targetUsd: 50, gapUsd: 40, returnTo: '/send/ana?amount=50' })
+})
+
+it('rounds the gap up to the cent', () => {
+    mockFlow = flow({ amount: '10', balanceFillAmount: 3.205 })
+    renderView()
+    expect(screen.getByRole('button', { name: 'Add $6.80' })).toBeInTheDocument()
+})
+
+it('once funded, closes the drawer and turns Send on without sending', () => {
+    mockFlow = flow({})
+    const { rerender } = renderView()
+    fireEvent.click(screen.getByRole('button', { name: 'Add $40' }))
+    act(() => drawerProps!.onShow('crypto', 'address'))
+
+    mockFlow = flow(funded)
+    rerender()
+    expect(screen.queryByTestId('drawer')).not.toBeInTheDocument()
+    const send = screen.getByRole('button', { name: 'send' })
+    expect(send).toBeEnabled()
+    expect(mockFlow.executePayment).not.toHaveBeenCalled()
+    expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SEND_ADD_MONEY_CAME_BACK_FUNDED, {
+        in_drawer: true,
+        method: 'crypto',
+    })
+})
+
+it('counts a user who funds elsewhere and comes back, but not one who only lowers the amount', () => {
+    mockFlow = flow({})
+    const first = renderView()
+    fireEvent.click(screen.getByRole('button', { name: 'Add $40' }))
+    first.unmount()
+
+    // back on Send with a lower amount, the balance still short of the $50 tapped for
+    mockFlow = flow({ amount: '5', ...funded, balanceFillAmount: 10 })
+    const second = renderView()
+    expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.SEND_ADD_MONEY_CAME_BACK_FUNDED, expect.anything())
+
+    mockFlow = flow({ amount: '5', ...funded })
+    second.rerender()
+    expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SEND_ADD_MONEY_CAME_BACK_FUNDED, {
+        in_drawer: false,
+        method: null,
+    })
+})
+
+it('"I\'ve sent the transfer" closes the drawer and names the transfer on the step until it lands', () => {
+    mockFlow = flow({})
+    const { rerender } = renderView()
+    fireEvent.click(screen.getByRole('button', { name: 'Add $40' }))
+    act(() => drawerProps!.onBankSent(true))
+    expect(screen.queryByTestId('drawer')).not.toBeInTheDocument()
+    expect(screen.getByTestId('send-add-money-bank-sent')).toHaveTextContent('$40 transfer')
+
+    mockFlow = flow(funded)
+    rerender()
+    expect(screen.queryByTestId('send-add-money-bank-sent')).not.toBeInTheDocument()
 })
 
 it('stays disabled while the balance is still being read', () => {
-    mockFlow = flow({ hasSufficientBalance: false, isInsufficientBalance: false })
+    mockFlow = flow({ isInsufficientBalance: false })
     renderView()
-    expect(screen.getByRole('button', { name: 'cta' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'send' })).toBeDisabled()
 })

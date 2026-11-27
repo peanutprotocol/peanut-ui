@@ -15,6 +15,15 @@ const EVENTS = {
         networkPicked: ANALYTICS_EVENTS.CARD_GATE_ADD_MONEY_NETWORK_PICKED,
         railPicked: ANALYTICS_EVENTS.CARD_GATE_ADD_MONEY_RAIL_PICKED,
         verifyTapped: ANALYTICS_EVENTS.CARD_GATE_ADD_MONEY_VERIFY_TAPPED,
+        cameBackFunded: ANALYTICS_EVENTS.CARD_GATE_CAME_BACK_FUNDED,
+    },
+    send: {
+        opened: ANALYTICS_EVENTS.SEND_ADD_MONEY_DRAWER_OPENED,
+        closed: ANALYTICS_EVENTS.SEND_ADD_MONEY_DRAWER_CLOSED,
+        networkPicked: ANALYTICS_EVENTS.SEND_ADD_MONEY_NETWORK_PICKED,
+        railPicked: ANALYTICS_EVENTS.SEND_ADD_MONEY_RAIL_PICKED,
+        verifyTapped: ANALYTICS_EVENTS.SEND_ADD_MONEY_VERIFY_TAPPED,
+        cameBackFunded: ANALYTICS_EVENTS.SEND_ADD_MONEY_CAME_BACK_FUNDED,
     },
 } as const
 
@@ -25,6 +34,8 @@ export type AddMoneyMethod = 'bank' | 'crypto'
 
 /** What the add-money drawer shows (TASK-25169). */
 export type AddMoneyDrawerView =
+    /** the choice of crypto and the bank ways, when the place opened the drawer with no method */
+    | 'methods'
     | 'networks'
     | 'address'
     | 'rows'
@@ -34,12 +45,21 @@ export type AddMoneyDrawerView =
     | 'not_offered'
     | 'loading'
 
-export function captureAddMoneyDrawerOpened(place: AddMoneyPlace, method: AddMoneyMethod, view: AddMoneyDrawerView) {
+/** `method` is null on the choice view, before the user picked one. */
+export function captureAddMoneyDrawerOpened(
+    place: AddMoneyPlace,
+    method: AddMoneyMethod | null,
+    view: AddMoneyDrawerView
+) {
     posthog.capture(EVENTS[place].opened, { method, view })
 }
 
 /** The drawer was dismissed without the balance reaching the target. */
-export function captureAddMoneyDrawerClosed(place: AddMoneyPlace, method: AddMoneyMethod, view: AddMoneyDrawerView) {
+export function captureAddMoneyDrawerClosed(
+    place: AddMoneyPlace,
+    method: AddMoneyMethod | null,
+    view: AddMoneyDrawerView
+) {
     posthog.capture(EVENTS[place].closed, { method, view })
 }
 
@@ -57,4 +77,9 @@ export function captureAddMoneyRailPicked(
 
 export function captureAddMoneyVerifyTapped(place: AddMoneyPlace) {
     posthog.capture(EVENTS[place].verifyTapped, {})
+}
+
+/** Before/after for the drawer: the balance reached what the place needed; the card's own event has this shape. */
+export function captureAddMoneyCameBackFunded(place: AddMoneyPlace, inDrawer: boolean, method: AddMoneyMethod | null) {
+    posthog.capture(EVENTS[place].cameBackFunded, { in_drawer: inDrawer, method })
 }

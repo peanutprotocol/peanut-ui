@@ -11,6 +11,7 @@
  */
 
 import React, { createContext, useContext, useMemo, useState, useCallback, type ReactNode } from 'react'
+import { parseAsString, useQueryStates } from 'nuqs'
 import { type Address, type Hash } from 'viem'
 import { type TRequestChargeResponse, type PaymentCreationResponse } from '@/services/services.types'
 import type { Person } from '@/lib/person/person.types'
@@ -81,8 +82,12 @@ interface SendFlowProviderProps {
 }
 
 export const DirectSendFlowProvider: React.FC<SendFlowProviderProps> = ({ children, initialRecipient }) => {
-    const [amount, setAmount] = useState<string>('')
-    const [usdAmount, setUsdAmount] = useState<string>('')
+    // the amount rides in the URL, so a bank page or /verify opened to add money comes back to it
+    // (TASK-25467). Never the message: it is free text and may hold personal data. `usdAmount` stays
+    // in memory, so the receipt keeps it after a sent payment clears the URL.
+    const [{ amount }, setQuery] = useQueryStates({ amount: parseAsString.withDefault('') })
+    const setAmount = useCallback((value: string) => void setQuery({ amount: value || null }), [setQuery])
+    const [usdAmount, setUsdAmount] = useState<string>(amount)
     const [currentView, setCurrentView] = useState<DirectSendFlowView>('INITIAL')
     const [recipient, setRecipient] = useState<DirectSendRecipient | null>(initialRecipient ?? null)
     const [attachment, setAttachment] = useState<DirectSendAttachment>({})
@@ -104,7 +109,7 @@ export const DirectSendFlowProvider: React.FC<SendFlowProviderProps> = ({ childr
         setError({ showError: false, errorMessage: '' })
         setIsLoading(false)
         setIsSuccess(false)
-    }, [])
+    }, [setAmount])
 
     const value = useMemo(
         () => ({
@@ -144,6 +149,7 @@ export const DirectSendFlowProvider: React.FC<SendFlowProviderProps> = ({ childr
             error,
             isLoading,
             isSuccess,
+            setAmount,
             resetSendFlow,
         ]
     )

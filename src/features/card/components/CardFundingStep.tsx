@@ -6,12 +6,8 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
-import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
-import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import Badge from '@/components/Global/Badges/Badge'
 import NavHeader from '@/components/Global/NavHeader'
 import { useAuth } from '@/context/authContext'
 import { AddMoneyDrawer } from '@/features/add-money/drawer/AddMoneyDrawer'
@@ -22,10 +18,12 @@ import {
     type AddMoneyDrawerView,
     type AddMoneyMethod,
 } from '@/features/add-money/drawer/drawerAnalytics'
+import { BankMethodRow } from '@/features/add-money/drawer/BankMethodRow'
+import { CryptoMethodRow } from '@/features/add-money/drawer/CryptoMethodRow'
+import { useBankMethodState } from '@/features/add-money/drawer/useBankMethodState'
 import { useAddMoneyReadiness } from '@/features/add-money/useAddMoneyReadiness'
 import { captureCardGateAddFundsTapped, captureCardGateCameBackFunded } from '@/features/card/card-gate-analytics'
 import { CARD_FUNDING_RETURN_TO, CARD_MIN_BALANCE_USD } from '@/features/card/cardAddMoney'
-import { useBankRegionRefusal } from '@/features/card/useBankRegionRefusal'
 import { cardApi } from '@/services/card'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 import { formatBankAmount } from '@/utils/currency'
@@ -55,7 +53,6 @@ export function CardFundingStep({
     const tAdd = useTranslations('addMoney')
     const tCommon = useTranslations('common')
     const tCard = useTranslations('card.addMoney')
-    const tAccounts = useTranslations('depositAccounts')
     const router = useRouter()
     const readiness = useAddMoneyReadiness(false)
     const { user } = useAuth()
@@ -65,8 +62,8 @@ export function CardFundingStep({
     // one drawer per opening (`n` remounts it), kept mounted closed through vaul's exit animation
     const [drawer, setDrawer] = useState<{ method: AddMoneyMethod; n: number }>()
     const [open, setOpen] = useState(false)
-    const shown = useRef<{ method: AddMoneyMethod; view: AddMoneyDrawerView } | null>(null)
-    const onShow = useCallback((method: AddMoneyMethod, view: AddMoneyDrawerView) => {
+    const shown = useRef<{ method: AddMoneyMethod | null; view: AddMoneyDrawerView } | null>(null)
+    const onShow = useCallback((method: AddMoneyMethod | null, view: AddMoneyDrawerView) => {
         shown.current = { method, view }
     }, [])
 
@@ -142,48 +139,14 @@ export function CardFundingStep({
         onContinue()
     }, [funded, open, onContinue])
 
-    // The badge names the block. Kush (2026-11-26): a bank the user cannot use now (under review,
-    // setting up, or ruled out by the residence) is a disabled row with its badge and no drawer, sorted
-    // last when it is not offered. This departs from design.md "rows the user cannot act on" (such a
-    // row stays tappable and its tap says why), by his decision. Not verified, and a step left, stay
-    // tappable: the user can act on them. Until the plan, and for "not offered" the residence rule, is
-    // known, the row waits disabled with no badge: a drawer opened on a guess could not be right.
-    const region = useBankRegionRefusal()
-    const bankOffered = !(plan.kind === 'not-offered' && region.refused)
-    const bankUnknown = plan.kind === 'loading' || (plan.kind === 'not-offered' && !region.known)
-    const bankBlocked = bankUnknown || !bankOffered || plan.kind === 'under-review' || plan.kind === 'setting-up'
-    const bankBadge = bankUnknown ? undefined : !bankOffered ? (
-        <Badge status="neutral" customText={tAccounts('list.badgeNotOffered')} />
-    ) : plan.kind === 'not-verified' ? (
-        <Badge status="pending" customText={tAccounts('list.badgeVerifyId')} />
-    ) : plan.kind === 'under-review' ? (
-        <Badge status="pending" customText={tAccounts('list.badgeUnderReview')} />
-    ) : plan.kind === 'setting-up' ? (
-        <Badge status="pending" customText={tAccounts('list.badgeSettingUp')} />
-    ) : plan.kind === 'finish-setup' || plan.kind === 'not-offered' ? (
-        <Badge status="pending" customText={tAccounts('list.badgeActionNeeded')} />
-    ) : undefined
+    const bank = useBankMethodState(plan)
     // The bank became one the user cannot use while its drawer was open (a review started, readiness
     // changed): close it rather than leave a view with nothing to do. A crypto view in it stays.
     useEffect(() => {
-        if (!open || !bankBlocked || bankUnknown || shown.current?.method !== 'bank') return
+        if (!open || !bank.blocked || bank.unknown || shown.current?.method !== 'bank') return
         dismiss()
-    }, [open, bankBlocked, bankUnknown, dismiss])
-    const bankRow = (
-        <ListItem
-            title={tAdd('methods.bankTransfer')}
-            body={tAdd('methods.bankTransferDescription')}
-            bodyWrap
-            // the bank concept keeps its blue in every state (design.md icon bubble colour: a call site never
-            // overrides a concept's colour); the disabled fill, title colour and badge say the state
-            leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />}
-            trailing={bankBadge}
-            chevron={!bankBlocked}
-            disabled={bankBlocked}
-            onClick={() => pickMethod('bank')}
-            data-testid="card-add-money-bank"
-        />
-    )
+    }, [open, bank.blocked, bank.unknown, dismiss])
+    const bankRow = <BankMethodRow bank={bank} onClick={() => pickMethod('bank')} testId="card-add-money-bank" />
     return (
         <PageStack>
             <NavHeader title={t('navTitle')} onPrev={onPrev} />
@@ -206,16 +169,9 @@ export function CardFundingStep({
                 </Callout>
             )}
             <ListGroup>
-                {bankOffered && bankRow}
-                <ListItem
-                    title={tAdd('methods.crypto')}
-                    body={tAdd('methods.cryptoDescription')}
-                    leading={<IconBubble {...CONCEPT_ICONS.crypto} size="s" />}
-                    chevron
-                    onClick={() => pickMethod('crypto')}
-                    data-testid="card-add-money-crypto"
-                />
-                {!bankOffered && bankRow}
+                {bank.offered && bankRow}
+                <CryptoMethodRow onClick={() => pickMethod('crypto')} testId="card-add-money-crypto" />
+                {!bank.offered && bankRow}
             </ListGroup>
             {drawer && (
                 <AddMoneyDrawer

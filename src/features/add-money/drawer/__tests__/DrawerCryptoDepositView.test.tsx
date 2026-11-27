@@ -130,6 +130,7 @@ function renderView(network: RhinoChainType = 'TRON') {
         <DrawerCryptoDepositView
             network={network}
             targetUsd={10}
+            place="card"
             onDone={onDone}
             onProcessingChange={onProcessingChange}
         />
