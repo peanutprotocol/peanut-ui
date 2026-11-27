@@ -82,9 +82,11 @@ describe('the order countdown', () => {
     })
 })
 
-it('folds the rate, fees and arrival under one row, with the values shown before the fold', () => {
+it('folds the rate, fees and arrival under one row with unchanged values, and keeps the provider named', () => {
     renderWithIntl(<MantecaDepositShareDetails depositDetails={order} arsStatus="pending" onBack={jest.fn()} />)
     expect(screen.queryByText('Exchange rate')).not.toBeInTheDocument()
+    // money goes to the provider from this screen: it stays named outside the fold (Resolution 520)
+    expect(screen.getByText('Provider · Manteca')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Rate, fees and arrival' }))
 
@@ -94,7 +96,6 @@ it('folds the rate, fees and arrival under one row, with the values shown before
         ['Provider fees', '< 0.01 USD'],
         ['Peanut fee', 'Sponsored by Peanut!'],
         ['Arrives', 'Usually within minutes'],
-        ['Provider', 'Manteca'],
     ]
     for (const [label, value] of rows) {
         expect(screen.getByText(label)).toBeInTheDocument()

@@ -27,8 +27,7 @@ import { shortenStringLong } from '@/utils/general.utils'
 import { formatAmountNumber, formatFiatRate } from '@/utils/currency'
 import { useLocale, useTranslations } from 'next-intl'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
-import { ProviderHelp } from '@/components/Provider/ProviderHelp'
-import { PROVIDERS } from '@/constants/providers.consts'
+import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 
 const MantecaDepositShareDetails = ({
     depositDetails,
@@ -52,7 +51,6 @@ const MantecaDepositShareDetails = ({
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
     const tWithdraw = useTranslations('withdraw')
-    const tProvider = useTranslations('provider')
     const locale = useLocale()
     const currentCountryName = params.country as string
 
@@ -227,16 +225,10 @@ const MantecaDepositShareDetails = ({
                                 moreInfoText={t('manteca.providerFeesInfo')}
                             />
                             <PaymentInfoRow label={tCommon('peanutFee')} value={tCommon('sponsoredByPeanut')} />
-                            <PaymentInfoRow label={tWithdraw('bank.arrives')} value={t('manteca.etaInstant')} />
                             <PaymentInfoRow
                                 hideBottomBorder
-                                label={
-                                    <span className="flex items-center gap-1">
-                                        {tProvider('label.provider')}
-                                        <ProviderHelp providerId={providerId} />
-                                    </span>
-                                }
-                                value={PROVIDERS[providerId].brand}
+                                label={tWithdraw('bank.arrives')}
+                                value={t('manteca.etaInstant')}
                             />
                         </Accordion.Content>
                     </Accordion.Item>
@@ -260,6 +252,8 @@ const MantecaDepositShareDetails = ({
                     {t('bankDetails.sentTransfer')}
                 </Button>
             )}
+            {/* money goes to the provider from this screen, so it stays named outside the fold (Resolution 520) */}
+            <ProviderFinePrint providerId={providerId} />
         </div>
     )
 }
