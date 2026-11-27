@@ -13,6 +13,7 @@ import { formatAmountNumber, formatBankAmount } from '@/utils/currency'
 import { shortDepositReference } from '@/utils/format.utils'
 import { applyBridgeCrossCurrencyFee, getCurrencySymbol } from '@/utils/bridge.utils'
 import { bankDepositAccountRows, bankDepositCurrency, bankDepositRail } from '@/utils/bank-deposit.utils'
+import { bankPayoutMinimum } from '@/features/withdraw/amount-validation'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { Callout } from '@/components/0_Bruddle/Callout'
@@ -133,6 +134,11 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
     // the backend decides the matching mode; only a flexible transfer may tell
     // the user that any amount works
     const isFlexibleAmount = onrampData?.flexibleAmount === true
+    // flexible still has a floor: the rail does not credit a transfer below its
+    // minimum. Bridge sets one minimum per currency for both directions, so the
+    // payout rule is the deposit rule too, and it is the same number the
+    // amount step validated against.
+    const flexibleAmountMinimum = formatBankAmount(bankPayoutMinimum(onrampCurrency), onrampCurrency)
 
     const currencySymbolBasedOnCountry = useMemo(() => {
         // symbol of the detected onramp currency (e.g., €, $)
@@ -289,7 +295,9 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                     </div>
 
                     <Callout priority="attention" className="mt-4">
-                        {isFlexibleAmount ? t('bankDetails.sendAnyAmount') : t('bankDetails.sendExactAmount')}
+                        {isFlexibleAmount
+                            ? t('bankDetails.sendAnyAmount', { minimum: flexibleAmountMinimum })
+                            : t('bankDetails.sendExactAmount')}
                     </Callout>
                 </Card>
 

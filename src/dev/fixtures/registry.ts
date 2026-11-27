@@ -260,6 +260,21 @@ const NAMED_BANK_ACCOUNTS = [
     { ...BANK_ACCOUNTS[1], label: null, lastUsedAt: '2026-06-02T09:00:00.000Z' },
 ]
 
+// A saved Argentine bank account: /withdraw/manteca names it by id (`account`),
+// never by its CBU or alias.
+const AR_SAVED_ACCOUNT = {
+    id: 'fixture-ar-1',
+    userId: 'demo-user',
+    bridgeAccountId: '',
+    type: 'manteca',
+    identifier: 'fixture.account',
+    label: null,
+    details: { bankName: null, accountOwnerName: 'Demo User', countryCode: 'ARG', countryName: 'argentina' },
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    chainId: null,
+}
+
 // A PIX key saved to favorites after a payment, with the bank the PIX directory
 // named (TASK-23738). Offered under Send → Bank, never as a withdrawal.
 /** The pay:PIX_BR route as the API sends it: paused by the Brazil pause, or refused for a residence. */
@@ -2584,6 +2599,227 @@ const SETUP_REDESIGN_FIXTURES: Record<string, Fixture> = {
     }),
 }
 
+/**
+ * TASK-25169: the card $10 step's add-money drawer, one state per fixture.
+ *
+ * Every state opens on the funding step with $3.20 spendable, so the card is
+ * $6.80 short. `balance: null` on the card overview keeps Rain collateral out of
+ * that sum. Each user brings its own capability block, so the demo user's
+ * Brazilian Pix routes never add a Pix row.
+ */
+const CARD_ADD_MONEY_ROUTE = '/card?card_step=funding'
+const CARD_ADD_MONEY_BALANCE = '3.20'
+const RHINO_STATUS = `GET /rhino/status/${DEMO_ADDRESS}`
+const verifiedResidence = (country: string) => ({
+    verified: { country, status: 'VERIFIED', updatedAt: null },
+    declared: null,
+    secondaryDeclaredCountry: null,
+})
+const US_ACH_RAILS = BRIDGE_BANK_RAILS.filter((rail) => rail.id === 'bridge.ach_us').map((rail) => ({
+    ...rail,
+    status: 'enabled',
+}))
+const BRIDGE_CO_RAIL = BRIDGE_CO_CAPABILITIES.rails[0]
+const UK_BANK_REFUSAL = {
+    code: 'uk_resident_blocked',
+    userMessage: 'Bank accounts are not available for UK residents yet.',
+}
+
+const cardAddMoney = (
+    about: string,
+    user: Record<string, unknown>,
+    depositAccounts: Record<string, unknown>,
+    extra: Partial<Fixture> = {}
+): Fixture => ({
+    route: CARD_ADD_MONEY_ROUTE,
+    about,
+    balance: CARD_ADD_MONEY_BALANCE,
+    ...extra,
+    responses: {
+        'GET /card': { isEligible: true, geoProhibited: false },
+        'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+        'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+        'GET /users/me': {
+            identityVerification: { status: 'verified' },
+            depositAccounts: { enabled: true },
+            ...user,
+        },
+        'GET /users/deposit-accounts': { depositAccounts: [], claimable: [], unavailable: [], ...depositAccounts },
+        // demo mode answers `pending` (a deposit on its way); the drawer reads the status at open, so
+        // nothing sent yet is `not_started` here
+        [RHINO_STATUS]: { status: 'not_started' },
+        ...extra.responses,
+    },
+})
+
+/** A verified US resident with the ACH rail on and no account held yet. */
+const CARD_US_USER = {
+    residence: verifiedResidence('US'),
+    capabilities: { rails: US_ACH_RAILS, nextActions: [], restrictions: [] },
+}
+
+/** A resident of Brazil whose Pix route is Avenia's, and the Pix page's own answers (quote and the rest). */
+const { 'GET /users/me': AVENIA_PIX_USER, ...AVENIA_PIX_PAGE_RESPONSES } = aveniaResponses('enabled')
+
+/** A verified UK resident: every bank rail refused for the residence. */
+const CARD_GB_REFUSED_USER = {
+    residence: verifiedResidence('GB'),
+    capabilities: {
+        rails: [...BRIDGE_BANK_RAILS, BRIDGE_CO_RAIL].map((rail) => ({
+            ...rail,
+            status: 'blocked',
+            reason: UK_BANK_REFUSAL,
+            resolved: { status: 'blocked', blocking: { ...UK_BANK_REFUSAL, selfHealable: false } },
+        })),
+        nextActions: [],
+        restrictions: [
+            {
+                ...UK_BANK_REFUSAL,
+                affectedRailIds: [...BRIDGE_BANK_RAILS, BRIDGE_CO_RAIL].map((rail) => rail.id),
+            },
+        ],
+    },
+}
+
+const CARD_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
+    'card-add-money-crypto': cardAddMoney(
+        'Card $10 step, add money in place: crypto, for the EVM, Solana and Tron address views ($3.20 spendable).',
+        CARD_US_USER,
+        {}
+    ),
+    'card-add-money-crypto-min': cardAddMoney(
+        'Card $10 step, crypto: the $6.80 gap is under the $10 network minimum, so the ask is raised to $10.',
+        CARD_US_USER,
+        {},
+        { responses: { 'POST /rhino/deposit': { minDepositLimitUsd: 10 } } }
+    ),
+    'card-add-money-crypto-gap-above-min': cardAddMoney(
+        'Card $10 step, crypto: $0 spendable and a $5 network minimum, so the ask is the full $10 gap.',
+        CARD_US_USER,
+        {},
+        { balance: '0', responses: { 'POST /rhino/deposit': { minDepositLimitUsd: 5 } } }
+    ),
+    'card-add-money-crypto-short': cardAddMoney(
+        'Card $10 step, crypto: a $4 deposit arrives below the $6.80 gap ($1 network minimum, so Rhino credits it); the balance reads $7.20 after it (wait ~15 s).',
+        CARD_US_USER,
+        {},
+        {
+            balanceAfterDeposit: '7.20',
+            responses: {
+                'POST /rhino/deposit': { minDepositLimitUsd: 1 },
+                [RHINO_STATUS]: { status: 'completed', amount: 4 },
+            },
+        }
+    ),
+    'card-add-money-crypto-still-landing': cardAddMoney(
+        'Card $10 step, crypto: Rhino already reports a $6.80 deposit completed at open, and the balance stays at $3.20, so after about a minute the drawer says it is still landing, with Send more (primary) and Contact support (secondary).',
+        CARD_US_USER,
+        {},
+        { responses: { [RHINO_STATUS]: { status: 'completed', amount: 6.8 } } }
+    ),
+    'card-add-money-funded': cardAddMoney(
+        'Card $10 step, crypto: a $10 deposit arrives and the balance reads $13.20, so the step is funded (wait ~15 s).',
+        CARD_US_USER,
+        {},
+        {
+            balanceAfterDeposit: '13.20',
+            responses: { [RHINO_STATUS]: { status: 'completed', amount: 10 } },
+        }
+    ),
+    'card-add-money-bank-one': cardAddMoney(
+        'Card $10 step, bank: one held USD account (ACH, active, complete details) shows in the drawer.',
+        CARD_US_USER,
+        { depositAccounts: [DEPOSIT_ACCOUNT_USD] }
+    ),
+    'card-add-money-bank-two': cardAddMoney(
+        'Card $10 step, bank: held EUR and USD accounts, a list of two before the details.',
+        {
+            ...CARD_US_USER,
+            capabilities: {
+                ...CARD_US_USER.capabilities,
+                rails: VA_READY_CAPABILITIES.rails.filter((rail) => ['USD', 'EUR'].includes(rail.currency)),
+            },
+        },
+        { depositAccounts: [DEPOSIT_ACCOUNT_USD, DEPOSIT_ACCOUNT_EUR] }
+    ),
+    'card-add-money-bank-ars': cardAddMoney(
+        'Card $10 step, bank: a resident of Argentina whose peso top-up is ready (ARS row).',
+        ARS_TOP_UP_RESIDENT,
+        {}
+    ),
+    // TASK-25444: two bank ways, so Bank opens the drawer's list, and ARS or Pix leads it
+    'card-add-money-bank-ars-two': cardAddMoney(
+        'Card $10 step, bank: a resident of Argentina with the peso top-up ready and a held USD account; the drawer lists ARS first.',
+        {
+            ...ARS_TOP_UP_RESIDENT,
+            capabilities: {
+                ...MANTECA_AR_CAPABILITIES,
+                rails: [...MANTECA_AR_CAPABILITIES.rails, ...US_ACH_RAILS],
+            },
+        },
+        { depositAccounts: [DEPOSIT_ACCOUNT_USD] }
+    ),
+    'card-add-money-bank-pix-two': cardAddMoney(
+        'Card $10 step, bank: a resident of Brazil on Avenia with a held USD account; the drawer lists Pix first.',
+        {
+            ...AVENIA_PIX_USER,
+            capabilities: {
+                ...AVENIA_PIX_USER.capabilities,
+                rails: [...AVENIA_PIX_USER.capabilities.rails, ...US_ACH_RAILS],
+            },
+        },
+        { depositAccounts: [DEPOSIT_ACCOUNT_USD] },
+        { responses: AVENIA_PIX_PAGE_RESPONSES }
+    ),
+    // a US resident: the peso rail being set up keeps the ARS row (its page takes the user through), as on
+    // the Add picker (TASK-25444), so the status shows for a rail with no row of its own
+    'card-add-money-bank-setting-up': cardAddMoney(
+        'Card $10 step, bank: a resident of the US whose ACH rail is still being set up.',
+        {
+            ...CARD_US_USER,
+            capabilities: {
+                ...CARD_US_USER.capabilities,
+                rails: CARD_US_USER.capabilities.rails.map((rail) => ({
+                    ...rail,
+                    status: 'pending',
+                    resolved: { status: 'pending' },
+                })),
+            },
+        },
+        {}
+    ),
+    'card-add-money-not-verified': cardAddMoney(
+        'Card $10 step, bank: identity not verified, every bank rail waits on it (Verify identity, or use crypto). Verify identity opens the US identity check on its first question.',
+        {
+            identityVerification: { status: 'not_started' },
+            residence: { verified: null, declared: { country: 'US', status: 'UNVERIFIED', updatedAt: null } },
+            capabilities: BLOCKED_BANK_CAPABILITIES,
+        },
+        {},
+        // the identity check's own answers, so /verify shows its questions instead of sending the user Home
+        { responses: PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-us'].responses }
+    ),
+    'card-add-money-under-review': cardAddMoney(
+        'Card $10 step, bank: verified, and the payment partner is reviewing every bank account (under review).',
+        {
+            residence: verifiedResidence('US'),
+            capabilities: BRIDGE_REVIEW_RESPONSE['GET /users/me'].capabilities,
+        },
+        {}
+    ),
+    'card-add-money-bank-not-offered': cardAddMoney(
+        'Card $10 step: a UK resident, every bank account refused, so only the crypto row shows.',
+        CARD_GB_REFUSED_USER,
+        {}
+    ),
+    'card-add-money-bank-waiting': cardAddMoney(
+        'Card $10 step: the same UK resident, but the residence rules never load, so the Bank row waits disabled with no badge (refusal or a step left cannot be told apart).',
+        CARD_GB_REFUSED_USER,
+        {},
+        { fails: ['GET /config/residence-restrictions'] }
+    ),
+}
+
 export const FIXTURES: Record<string, Fixture> = {
     ...SETUP_REDESIGN_FIXTURES,
     'setup-signup-reserved': {
@@ -2784,23 +3020,33 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { 'GET /users/me': { capabilities: MANTECA_AR_CAPABILITIES } },
     },
     ...Object.fromEntries(
-        (['pending', 'expired'] as const).map((status) => [
-            `add-money-argentina-deposit-${status}`,
+        (
+            [
+                ['pending', 'PROCESSING', 1, 'the transfer deadline'],
+                ['expired', 'CANCELLED', 1, 'the expired order and start-over button'],
+                // TASK-25444: the pesos reached Manteca, then the balance got them
+                ['received', 'PROCESSING', 2, 'payment received while the balance is credited'],
+                ['completed', 'COMPLETED', 3, 'the received deposit and Done'],
+            ] as const
+        ).map(([state, status, stage, shows]) => [
+            `add-money-argentina-deposit-${state}`,
             {
                 capture: { actions: [{ clickSelector: '[data-testid="deposit-amount-continue"]' }] },
                 route: '/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS',
                 geoCountry: 'AR',
-                about: `ARS deposit ${status}: continue to ${status === 'pending' ? 'the transfer deadline' : 'the expired order and start-over button'}.`,
+                about: `ARS deposit ${state}: continue to ${shows}.`,
                 responses: {
                     'GET /users/me': {
                         residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
                         capabilities: MANTECA_AR_CAPABILITIES,
                     },
                     'POST /manteca/deposit': ARS_DEPOSIT,
-                    'GET /manteca/deposit/fixture-ars-deposit/status':
-                        status === 'pending'
-                            ? { id: 'fixture-ars-deposit', status: 'PROCESSING', stage: 1, expired: false }
-                            : { id: 'fixture-ars-deposit', status: 'CANCELLED', stage: 1, expired: true },
+                    'GET /manteca/deposit/fixture-ars-deposit/status': {
+                        id: 'fixture-ars-deposit',
+                        status,
+                        stage,
+                        expired: state === 'expired',
+                    },
                 },
             },
         ])
@@ -3798,16 +4044,16 @@ export const FIXTURES: Record<string, Fixture> = {
     // Manteca is entered with no amount now and collects it itself, in the
     // local currency — the amount as the last step before the review.
     'withdraw-amount-last': {
-        route: '/withdraw/manteca?method=bank-transfer&country=argentina&destination=fixture.account&isSavedAccount=true',
+        route: '/withdraw/manteca?method=bank-transfer&country=argentina&account=fixture-ar-1',
         about: 'Withdraw amount as the last step, in local currency, with its own minimum.',
-        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS] } },
+        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS, AR_SAVED_ACCOUNT] } },
     },
     // A saved destination opens amount entry; an amount below the minimum shows the field error.
     'withdraw-amount-error': {
-        route: '/withdraw/manteca?method=bank-transfer&country=argentina&destination=fixture.account&isSavedAccount=true&amount=0.01',
+        route: '/withdraw/manteca?method=bank-transfer&country=argentina&account=fixture-ar-1&amount=0.01',
         about: 'Withdraw amount step with its inline error — the amount is below the minimum.',
         waitFor: 'p[role="alert"]',
-        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS] } },
+        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS, AR_SAVED_ACCOUNT] } },
     },
     // ---- merchant Pix QR on Avenia, through the neutral pay routes (TASK-24947 M4) ----
     'qr-pay-avenia-form': {
@@ -4309,6 +4555,32 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /card': { isEligible: true, geoProhibited: false },
             'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
             'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+        },
+    },
+    ...CARD_ADD_MONEY_FIXTURES,
+    // TASK-25444: ARS and Pix lead the funding step's bank rows where they lead the Add picker; the step's
+    // Bank row opens them (TASK-25169)
+    'card-funding-ars': {
+        capture: { expectSelector: '[data-testid="card-add-money-bank"]' },
+        route: '/card?card_step=funding',
+        balance: '0',
+        geoCountry: 'AR',
+        about: 'Card onboarding: funding for a resident of Argentina. Bank opens ARS first, as on the Add picker.',
+        responses: {
+            'GET /users/me': { ...ARS_TOP_UP_RESIDENT, user: { fullName: 'Lucía Gómez' } },
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+        },
+    },
+    'card-funding-pix': {
+        capture: { expectSelector: '[data-testid="card-add-money-bank"]' },
+        route: '/card?card_step=funding',
+        balance: '0',
+        about: 'Card onboarding: funding for a resident of Brazil on Avenia. Bank opens Pix first, as on the Add picker.',
+        responses: {
+            ...aveniaResponses('enabled'),
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
         },
     },
     'card-holder': {
@@ -4851,6 +5123,17 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'A USD wire withdrawal: its receipt shows the wire fee and what the bank received.',
         responses: { 'GET /users/history': { entries: [WIRE_WITHDRAWAL_ENTRY], hasMore: false } },
     },
+    // the payout's account is one of the user's saved accounts, so its receipt
+    // offers Withdraw again, which opens the amount step on it (TASK-25462)
+    'history-withdraw-again': {
+        route: '/history?tx=fixture-wire-withdrawal',
+        about: 'A completed wire to a saved US account: Share receipt, Withdraw again, then More actions.',
+        responses: {
+            'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] },
+            'GET /users/history': { entries: [WIRE_WITHDRAWAL_ENTRY], hasMore: false },
+            'GET /history/fixture-wire-withdrawal': WIRE_WITHDRAWAL_ENTRY,
+        },
+    },
     // a bank deposit still on its way keeps the bank wording; a Pix one reads "Adding by Pix"
     'history-bank-deposit-pending': {
         route: '/history?tx=fixture-pending-eur-deposit',
@@ -4949,11 +5232,27 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'history-receipt-public-link': {
         route: '/history?tx=fixture-public-receipt-send',
-        about: 'A P2P send with a public receipt: Share receipt sends the link, the PDF is under More actions.',
+        about: 'A completed P2P send with a public receipt: Share receipt sends the link, Send again opens the send screen with the amount and note, the PDF is under More actions.',
         responses: {
             'GET /users/history': { entries: [PUBLIC_RECEIPT_SEND_ENTRY], hasMore: false },
             'GET /history/fixture-public-receipt-send': PUBLIC_RECEIPT_SEND_ENTRY,
+            // the send screen Send again opens (TASK-25462)
+            'GET /users/username/ana': {
+                userId: 'fixture-ana',
+                username: 'ana',
+                fullName: 'Ana Ruiz',
+                firstName: 'Ana',
+                lastName: 'Ruiz',
+                showFullName: true,
+                avatarKey: 'basic.frog',
+                isVerified: true,
+                totalUsdSentToCurrentUser: '0',
+                totalUsdReceivedFromCurrentUser: '25',
+                accounts: [{ identifier: '0x00000000000000000000000000000000000a0a0a', type: 'peanut-wallet' }],
+            },
         },
+        // the demo api has no profile for ana and answers 404; this one is whole
+        completeResponses: ['GET /users/username/ana'],
     },
     'history-qr-pay-public-link': {
         route: '/history?tx=fixture-public-receipt-qr-pay',

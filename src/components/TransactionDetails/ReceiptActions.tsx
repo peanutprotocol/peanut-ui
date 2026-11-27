@@ -24,6 +24,7 @@ import { openReceiptPdfUrl, receiptPdfPath, receiptPdfVersion } from './receipt-
 import { useReceiptPdfFile } from './useReceiptPdfFile'
 import { trackReceiptAction, type ReceiptActionPlacement } from './receipt-action-analytics'
 import { useReceiptReferralAction } from './useReceiptReferralAction'
+import { useRepeatPayment } from './useRepeatPayment'
 import { type ReceiptViewModel } from './useReceiptViewModel'
 import { useReceiptActions } from './useReceiptActions'
 import { type TransactionDetails } from './transactionTransformer'
@@ -164,6 +165,8 @@ export function ReceiptActions({
     })
     // invite row (TASK-22452 item 5): pre-#3159 eligibility, impression only
     // while the drawer is open with the row visible
+    // Send again or Withdraw again (TASK-25462): the first More actions row
+    const repeatAction = useRepeatPayment(transaction, { isPublic, onSelect: () => setShowMoreActions(false) })
     const referralAction = useReceiptReferralAction(transaction, {
         isPublic,
         drawerOpen: showMoreActions,
@@ -242,11 +245,12 @@ export function ReceiptActions({
         onClose()
     }
 
-    // the overflow rows, in menu order: split and the pdf share when the
-    // primary slot holds something else, then download, cancel, invite and
-    // support (TASK-22452 item 5, TASK-24141).
+    // the overflow rows, in menu order: repeat the payment, split and the pdf
+    // share when the primary slot holds something else, then download, cancel,
+    // invite and support (TASK-22452 item 5, TASK-24141, TASK-25462).
     const moreActions: ReceiptMoreAction[] = []
     if (!isPublic) {
+        if (repeatAction) moreActions.push(repeatAction)
         if (canSplit && primaryAction !== 'split') {
             moreActions.push({
                 icon: 'users',

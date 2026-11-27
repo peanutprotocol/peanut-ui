@@ -26,12 +26,12 @@ import { useTranslations } from 'next-intl'
  * Continue first resolves the key's owner, so /qr-pay can show who is paid and
  * an unknown key stops here instead of failing at payment.
  */
-export default function PixKeySendView({ destinationParam }: { destinationParam?: string | null }) {
+export default function PixKeySendView({ savedPixKey }: { savedPixKey?: string | null }) {
     const router = useRouter()
     const onBack = useSafeBack('/send')
     const t = useTranslations('withdraw')
     const tCommon = useTranslations('common')
-    const [pixKey, setPixKey] = useState<string>(destinationParam ?? '')
+    const [pixKey, setPixKey] = useState<string>(savedPixKey ?? '')
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)

@@ -54,11 +54,12 @@ export const PaymentInfoRow = ({
             {loading ? (
                 <Loading />
             ) : (
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-2">
                     {/* items-start, not items-center: when the value wraps to a
                         second line (a bank/recipient address), the copy button
                         aligns to the first line instead of floating to the
-                        vertical middle. Single-line rows are unaffected. */}
+                        vertical middle. Single-line rows are unaffected. gap-2
+                        keeps a wrapped value off the copy icon. */}
                     {/* min-w-0 + break-words: a single unbreakable token (wallet
                         address, tx hash) must wrap inside the card, not stretch
                         the row to the token's full width and escape the layout.

@@ -1,5 +1,5 @@
 import { Menu, Transition } from '@headlessui/react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '../Icons/Icon'
 
@@ -19,40 +19,40 @@ const MoreInfo = ({ text, 'aria-label': ariaLabel }: MoreInfoProps) => {
         return () => setMounted(false)
     }, [])
 
-    useEffect(() => {
-        const calculatePosition = () => {
-            if (!buttonRef.current) return
+    const calculatePosition = useCallback(() => {
+        if (!buttonRef.current) return
 
-            const buttonRect = buttonRef.current.getBoundingClientRect()
-            const viewportWidth = window.innerWidth
-            const tooltipWidth = 240 // Fixed width for tooltip
-            const SCREEN_PADDING = 16
+        const buttonRect = buttonRef.current.getBoundingClientRect()
+        const viewportWidth = window.innerWidth
+        const tooltipWidth = 240 // Fixed width for tooltip
+        const SCREEN_PADDING = 16
 
-            // Calculate horizontal position
-            let left = buttonRect.left + buttonRect.width / 2 - tooltipWidth / 2
-            left = Math.min(Math.max(SCREEN_PADDING, left), viewportWidth - tooltipWidth - SCREEN_PADDING)
+        // Calculate horizontal position
+        let left = buttonRect.left + buttonRect.width / 2 - tooltipWidth / 2
+        left = Math.min(Math.max(SCREEN_PADDING, left), viewportWidth - tooltipWidth - SCREEN_PADDING)
 
-            // Calculate vertical position
-            const spaceBelow = window.innerHeight - buttonRect.bottom
-            const spaceAbove = buttonRect.top
-            const showBelow = spaceBelow >= 100 || spaceBelow > spaceAbove
+        // Calculate vertical position
+        const spaceBelow = window.innerHeight - buttonRect.bottom
+        const spaceAbove = buttonRect.top
+        const showBelow = spaceBelow >= 100 || spaceBelow > spaceAbove
 
-            const newStyle: React.CSSProperties = {
-                position: 'fixed',
-                left: `${left}px`,
-                width: `${tooltipWidth}px`,
-                zIndex: 9999,
-            }
-
-            if (showBelow) {
-                newStyle.top = `${buttonRect.bottom + 8}px`
-            } else {
-                newStyle.bottom = `${window.innerHeight - buttonRect.top + 8}px`
-            }
-
-            setTooltipStyle(newStyle)
+        const newStyle: React.CSSProperties = {
+            position: 'fixed',
+            left: `${left}px`,
+            width: `${tooltipWidth}px`,
+            zIndex: 9999,
         }
 
+        if (showBelow) {
+            newStyle.top = `${buttonRect.bottom + 8}px`
+        } else {
+            newStyle.bottom = `${window.innerHeight - buttonRect.top + 8}px`
+        }
+
+        setTooltipStyle(newStyle)
+    }, [])
+
+    useEffect(() => {
         calculatePosition()
 
         window.addEventListener('resize', calculatePosition)
@@ -62,7 +62,17 @@ const MoreInfo = ({ text, 'aria-label': ariaLabel }: MoreInfoProps) => {
             window.removeEventListener('resize', calculatePosition)
             window.removeEventListener('scroll', calculatePosition, true)
         }
-    }, [text])
+    }, [text, calculatePosition])
+
+    // The tooltip is `position: fixed`, so measure the trigger again each time the tooltip mounts.
+    // A trigger can reach the screen without a scroll or resize event (a drawer that slides in,
+    // content that loads above it), and the coordinates from mount then point off-screen.
+    const measureOnOpen = useCallback(
+        (tooltip: HTMLDivElement | null) => {
+            if (tooltip) calculatePosition()
+        },
+        [calculatePosition]
+    )
 
     const renderTooltip = (show: boolean) => {
         if (!mounted) return null
@@ -78,6 +88,7 @@ const MoreInfo = ({ text, 'aria-label': ariaLabel }: MoreInfoProps) => {
                 leaveTo="opacity-0"
             >
                 <div
+                    ref={measureOnOpen}
                     style={tooltipStyle}
                     className="rounded border border-border-default bg-white px-3 py-2 whitespace-pre-line shadow-lg"
                 >

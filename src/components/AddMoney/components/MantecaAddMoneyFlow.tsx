@@ -14,7 +14,7 @@ import { formatAmountNumber } from '@/utils/currency'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { useParams } from 'next/navigation'
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { countryData } from '@/components/AddMoney/consts'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useCurrency } from '@/hooks/useCurrency'
@@ -41,7 +41,7 @@ import { useBankEntryFor } from '@/hooks/useBankRows'
 import { entryAction, isLocalResidenceRefusal, isMantecaAccountClosed, refusalOf } from '@/features/kyc-features/report'
 import { useAuth } from '@/context/authContext'
 import { ResidenceRequiredScreen } from '@/features/deposit-accounts/components/ResidenceRequiredScreen'
-import { withReturnTo, readReturnTo } from '@/utils/return-to.utils'
+import { withReturnTo, readReturnTo, originPastHubs } from '@/utils/return-to.utils'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUnavailable'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -111,6 +111,8 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     // otherwise to the hub itself — not the bare `/add-money/argentina` amount
     // route the user never knowingly opened.
     const onBack = useSafeBack(readReturnTo(searchParams) ?? '/add-money?method=bank')
+    // Done after the pesos arrived never reopens a hub: the origin past the Add money hubs, or Home
+    const leaveToOrigin = useReturnTo(originPastHubs(readReturnTo(searchParams), ['/add-money']) ?? '/home')
     // Argentina's Manteca top-up mints a CVU per deposit, and Manteca rejects a
     // non-resident only after amount + KYC. The API's answer for this country's
     // account comes first: a closure by Manteca, or an account the residence
@@ -121,6 +123,8 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     const arsDeposit = residenceGatedCountry && step === 'depositDetails' ? depositDetails : undefined
     const { status: arsDepositStatus, watchPhase: arsWatchPhase } = useMantecaDepositPolling(arsDeposit?.id, () => {
         void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+        // COMPLETED means Manteca sent the USDC to the wallet; the success view says the balance has it
+        void queryClient.invalidateQueries({ queryKey: ['balance'] })
     })
     // the pesos landed while the details were up: the crypto deposit's success screen
     const arsDepositSuccess = useDepositSuccessEntry(arsDeposit?.id, arsWatchPhase)
@@ -580,6 +584,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                 // way the input step does, not back to `inputAmount` (which would let
                 // the user start a second deposit).
                 onBack={onBack}
+                onDone={leaveToOrigin}
             />
         )
     }

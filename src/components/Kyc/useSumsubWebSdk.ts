@@ -44,6 +44,13 @@ const SDK_LAUNCH_TIMEOUT_MS = 20_000
  */
 const RESUBMIT_TWIN_WINDOW_MS = 1000
 
+/**
+ * Wait before the one automatic reload of a failed SDK script. A blip on a
+ * mobile connection clears in about this time, and the launch watchdog still
+ * has most of its window left.
+ */
+const SDK_SCRIPT_RETRY_DELAY_MS = 2_000
+
 type UseSumsubWebSdkArgs = Omit<SumsubSdkProps, 'onClose'>
 
 /**
@@ -75,6 +82,10 @@ export function useSumsubWebSdk({
     const hasAccessToken = !!accessToken
     const [sdkLoaded, setSdkLoaded] = useState(false)
     const [sdkLoadError, setSdkLoadError] = useState(false)
+    // Each bump re-runs the script loader (TASK-21426).
+    const [scriptLoadAttempt, setScriptLoadAttempt] = useState(0)
+    const scriptAutoRetryUsedRef = useRef(false)
+    const scriptLoadFailedRef = useRef(false)
     // Callback ref, NOT useRef: Modal is a headlessui <Transition>, which promotes
     // tree state to Visible inside an effect — so the container mounts a commit
     // AFTER `visible` flips true. (The Portal is not the culprit; it resolves its
@@ -127,8 +138,19 @@ export function useSumsubWebSdk({
             return undefined
         }
 
+        let retryTimer: ReturnType<typeof setTimeout> | undefined
         const handleLoaded = () => setSdkLoaded(true)
-        const handleError = () => {
+        const handleError = (failedScript: HTMLElement) => {
+            // A failed <script> never fires load or error again. Left in the
+            // DOM, every later attempt would attach listeners to it and wait
+            // forever, so the user could not verify until a full page reload.
+            failedScript.remove()
+            if (!scriptAutoRetryUsedRef.current) {
+                scriptAutoRetryUsedRef.current = true
+                retryTimer = setTimeout(() => setScriptLoadAttempt((n) => n + 1), SDK_SCRIPT_RETRY_DELAY_MS)
+                return
+            }
+            scriptLoadFailedRef.current = true
             Sentry.captureException(new Error('[sumsub] failed to load websdk script'), {
                 tags: { ...criticalFlowTags('kyc'), kyc_step: 'sdk_script' },
             })
@@ -141,14 +163,16 @@ export function useSumsubWebSdk({
             // another wrapper instance appended the script and it's still
             // downloading — a bare existence check would init against an
             // undefined window.snsWebSdk
+            const handleExistingError = () => handleError(existingScript)
             existingScript.addEventListener('load', handleLoaded)
-            existingScript.addEventListener('error', handleError)
+            existingScript.addEventListener('error', handleExistingError)
             // the script may have finished between the snsWebSdk check above
             // and the listener attach — re-check so we don't wait forever
             if (window.snsWebSdk) handleLoaded()
             return () => {
+                clearTimeout(retryTimer)
                 existingScript.removeEventListener('load', handleLoaded)
-                existingScript.removeEventListener('error', handleError)
+                existingScript.removeEventListener('error', handleExistingError)
             }
         }
 
@@ -158,10 +182,21 @@ export function useSumsubWebSdk({
         script.async = true
         script.crossOrigin = 'anonymous'
         script.onload = handleLoaded
-        script.onerror = handleError
+        script.onerror = () => handleError(script)
         document.head.appendChild(script)
-        return undefined
-    }, [])
+        return () => clearTimeout(retryTimer)
+    }, [scriptLoadAttempt])
+
+    // The script can fail while the modal is closed (it preloads on /home).
+    // Opening the modal is the user asking again, so load it again instead of
+    // showing the old failure.
+    useEffect(() => {
+        if (!visible || !scriptLoadFailedRef.current) return
+        scriptLoadFailedRef.current = false
+        scriptAutoRetryUsedRef.current = false
+        setSdkLoadError(false)
+        setScriptLoadAttempt((n) => n + 1)
+    }, [visible])
 
     // initialize sdk as soon as the modal is visible and all deps are ready
     useEffect(() => {

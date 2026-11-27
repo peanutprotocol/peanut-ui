@@ -53,7 +53,12 @@ function VerifyPage() {
         )
     if (mode === 'reverify') return <LoadFailed onRetry={exit} onHome={exit} />
     if (restart) return <IdentityRestartFlow onExit={exit} />
-    return feature ? <AddFeatureFlow feature={feature} onExit={exit} /> : <PaperworkVerificationFlow />
+    // a first-time check ends where it was opened from, when that place passed returnTo (the card step)
+    return feature ? (
+        <AddFeatureFlow feature={feature} onExit={exit} />
+    ) : (
+        <PaperworkVerificationFlow returnTo={returnTo} />
+    )
 }
 
 export default function VerifyRoute() {
