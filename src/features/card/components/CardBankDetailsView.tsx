@@ -47,20 +47,25 @@ export function CardBankDetailsView({
     const { address: wallet } = useWallet()
     const userId = user?.user?.userId
     // the ask is the gap from a fresh read, as the crypto view's (readLiveSpendableUsd), never the
-    // step's cached balance; undefined while it loads, null when the read failed. Until the wallet
-    // address is known the read cannot run: the skeleton holds, rather than a failed read's "no amount"
-    const [gapUsd, setGapUsd] = useState<number | null>()
+    // step's cached balance; undefined while it loads, null when the read failed. A read belongs to the
+    // account and address it was taken for: until an address is readable, or once it is lost or
+    // changes, the skeleton holds (never a stale amount, never a failed read's "no amount") and a new
+    // address is read again
+    const address = wallet as Address | undefined
+    const readKey = canReadLiveSpendable(address) ? `${userId ?? ''}:${address ?? ''}` : null
+    const [read, setRead] = useState<{ key: string; gapUsd: number | null }>()
     useEffect(() => {
-        if (!canReadLiveSpendable(wallet as Address | undefined)) return
+        if (!readKey) return
         let current = true
-        readLiveSpendableUsd(queryClient, { address: wallet as Address | undefined, userId }).then(
-            (value) => current && setGapUsd(cardGapUsd(value) ?? null),
-            () => current && setGapUsd(null)
+        readLiveSpendableUsd(queryClient, { address, userId }).then(
+            (value) => current && setRead({ key: readKey, gapUsd: cardGapUsd(value) ?? null }),
+            () => current && setRead({ key: readKey, gapUsd: null })
         )
         return () => {
             current = false
         }
-    }, [queryClient, wallet, userId])
+    }, [queryClient, readKey, address, userId])
+    const gapUsd = readKey !== null && read?.key === readKey ? read.gapUsd : undefined
     // a provisioning account is re-read by the hook itself, so the skeleton turns into details here
     const { accounts, isLoading, claim } = useDepositAccounts()
     const { t: tAccounts, accountRailName } = useDepositAccountCopy()

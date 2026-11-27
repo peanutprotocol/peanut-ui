@@ -841,6 +841,28 @@ describe('round 2: badges, one heading on details, the residence fix, no back wh
         expect(await within(drawer()).findByTestId('card-add-money-bank-amount')).toHaveTextContent('sendAsk($7.50)')
     })
 
+    it('drops the amount for the skeleton when the address is lost, and reads again for a new one', async () => {
+        depositAccounts = { ACH_US: ACH_ACCOUNT }
+        readiness = { ...readiness, ready: { ...noneReady, account: ['USD'] } }
+        const { rerenderWith } = renderFunding()
+        fireEvent.click(screen.getByTestId('card-add-money-bank'))
+        expect(await within(drawer()).findByTestId('card-add-money-bank-amount')).toHaveTextContent('sendAsk($7.50)')
+        // the wallet re-initialises its credentials: the address is unreadable for a moment
+        mockWalletAddress = undefined
+        mockLive = 4
+        rerenderWith({})
+        expect(within(drawer()).getByTestId('card-add-money-bank-amount-loading')).toBeInTheDocument()
+        expect(within(drawer()).queryByTestId('card-add-money-bank-amount')).not.toBeInTheDocument()
+        // another address: the skeleton first, then the fresh read's amount, never the old one
+        mockLiveReads.mockClear()
+        mockWalletAddress = '0xother'
+        rerenderWith({})
+        expect(within(drawer()).getByTestId('card-add-money-bank-amount-loading')).toBeInTheDocument()
+        expect(within(drawer()).queryByText('sendAsk($7.50)')).not.toBeInTheDocument()
+        expect(await within(drawer()).findByTestId('card-add-money-bank-amount')).toHaveTextContent('sendAsk($6)')
+        expect(mockLiveReads).toHaveBeenCalledTimes(1)
+    })
+
     it('promises no amount when the fresh balance read fails', async () => {
         depositAccounts = { ACH_US: ACH_ACCOUNT }
         readiness = { ...readiness, ready: { ...noneReady, account: ['USD'] } }
