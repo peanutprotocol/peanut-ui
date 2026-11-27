@@ -41,39 +41,54 @@ beforeEach(() => {
 afterEach(() => jest.useRealTimers())
 
 describe('the order countdown', () => {
-    it('counts down in the "Valid for" row, then switches to the expired card when time runs out', () => {
+    it('counts down, holds a checking state at zero, and offers a new order only once the API says expired', () => {
         const onStartOver = jest.fn()
         const onContactSupport = jest.fn()
-        renderWithIntl(
-            <MantecaDepositShareDetails
-                depositDetails={order}
-                arsStatus="pending"
-                onBack={jest.fn()}
-                onDone={jest.fn()}
-                onStartOver={onStartOver}
-                onContactSupport={onContactSupport}
-            />
-        )
+        const props = {
+            depositDetails: order,
+            onBack: jest.fn(),
+            onDone: jest.fn(),
+            onStartOver,
+            onContactSupport,
+        }
+        const { rerender } = renderWithIntl(<MantecaDepositShareDetails {...props} arsStatus="pending" />)
         expect(screen.getByText('Valid for')).toBeInTheDocument()
         expect(screen.getByText('1:30')).toBeInTheDocument()
         // the CVU shows its first 10 and last 4 digits in the compact row
         expect(screen.getByText('0000003100 … 0001')).toBeInTheDocument()
-        expect(screen.queryByText(EXPIRED_COPY)).not.toBeInTheDocument()
 
         act(() => jest.advanceTimersByTime(60_000))
         expect(screen.getByText('0:30')).toBeInTheDocument()
 
-        // the poll still says pending: the clock alone ends the order on screen
+        // the clock ran out but the poll still says pending: a transfer may be in flight, so the details
+        // go away and no new order is offered (a new one would cancel this one)
         act(() => jest.advanceTimersByTime(31_000))
-        expect(screen.getByText(EXPIRED_COPY)).toBeInTheDocument()
-        expect(screen.getByText('ARS 10,000')).toBeInTheDocument()
+        expect(screen.getByText('Checking the order')).toBeInTheDocument()
         expect(screen.queryByText('Share details')).not.toBeInTheDocument()
         expect(screen.queryByText('0000003100 … 0001')).not.toBeInTheDocument()
+        expect(screen.queryByText(EXPIRED_COPY)).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Start a new deposit' })).not.toBeInTheDocument()
 
+        // the API confirms the provider cancelled it unpaid: now the expired card and the way on
+        rerender(<MantecaDepositShareDetails {...props} arsStatus="expired" />)
+        expect(screen.getByText(EXPIRED_COPY)).toBeInTheDocument()
+        expect(screen.getByText('ARS 10,000')).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
         expect(onContactSupport).toHaveBeenCalledTimes(1)
         fireEvent.click(screen.getByRole('button', { name: 'Start a new deposit' }))
         expect(onStartOver).toHaveBeenCalledTimes(1)
+    })
+
+    it('lets a late payment win over the lapsed clock', () => {
+        const props = { depositDetails: order, onBack: jest.fn(), onDone: jest.fn(), onStartOver: jest.fn() }
+        const { rerender } = renderWithIntl(<MantecaDepositShareDetails {...props} arsStatus="pending" />)
+        act(() => jest.advanceTimersByTime(91_000))
+        expect(screen.getByText('Checking the order')).toBeInTheDocument()
+
+        rerender(<MantecaDepositShareDetails {...props} arsStatus="processing" />)
+        expect(screen.getByText('Payment received')).toBeInTheDocument()
+        expect(screen.queryByText('Checking the order')).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Start a new deposit' })).not.toBeInTheDocument()
     })
 
     it('never expires an order whose transfer already arrived', () => {

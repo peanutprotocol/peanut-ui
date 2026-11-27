@@ -121,17 +121,29 @@ const MantecaDepositShareDetails = ({
         return textParts.join('\n')
     }
 
-    // the countdown runs only while the order waits for the transfer. once the clock passes
-    // expireAt the details stop working, so the screen says so before the poll catches up.
+    // the countdown runs only while the order waits for the transfer. at zero the details stop
+    // working, but only the API's own 'expired' (provider cancelled, no payment seen) may offer a
+    // new order: a new one cancels this one, and a late transfer can still be on its way.
     const expiresAtMs = useMemo(() => {
         if (arsStatus !== 'pending') return null
         const ms = Date.parse(depositDetails.stages?.['1']?.expireAt ?? '')
         return Number.isFinite(ms) ? ms : null
     }, [arsStatus, depositDetails])
     const countdown = useExpiryCountdown(expiresAtMs, arsStatus === 'pending')
-    const isExpired = arsStatus === 'expired' || (arsStatus === 'pending' && countdown.isExpired)
+    const isLapsedUnconfirmed = arsStatus === 'pending' && countdown.isExpired
 
-    if (isExpired)
+    if (isLapsedUnconfirmed)
+        return (
+            <PageStack>
+                <NavHeader title={t('title')} onPrev={onBack} />
+                <ProcessingScreen
+                    title={t('manteca.orderCheckingTitle')}
+                    description={t('manteca.orderCheckingDescription')}
+                />
+            </PageStack>
+        )
+
+    if (arsStatus === 'expired')
         return (
             <div className="flex h-full w-full flex-col gap-8">
                 <NavHeader title={t('title')} onPrev={onBack} />

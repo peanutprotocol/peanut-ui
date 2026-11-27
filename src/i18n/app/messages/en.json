@@ -2360,6 +2360,8 @@
             "validFor": "Valid for",
             "rateFeesArrival": "Rate, fees and arrival",
             "detailsComeNext": "Bank details come next. They work for 30 minutes.",
+            "orderCheckingTitle": "Checking the order",
+            "orderCheckingDescription": "We're checking whether a transfer arrived.",
             "startNewDeposit": "Start a new deposit",
             "paymentReceivedTitle": "Payment received",
             "paymentReceivedDescription": "We're adding it to your balance.",

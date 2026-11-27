@@ -2360,6 +2360,8 @@
             "validFor": "Válido por",
             "rateFeesArrival": "Câmbio, taxas e prazo",
             "detailsComeNext": "Os dados bancários vêm em seguida. Valem por 30 minutos.",
+            "orderCheckingTitle": "Verificando a ordem",
+            "orderCheckingDescription": "Estamos verificando se chegou uma transferência.",
             "startNewDeposit": "Iniciar um novo depósito",
             "paymentReceivedTitle": "Pagamento recebido",
             "paymentReceivedDescription": "Estamos adicionando ao seu saldo.",
