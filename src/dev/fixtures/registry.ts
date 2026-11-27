@@ -4808,6 +4808,17 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'A USD wire withdrawal: its receipt shows the wire fee and what the bank received.',
         responses: { 'GET /users/history': { entries: [WIRE_WITHDRAWAL_ENTRY], hasMore: false } },
     },
+    // the payout's account is one of the user's saved accounts, so its receipt
+    // offers Withdraw again, which opens the amount step on it (TASK-25462)
+    'history-withdraw-again': {
+        route: '/history?tx=fixture-wire-withdrawal',
+        about: 'A completed wire to a saved US account: Share receipt, Withdraw again, then More actions.',
+        responses: {
+            'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] },
+            'GET /users/history': { entries: [WIRE_WITHDRAWAL_ENTRY], hasMore: false },
+            'GET /history/fixture-wire-withdrawal': WIRE_WITHDRAWAL_ENTRY,
+        },
+    },
     // a bank deposit still on its way keeps the bank wording; a Pix one reads "Adding by Pix"
     'history-bank-deposit-pending': {
         route: '/history?tx=fixture-pending-eur-deposit',
