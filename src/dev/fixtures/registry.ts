@@ -5785,7 +5785,7 @@ export const FIXTURES: Record<string, Fixture> = {
         capture: { expectSelector: '[role="dialog"][data-state="open"] [data-testid="home-drawer-add-ars"]' },
         route: '/home?drawer=add',
         geoCountry: 'AR',
-        about: 'The Add drawer for a returning resident of Argentina: ARS leads, bank accounts next, then crypto and more ways (the owner, 24 Nov).',
+        about: 'The Add drawer for a returning resident of Argentina: ARS leads, then bank transfer and crypto (the owner, 24 Nov).',
         responses: {
             'GET /users/me': {
                 ...ARS_TOP_UP_RESIDENT,
@@ -5796,7 +5796,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'home-add-drawer-pix-paused': {
         capture: { expectSelector: OPEN_DIALOG },
         route: '/home?drawer=add',
-        about: 'The Add drawer for a returning resident of Brazil under the Brazil pause: no Pix row; bank accounts, crypto and more ways (the owner, 15 Nov).',
+        about: 'The Add drawer for a returning resident of Brazil under the Brazil pause: no Pix row; bank transfer and crypto (the owner, 15 Nov).',
         responses: {
             'GET /users/me': {
                 ...aveniaResponses('first-use')['GET /users/me'],

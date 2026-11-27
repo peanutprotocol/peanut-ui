@@ -1293,7 +1293,6 @@
         "howMuchToAdd": "Monto a agregar",
         "mustMatchBankTransfer": "Esto debe coincidir exactamente con lo que enviás desde tu banco",
         "methods": {
-            "moreWays": "Más formas de agregar dinero",
             "pixDetails": "Escaneá o copiá el código",
             "cryptoDetails": "Desde billeteras o exchanges",
             "openAccount": "Abrir una cuenta bancaria",

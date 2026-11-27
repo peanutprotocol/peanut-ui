@@ -345,7 +345,9 @@
             "shareRequestLink": "Share a request link",
             "shareRequestLinkDescription": "Request an amount with a shareable link",
             "shareBankDetails": "Share bank details",
-            "shareBankDetailsDescription": "Get paid in EUR, USD and more with bank details."
+            "shareBankDetailsDescription": "Get paid in EUR, USD and more with bank details.",
+            "lastUsed": "Last used",
+            "otherWays": "Other ways"
         },
         "postVerification": {
             "title": "Verification complete!",
@@ -2256,7 +2258,6 @@
         "eurAccountsOnlyDescription": "Only EUR accounts with IBAN can add money. Your local currency account may not work.",
         "chainTokenOnly": "{chain} · {tokens} only",
         "methods": {
-            "moreWays": "More ways to add money",
             "pixDetails": "Scan or copy code",
             "arsDetails": "From your Mercado Pago or bank account",
             "cryptoDetails": "From wallets or exchanges",

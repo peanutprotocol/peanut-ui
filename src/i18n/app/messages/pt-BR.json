@@ -345,7 +345,9 @@
             "shareRequestLink": "Compartilhar um link de cobrança",
             "shareRequestLinkDescription": "Peça um valor com um link para compartilhar",
             "shareBankDetails": "Compartilhar dados bancários",
-            "shareBankDetailsDescription": "Receba pagamentos em EUR, USD e mais com dados bancários."
+            "shareBankDetailsDescription": "Receba pagamentos em EUR, USD e mais com dados bancários.",
+            "lastUsed": "Último usado",
+            "otherWays": "Outras formas"
         },
         "postVerification": {
             "title": "Verificação concluída!",
@@ -2256,7 +2258,6 @@
         "eurAccountsOnlyDescription": "Só funcionam contas em EUR com IBAN para adicionar dinheiro. Sua conta em moeda local pode não funcionar.",
         "chainTokenOnly": "{chain} · somente {tokens}",
         "methods": {
-            "moreWays": "Mais formas de adicionar dinheiro",
             "pixDetails": "Escaneie ou copie o código",
             "arsDetails": "Da sua conta do Mercado Pago ou do seu banco",
             "cryptoDetails": "De carteiras ou corretoras",

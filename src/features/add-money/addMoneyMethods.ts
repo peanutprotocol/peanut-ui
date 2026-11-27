@@ -2,7 +2,10 @@ import { corridorHasTopUp } from './countryRoutes'
 import { DEPOSIT_RAIL_ORDER, DEPOSIT_RAILS, isClaimable } from '@/features/deposit-accounts/rails'
 import { residenceAllows } from '@/features/deposit-accounts/residenceGate'
 
-export type AddMoneyMethod = 'account' | 'bank' | 'pix' | 'ars' | 'crypto' | 'more'
+export type AddMoneyMethod = 'bank' | 'pix' | 'ars' | 'crypto'
+
+/** the bank hub: its country list routes to the reusable account or the one-time transfer (`useDepositCountryRouting`) */
+export const BANK_HUB_PATH = '/add-money?method=bank'
 
 /**
  * Where the Pix row stands on both Add lists, Home's drawer and the Add picker, read from the API's Pix
@@ -80,19 +83,11 @@ export function resolveAddMoneyMethods(input: {
     if (input.pixDepositOffered && !input.brazilPaused && !ready.pix.includes('BRL')) ready.pix.push('BRL')
     const pixRow = pixRowPlace({ ...input, pixReady: ready.pix.length > 0 })
     const arsRow = arsRowShown({ ...input, arsReady: ready.ars.length > 0 })
-    const drawerMethods: AddMoneyMethod[] = []
-    // Bank accounts show wherever the user can hold or open one (the owner, 15 Nov), as on the picker:
-    // the row alone never moves a user to the drawer, which still needs something ready or a payment.
+    // Bank accounts count wherever the user can hold or open one (the owner, 15 Nov). A row alone never
+    // moves a user to the drawer, which still needs something ready or a payment. A ready one-time transfer
+    // makes the user returning but is no usable method on its own: it sits behind the bank row.
     const accountsOffered = input.standingEnabled || ready.account.length > 0
-    if (arsRow) drawerMethods.push('ars')
-    if (pixRow === 'first') drawerMethods.push('pix')
-    if (accountsOffered) drawerMethods.push('account')
-    // A one-time bank transfer is never a drawer row (the owner, 15 Nov): the picker's bank row, behind
-    // "More ways to add money", reaches it. A ready one still makes the user returning.
-    if (pixRow === 'after-bank') drawerMethods.push('pix')
-    if (input.cryptoReady) drawerMethods.push('crypto')
-    const usable = drawerMethods.length > 0
-    if (usable && returning) drawerMethods.push('more')
+    const usable = arsRow || pixRow !== null || accountsOffered || input.cryptoReady
     const pickerMethods: AddMoneyMethod[] = []
     if (arsRow) pickerMethods.push('ars')
     if (pixRow === 'first') pickerMethods.push('pix')
@@ -103,9 +98,9 @@ export function resolveAddMoneyMethods(input: {
     if (pixRow === 'after-bank') pickerMethods.push('pix')
     pickerMethods.push('crypto')
     return {
+        // the Home drawer lists the same rows as the picker (Kush, 27 Nov); `entry` only says which one opens
         entry: usable && returning ? ('drawer' as const) : ('picker' as const),
         ready,
-        drawerMethods,
         pickerMethods,
     }
 }

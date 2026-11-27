@@ -1,5 +1,5 @@
 export const OPEN_DIALOG = '[role="dialog"]:not([aria-modal="false"])'
-export const HOME_ADD_DRAWER_CHECKPOINT = '[role="dialog"][data-state="open"] [data-testid="home-drawer-add-more"]'
+export const HOME_ADD_DRAWER_CHECKPOINT = '[role="dialog"][data-state="open"] [data-testid="home-drawer-add-bank"]'
 export type CaptureRecipe = {
     /** Optional stable control(s) to reach the state before capture. */
     actions?: Array<

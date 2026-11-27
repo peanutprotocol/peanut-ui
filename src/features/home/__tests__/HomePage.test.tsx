@@ -26,7 +26,7 @@ jest.mock('../useHomeFlow', () => ({
     }),
 }))
 jest.mock('@/features/add-money/useAddMoneyReadiness', () => ({
-    useAddMoneyReadiness: () => ({ entry: 'picker', drawerMethods: [] }),
+    useAddMoneyReadiness: () => ({ entry: 'picker', pickerMethods: [] }),
 }))
 jest.mock('../useHomeViewAnalytics', () => ({ useHomeViewAnalytics: () => {} }))
 jest.mock('@/features/attention/AttentionZone', () => ({ HomeAttention: () => <div>attention-zone</div> }))

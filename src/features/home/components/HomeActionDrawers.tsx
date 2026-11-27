@@ -4,7 +4,8 @@ import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { getCardPosition } from '@/components/Global/Card/card.utils'
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
+import { Section } from '@/components/0_Bruddle/Section'
 import { useHomeDrawer, type HomeDrawer } from '../useHomeDrawer'
 import { homeDrawerOptions } from '../home-drawer-options'
 import { parseAsString, useQueryState } from 'nuqs'
@@ -12,6 +13,8 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
+import { BANK_HUB_PATH, type AddMoneyMethod } from '@/features/add-money/addMoneyMethods'
+import { readLastUsedAddMethod, saveLastUsedAddMethod, splitLastUsed } from '@/features/add-money/lastUsedAddMethod'
 import type { useAddMoneyReadiness } from '@/features/add-money/useAddMoneyReadiness'
 import { readReturnTo, RETURN_TO_PARAM, withReturnTo } from '@/utils/return-to.utils'
 import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
@@ -29,14 +32,12 @@ const ARS_RAIL = DEPOSIT_RAILS.BANK_TRANSFER_AR
 export function HomeActionDrawers({
     addMoney,
 }: {
-    addMoney: Pick<ReturnType<typeof useAddMoneyReadiness>, 'entry' | 'drawerMethods' | 'ready' | 'isLoading'>
+    addMoney: Pick<ReturnType<typeof useAddMoneyReadiness>, 'entry' | 'pickerMethods' | 'isLoading'>
 }) {
     const [drawer, setDrawer] = useHomeDrawer()
     const t = useTranslations('home.drawers')
     const tMethods = useTranslations('addMoney.methods')
     const tNav = useTranslations('navigation')
-    // "Bank accounts" (the owner, 15 Nov): the existing key that says exactly that
-    const tSaved = useTranslations('global.savedAccounts')
     const router = useRouter()
     // Carry origins from existing Add drawer links into the chosen destination.
     const [returnTo, setReturnTo] = useQueryState(RETURN_TO_PARAM, parseAsString)
@@ -60,54 +61,55 @@ export function HomeActionDrawers({
         }
         if (drawer !== 'add') redirecting.current = false
     }, [drawer, staleAdd, returnTo, router, setDrawer, setReturnTo])
+    const addRow = (method: AddMoneyMethod) => ({
+        key: method,
+        title:
+            method === 'ars'
+                ? ARS_RAIL.currency
+                : tMethods(method === 'bank' ? 'bankTransfer' : method === 'pix' ? 'pix' : 'crypto'),
+        leading:
+            method === 'ars' ? (
+                <CorridorFlag iso2={ARS_RAIL.flagIso2} />
+            ) : (
+                <IconBubble {...CONCEPT_ICONS[method]} size="s" />
+            ),
+        href:
+            method === 'bank'
+                ? BANK_HUB_PATH
+                : method === 'crypto'
+                  ? '/add-money/crypto'
+                  : // Pix and ARS have one currency each, so they open the deposit, not a chooser of one row
+                    method === 'pix'
+                    ? PIX_ADD_MONEY_PATH
+                    : rewriteMethodPath(ARS_ADD_MONEY_PATH),
+        method,
+    })
+    // the Add drawer lists the picker's rows, with the one last tapped here first under its own heading.
+    // read once per opening, so the tapped row does not jump while the sheet slides away
+    const addWasOpen = useRef(false)
+    const storedLastUsed = useRef<unknown>(null)
+    if (drawer === 'add' && !addWasOpen.current) storedLastUsed.current = readLastUsedAddMethod()
+    addWasOpen.current = drawer === 'add'
+    const { lastUsed, others } = splitLastUsed(
+        addMoney.pickerMethods,
+        content === 'add' ? storedLastUsed.current : null
+    )
     const options =
         content === 'add'
-            ? addMoney.drawerMethods.map((method) => ({
-                  key: method,
-                  title:
-                      method === 'account'
-                          ? tSaved('bankSectionTitle')
-                          : method === 'pix'
-                            ? tMethods('pix')
-                            : method === 'ars'
-                              ? ARS_RAIL.currency
-                              : method === 'crypto'
-                                ? tMethods('crypto')
-                                : tMethods('moreWays'),
-                  leading:
-                      method === 'pix' ? (
-                          <IconBubble {...CONCEPT_ICONS.pix} size="s" />
-                      ) : method === 'ars' ? (
-                          <CorridorFlag iso2={ARS_RAIL.flagIso2} />
-                      ) : method === 'account' ? (
-                          <IconBubble {...CONCEPT_ICONS.bankAccount} size="s" />
-                      ) : (
-                          <IconBubble {...(method === 'crypto' ? CONCEPT_ICONS.crypto : CONCEPT_ICONS.bank)} size="s" />
-                      ),
-                  href:
-                      method === 'more'
-                          ? '/add-money'
-                          : method === 'crypto'
-                            ? '/add-money/crypto'
-                            : // Pix and ARS have one currency each, so they open the deposit, not a chooser of one row
-                              method === 'pix'
-                              ? PIX_ADD_MONEY_PATH
-                              : method === 'ars'
-                                ? rewriteMethodPath(ARS_ADD_MONEY_PATH)
-                                : // only the ready ones where some are
-                                  `/add-money/options?method=${method}${addMoney.ready[method as keyof typeof addMoney.ready].length ? '&ready=1' : ''}`,
-              }))
+            ? others.map(addRow)
             : (content ? homeDrawerOptions(content, depositAccounts) : []).map((option) => ({
                   key: option.key,
                   href: option.href,
                   leading: <IconBubble {...CONCEPT_ICONS[option.concept]} size="s" />,
                   title: t(option.titleKey),
                   body: option.bodyKey ? t(option.bodyKey) : undefined,
+                  method: undefined,
               }))
 
-    const navigate = async (option: { href: string }) => {
+    const navigate = async (option: { href: string; method?: AddMoneyMethod }) => {
         if (navigating.current) return
         navigating.current = true
+        if (option.method) saveLastUsedAddMethod(option.method)
         const origin = readReturnTo(new URLSearchParams(returnTo ? { returnTo } : {}), '/home')
         try {
             // Clear Home's drawer state before navigating so Back lands on closed Home.
@@ -117,6 +119,22 @@ export function HomeActionDrawers({
             navigating.current = false
         }
     }
+
+    const renderRows = (rows: typeof options) =>
+        rows.map((option) => (
+            <ListItem
+                key={option.key}
+                leading={option.leading}
+                title={option.title}
+                body={'body' in option ? option.body : undefined}
+                // the descriptions are a sentence, and a one-line
+                // cut ate half of it in pt-BR and es-419
+                bodyWrap
+                chevron
+                onClick={() => navigate(option)}
+                data-testid={`home-drawer-${content}-${option.key}`}
+            />
+        ))
 
     return (
         <Drawer
@@ -130,23 +148,18 @@ export function HomeActionDrawers({
                         <DrawerTitle className="text-center text-heading-s text-foreground-primary">
                             {tNav(content)}
                         </DrawerTitle>
-                        <div className="flex flex-col">
-                            {options.map((option, index, all) => (
-                                <ListItem
-                                    key={option.key}
-                                    position={getCardPosition(index, all.length)}
-                                    leading={option.leading}
-                                    title={option.title}
-                                    body={'body' in option ? option.body : undefined}
-                                    // the descriptions are a sentence, and a one-line
-                                    // cut ate half of it in pt-BR and es-419
-                                    bodyWrap
-                                    chevron
-                                    onClick={() => navigate(option)}
-                                    data-testid={`home-drawer-${content}-${option.key}`}
-                                />
-                            ))}
-                        </div>
+                        {lastUsed ? (
+                            <>
+                                <Section title={t('lastUsed')}>
+                                    <ListGroup>{renderRows([addRow(lastUsed)])}</ListGroup>
+                                </Section>
+                                <Section title={t('otherWays')}>
+                                    <ListGroup>{renderRows(options)}</ListGroup>
+                                </Section>
+                            </>
+                        ) : (
+                            <ListGroup>{renderRows(options)}</ListGroup>
+                        )}
                     </div>
                 )}
             </DrawerContent>

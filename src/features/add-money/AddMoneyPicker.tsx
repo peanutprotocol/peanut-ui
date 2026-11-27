@@ -6,6 +6,7 @@ import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import NavHeader from '@/components/Global/NavHeader'
 import { useAddMoneyReadiness } from './useAddMoneyReadiness'
+import { BANK_HUB_PATH } from './addMoneyMethods'
 import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
 import { ARS_ADD_MONEY_PATH, DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
 import { CorridorFlag } from '@/features/deposit-accounts/components/CorridorFlag'
@@ -19,8 +20,6 @@ import { trackAddMoney } from './analytics'
 import { useEffect, useRef, type ReactNode } from 'react'
 
 const ARS_RAIL = DEPOSIT_RAILS.BANK_TRANSFER_AR
-/** the bank hub: its country list routes to the reusable account or the one-time transfer (`useDepositCountryRouting`) */
-const BANK_HUB_PATH = '/add-money?method=bank'
 
 export function AddMoneyPicker({ onBack, origin }: { onBack: () => void; origin: string | null }) {
     const t = useTranslations('addMoney.methods')
