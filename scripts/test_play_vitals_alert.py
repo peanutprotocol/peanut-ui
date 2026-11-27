@@ -10,17 +10,12 @@ import play_vitals_alert as alert
 NOW = datetime(2026, 9, 29, 12, tzinfo=timezone.utc).isoformat()
 
 
-def snapshot(users=1, last="2026-09-29T11:00:00Z", rate=None, version="21755215", extra=()):
+def snapshot(users=1, last="2026-09-29T11:00:00Z", rate=None, version="21755215"):
     return {"schema": 1, "checked_at": NOW,
             "issues": [{"id": "issue-1", "users": users, "reports": users + 1,
                         "last": last, "version": version,
-                        "url": "https://play.google.com/console/issue"}, *extra],
+                        "url": "https://play.google.com/console/issue"}],
             "rate": rate}
-
-
-def other(version, last="2026-09-29T11:00:00Z"):
-    return {"id": "issue-2", "users": 1, "reports": 1, "last": last, "version": version,
-            "url": "https://play.google.com/console/issue"}
 
 
 class PlayVitalsAlertTest(unittest.TestCase):
@@ -59,15 +54,11 @@ class PlayVitalsAlertTest(unittest.TestCase):
         quiet, _ = alert.assess(snapshot(users=6, last="2026-09-28T11:00:00Z"), state)
         self.assertEqual(quiet["issues"][0]["severity"], "P3")
 
-    def test_a_crash_only_on_an_old_build_pages_p2(self):
-        newer = other("21755300")
-        capped, state = alert.assess(snapshot(users=6, extra=[newer]), self.seeded())
-        self.assertEqual(capped["issues"][0]["severity"], "P2")
-        # The newest build is remembered, so the cap holds after the newer crash stops.
-        again, _ = alert.assess(snapshot(users=7, last="2026-09-29T11:30:00Z"), state)
-        self.assertEqual(again["issues"][0]["severity"], "P2")
-        current, _ = alert.assess(snapshot(users=6, version="21755300"), self.seeded())
-        self.assertEqual(current["issues"][0]["severity"], "P1")
+    def test_a_count_that_falls_without_a_new_report_falls_too(self):
+        # Chip on #4315: older reports age out of the 72 h window while the last report stays the same.
+        _, state = alert.assess(snapshot(users=6), self.seeded())
+        fallen, _ = alert.assess(snapshot(users=2), state)
+        self.assertEqual(fallen["issues"][0]["severity"], "P2")
 
     def test_rate_starts_as_digest_then_escalates_on_new_day(self):
         high = {"day": "2026-09-28", "percent": 1.20}

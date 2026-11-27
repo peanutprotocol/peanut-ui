@@ -18,22 +18,10 @@ SEVERITY_RANK = {"P3": 1, "P2": 2, "P1": 3}
 STATE_SCHEMA = 2
 # A crash whose last report is older than this is quiet: it drops to a digest line (P3).
 QUIET_AFTER = timedelta(hours=24)
-# A crash whose last report came from an app build older than the newest build seen crashing only hits
-# users who have not updated: it pages P2, not P1. Before this, the Support-chat crash fixed in
-# peanut-ui#4253 paged P1 for days because old builds (1.39) kept crashing (TASK-25474, 2026-11-27).
-OLD_BUILD_CAP = "P2"
 
 
 def severity(users):
     return "P1" if users >= 5 else "P2" if users >= 2 else "P3"
-
-
-def build(version):
-    """The Play versionCode as a number, or None when Play gave none."""
-    try:
-        return int(version)
-    except (TypeError, ValueError):
-        return None
 
 
 def issue_key(issue_id):
@@ -47,19 +35,20 @@ def assess(snapshot, previous):
     old_issues = previous.get("issues") or {}
     saved = dict(old_issues)
     signals = []
-    builds = [code for code in (build(item.get("version")) for item in snapshot["issues"]) if code]
-    newest = max(builds + [previous.get("newest_build") or 0])
     for item in snapshot["issues"]:
         key = issue_key(item["id"])
         prior = old_issues.get(key) or {}
         fresh = not prior or item["last"] > prior.get("last", "") or item["users"] > prior.get("users", 0)
-        # The level follows the latest 72 h of users: a fixed crash falls as its users fall.
-        level = "P3" if baseline else severity(item["users"]) if fresh else prior.get("severity", "P3")
+        # The level follows the latest 72 h of users, so a fixed crash falls as its users fall (before
+        # TASK-25474 a level never fell: the Support-chat crash fixed in #4253 paged P1 for days). It rises
+        # only on a new report or more users; a baseline issue that has not changed stays P3.
+        level = severity(item["users"])
+        if baseline:
+            level = "P3"
+        elif not fresh and SEVERITY_RANK[level] > SEVERITY_RANK[prior.get("severity", "P3")]:
+            level = prior.get("severity", "P3")
         if now - datetime.fromisoformat(item["last"].replace("Z", "+00:00")) >= QUIET_AFTER:
             level = "P3"
-        code = build(item.get("version"))
-        if code and code < newest and SEVERITY_RANK[level] > SEVERITY_RANK[OLD_BUILD_CAP]:
-            level = OLD_BUILD_CAP
         signals.append({"key": "play-vitals/issue/" + key, "severity": level})
         saved[key] = {"last": max(item["last"], prior.get("last", "")), "users": item["users"],
                       "severity": level, "seen_at": snapshot["checked_at"]}
@@ -81,7 +70,7 @@ def assess(snapshot, previous):
             rate_signal = {"severity": None}
         rate_state = {"day": point["day"], "high": high, "severity": level}
     artifact = {"schema": 1, "checked_at": snapshot["checked_at"], "issues": signals, "rate": rate_signal}
-    return artifact, {"seeded": True, "issues": saved, "rate": rate_state, "newest_build": newest}
+    return artifact, {"seeded": True, "issues": saved, "rate": rate_state}
 
 
 def state_keys(credentials):
