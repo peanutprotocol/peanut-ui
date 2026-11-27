@@ -11,7 +11,7 @@ Peanut is a self-custody money app built on digital dollars (USDC). You hold dol
 - The merchant receives BRL instantly and sees a normal PIX payment — Peanut is invisible on their end.
 - Your dollars convert to BRL at the market ("cripto dólar") rate, locked the moment you confirm.
 - No Peanut fee on PIX payments. Available 24/7/365. Scan the QR, or paste a copied "copia e cola" code with the scanner's Paste button.
-- To pay a person rather than a merchant, share a Peanut Link — they claim it and can withdraw to their own PIX instantly, no Peanut account needed.
+- To pay a person rather than a merchant, send to their PIX key (CPF, phone, email or random key) from Send → Bank → Brazil. A Peanut Link cannot be claimed straight to PIX: the recipient claims it into a Peanut account, verifies, then pays from the balance.
 
 ## Pay MercadoPago in Argentina — no DNI needed
 
