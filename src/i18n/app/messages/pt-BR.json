@@ -909,6 +909,86 @@
         "row": {
             "approximate": "É uma estimativa. A taxa é definida quando a transferência é convertida, então o valor recebido pode variar um pouco.",
             "appliesWhenConverting": "A taxa de câmbio se aplica na conversão para {currency}"
+        },
+        "tabs": {
+            "rates": "Câmbio",
+            "fees": "Taxas"
+        },
+        "direction": {
+            "addShort": "Adicionar dinheiro",
+            "withdrawShort": "Sacar",
+            "withdrawQrShort": "Sacar / Pix"
+        },
+        "converter": {
+            "youSendLocal": "Você envia ({currency})",
+            "youSendUsd": "Você envia do saldo (USD)",
+            "youReceiveUsd": "Você recebe no saldo",
+            "youReceiveLocal": "Você recebe no banco ({currency})",
+            "amountAria": "Valor",
+            "usdSubline": "Mesma moeda · ACH: $0 · Wire saída: $20",
+            "updatedAt": "Atualizado {time}",
+            "providerFee": "Taxa do provedor",
+            "flatFee": "Taxa fixa",
+            "achZero": "ACH: $0"
+        },
+        "compare": {
+            "title": "Comparar outros dólares",
+            "subtitle": "Cripto, MEP, Blue, Cartão e Oficial",
+            "pageTitle": "Outros dólares hoje"
+        },
+        "allCurrencies": {
+            "title": "Todas as moedas e meios",
+            "subtitle": "BRL, EUR, ARS, USD, GBP, MXN e COP",
+            "pageTitle": "Todas as moedas e meios",
+            "currencyCol": "Moeda (por 1 USD)",
+            "buySellCol": "Adicionar / Sacar"
+        },
+        "currencies": {
+            "ARS": "Peso argentino",
+            "EUR": "Euro",
+            "USD": "Dólar americano",
+            "GBP": "Libra esterlina",
+            "MXN": "Peso mexicano",
+            "COP": "Peso colombiano",
+            "BRL": "Real brasileiro"
+        },
+        "benchmarks": {
+            "heading": "Referências do mercado",
+            "cripto": "Dólar cripto",
+            "mep": "Dólar MEP",
+            "blue": "Dólar blue",
+            "tarjeta": "Dólar tarjeta",
+            "oficial": "Dólar oficial",
+            "sourceNote": "Fonte: {source}. Valores indicativos."
+        },
+        "drawer": {
+            "title": "Cotações {currency}",
+            "subtitleCbu": "Preço fixado por 30 min neste pedido.",
+            "subtitleQr": "Fixado ao confirmar o pagamento.",
+            "subtitleLive": "Cotações indicativas ao vivo.",
+            "openAria": "Ver detalhes da cotação de {currency}"
+        },
+        "fees": {
+            "sections": {
+                "bankTransfers": "Transferências bancárias e Pix",
+                "card": "Cartão Peanut (Visa)",
+                "crypto": "Cripto (depósitos e saques)"
+            },
+            "rows": {
+                "usdWireOut": "USD · Wire (saída)",
+                "brlPixBr": "BRL · Pix (Brasil)",
+                "cardIssuance": "Emissão, mensalidade e recarga",
+                "cardPayments": "Pagamentos no cartão",
+                "cryptoDeposits": "Depósitos USDC / USDT",
+                "cryptoL2Withdrawals": "Outras L2s e redes",
+                "cryptoL2Quoted": "Na cotação"
+            },
+            "notes": {
+                "bankTransfers": "USD Wire ({wireFee}) é uma taxa fixa do Peanut; Pix no Brasil ({pixFee}) é uma taxa do provedor. Conversões usam a cotação ao vivo.",
+                "cardVisa": "A Visa pode aplicar sua própria taxa de câmbio e tarifas de rede em pagamentos internacionais ou em outras moedas.",
+                "cryptoNetworks": "{networks} e mais. Outros tokens convertem a taxa de mercado."
+            },
+            "fullScheduleLink": "Ver tabela completa de taxas ↗"
         }
     },
     "setup": {

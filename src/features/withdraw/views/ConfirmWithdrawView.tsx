@@ -244,11 +244,16 @@ export default function ConfirmWithdrawView({
                                   ? t('confirm.networkFeeChargedInfo')
                                   : t('confirm.networkFeeInfo')
                         }
+                        hideBottomBorder={!(isCrossChain && (isCalculating || totalPayDisplay))}
                     />
                     {isCrossChain && (isCalculating || totalPayDisplay) && (
-                        <PaymentInfoRow label={t('confirm.youPay')} value={totalPayDisplay} loading={isCalculating} />
+                        <PaymentInfoRow
+                            hideBottomBorder
+                            label={t('confirm.youPay')}
+                            value={totalPayDisplay}
+                            loading={isCalculating}
+                        />
                     )}
-                    <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value="$0" />
                 </Card>
 
                 {showHighFeeWarning && <Callout priority="info">{t('confirm.highFeeWarning')}</Callout>}
