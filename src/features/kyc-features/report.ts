@@ -89,7 +89,7 @@ export function accountEntry(report: FeatureReport, feature: 'bank' | 'local', c
     const known = Object.values(METHOD_ACCOUNTS).some(
         (account) => account.feature === feature && account.currency === currency
     )
-    return report[feature]?.accounts?.[currency] ?? (known ? report[feature] : UNMAPPED)
+    return report[feature]?.accounts?.[currency] ?? (known && report[feature] ? report[feature] : UNMAPPED)
 }
 
 /**

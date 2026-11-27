@@ -701,6 +701,7 @@ export default function WithdrawCryptoPage() {
             // record): from here on, any failure goes to recovery, never to a
             // second broadcast.
             if (!mixedWithoutMinedHash && txHashSource !== 'userOpHash') pendingSend.markSent(finalTxHash)
+            else pendingSend.markPostSend()
 
             let payment: Awaited<ReturnType<typeof recordPayment>> | null = null
             if (mixedWithoutMinedHash) {

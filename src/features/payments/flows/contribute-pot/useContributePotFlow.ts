@@ -292,6 +292,7 @@ export function useContributePotFlow() {
                 const { hash, source: txHashSource } = resolveSettledTxHash(txResult, 'contribute-pot')
 
                 if (txHashSource !== 'userOpHash') pendingSend.markSent(hash)
+                else pendingSend.markPostSend()
                 setTxHash(hash)
 
                 // step 3: record payment to backend

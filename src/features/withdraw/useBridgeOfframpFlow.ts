@@ -581,6 +581,7 @@ export function useBridgeOfframpFlow() {
             // timeout included) goes to recovery, which confirms the same hash
             // again — re-running this handler would send a second deposit.
             if (txHashSource !== 'userOpHash') pendingSend.markSent(txIdentifier as Hash)
+            else pendingSend.markPostSend()
             await confirmDeposit(data.transferId, txIdentifier as Hash)
             pendingSend.clear()
 

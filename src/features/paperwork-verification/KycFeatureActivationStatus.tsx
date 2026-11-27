@@ -95,7 +95,7 @@ export function KycFeatureActivationStatus({
         report?.state === 'pending' ||
         report?.state === 'setting_up'
     // a tap would have shown the set-up screen here; on arrival the activation is already running
-    if (settling && accountCurrency && !failed && !refused && readyOrSettlingState)
+    if (settling && accountCurrency && !failed && !refused && (!report || readyOrSettlingState))
         return <FeatureSettingUpScreen currency={accountCurrency} onBack={onBack} />
     if (!consent && !failed && !refused && readyOrSettlingState && feature !== 'qr')
         return (

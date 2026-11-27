@@ -76,8 +76,10 @@ export function usePaperworkVerificationStart(): () => Promise<string | null> {
             void queryClient.invalidateQueries({ queryKey: key })
             return route(cached.data ?? null)
         }
-        if (cached?.status === 'error')
+        if (cached?.status === 'error') {
+            void queryClient.invalidateQueries({ queryKey: key })
             return identityStartRefusalPath((cached.error as { code?: string } | null)?.code) ?? '/verify'
+        }
         try {
             const fresh = await queryClient.fetchQuery({
                 queryKey: key,

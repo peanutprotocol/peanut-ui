@@ -363,6 +363,7 @@ export function useSemanticRequestFlow() {
                     // undefined hash here.
                     const { hash, source: txHashSource } = resolveSettledTxHash(txResult, 'semantic-request')
                     if (txHashSource !== 'userOpHash') pendingSend.markSent(hash)
+                    else pendingSend.markPostSend()
                     setTxHash(hash)
 
                     // record payment
@@ -640,6 +641,7 @@ export function useSemanticRequestFlow() {
             }
 
             if (txHashSource !== 'userOpHash') pendingSend.markSent(hash)
+            else pendingSend.markPostSend()
             setTxHash(hash)
 
             // record payment to backend

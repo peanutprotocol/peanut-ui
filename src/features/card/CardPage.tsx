@@ -258,7 +258,7 @@ export const CardPage: FC = () => {
         if (kycFlow.isTerminalError && kycFlow.error) {
             return (
                 <ApplicationStatusScreen
-                    variant="requires-info"
+                    variant="requires-support"
                     reasonMessage={kycFlow.error}
                     onContactSupport={() => setIsSupportModalOpen(true)}
                     onPrev={onBack}
@@ -279,17 +279,14 @@ export const CardPage: FC = () => {
             )
         }
         if (planRefusal) {
+            const canReupload =
+                planRefusal === 'identity_document_insufficient' || planRefusal === 'document_country_unsupported'
             return (
                 <ApplicationStatusScreen
-                    variant="requires-info"
+                    variant={canReupload ? 'requires-info' : 'requires-support'}
                     reasonCode={planRefusal}
                     onContactSupport={() => setIsSupportModalOpen(true)}
-                    onUploadIdentity={
-                        planRefusal === 'identity_document_insufficient' ||
-                        planRefusal === 'document_country_unsupported'
-                            ? () => void kycFlow.handleRestartIdentity()
-                            : undefined
-                    }
+                    onUploadIdentity={canReupload ? () => void kycFlow.handleRestartIdentity() : undefined}
                     uploadError={kycFlow.error ?? undefined}
                     onPrev={() => setPlanRefusal(null)}
                 />

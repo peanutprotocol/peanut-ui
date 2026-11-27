@@ -125,6 +125,11 @@ export function usePendingChargeSend({
     // claim also writes a marker before the first await, so another tab's Pay
     // goes off while this tab creates the order; `begin` fills it in.
     const claimed = useRef(false)
+    const postSend = useRef(false)
+    const readOrderRef = useRef(readOrder)
+    readOrderRef.current = readOrder
+    const recordPaymentRef = useRef(recordPayment)
+    recordPaymentRef.current = recordPayment
     const claim = useCallback(() => {
         if (claimed.current) return false
         if (key && (claiming.has(key) || sending.has(key) || recovering.has(key) || readPendingChargeSend(key))) {
@@ -183,6 +188,7 @@ export function usePendingChargeSend({
                 throw new Error('This payment is already in progress in another tab')
             }
             hasResumed.current = true
+            postSend.current = false
             attemptChargeId.current = chargeId
             claiming.delete(key)
             sending.add(key)
@@ -218,10 +224,26 @@ export function usePendingChargeSend({
     )
 
     // The money already left: a refused write keeps the marker on this page.
-    const markSent = useCallback((txHash: Hash) => update((send) => ({ ...send, txHash })), [update])
+    const markSent = useCallback(
+        (txHash: Hash) => {
+            postSend.current = true
+            update((send) => ({ ...send, txHash }))
+        },
+        [update]
+    )
+
+    /**
+     * Record that the broadcast step resolved (e.g. returned a userOpHash fallback
+     * without a mined txHash yet), so a subsequent recordPayment/confirmDeposit
+     * failure still routes to recovery instead of wiping the double-send guard.
+     */
+    const markPostSend = useCallback(() => {
+        postSend.current = true
+    }, [])
 
     const clear = useCallback(() => {
         claimed.current = false
+        postSend.current = false
         if (!key) return
         claiming.delete(key)
         sending.delete(key)
@@ -233,7 +255,8 @@ export function usePendingChargeSend({
 
     /** The failure came after the send left this device: the money may have moved. */
     const mayHaveSent = useCallback(
-        (error: unknown) => spendMayHaveBroadcast(error) || !!(key && readPendingChargeSend(key)?.txHash),
+        (error: unknown) =>
+            postSend.current || spendMayHaveBroadcast(error) || !!(key && readPendingChargeSend(key)?.txHash),
         [key]
     )
 
@@ -274,10 +297,10 @@ export function usePendingChargeSend({
             for (;;) {
                 let send = readPendingChargeSend(key)
                 if (!send) return finish('in-flight')
-                const order = await readOrder(send).catch(() => null)
+                const order = await readOrderRef.current(send).catch(() => null)
                 if (hasLeftScreen.current) return 'cancelled'
                 order?.show?.()
-                const read = { send, order, canRecord: !!recordPayment, recordTried, deadline }
+                const read = { send, order, canRecord: !!recordPaymentRef.current, recordTried, deadline }
                 let next = decideRecovery({ ...read, now: Date.now() })
                 if (next.action === 'ReadUserOps') {
                     const outcomes = await Promise.all(
@@ -299,7 +322,7 @@ export function usePendingChargeSend({
                     case 'RecoverRecord': {
                         recordTried = true
                         // decideRecovery books only when the flow passed recordPayment
-                        const recorded = await recordPayment!(send, next.txHash).then(
+                        const recorded = await recordPaymentRef.current!(send, next.txHash).then(
                             (show) => ({ show }),
                             () => null
                         )
@@ -323,18 +346,7 @@ export function usePendingChargeSend({
             claimed.current = false
             setIsRecovering(false)
         }
-    }, [
-        key,
-        walletAddress,
-        readOrder,
-        recordPayment,
-        setIsSuccess,
-        setTxHash,
-        setIsPaymentStatusUnknown,
-        setCurrentView,
-        setError,
-        t,
-    ])
+    }, [key, walletAddress, setIsSuccess, setTxHash, setIsPaymentStatusUnknown, setCurrentView, setError, t])
 
     // Another tab's unsent claim ends with its lease, also while this screen stays open.
     const [leaseEnded, setLeaseEnded] = useState(0)
@@ -372,7 +384,31 @@ export function usePendingChargeSend({
     const isLocal = !!key && (claiming.has(key) || sending.has(key) || recovering.has(key))
     const isPending = marker !== null && (isLocal || !isAbandonedClaim(marker))
     return useMemo(
-        () => ({ isPending, isRecovering, claim, release, begin, onBroadcast, markSent, clear, mayHaveSent, recover }),
-        [isPending, isRecovering, claim, release, begin, onBroadcast, markSent, clear, mayHaveSent, recover]
+        () => ({
+            isPending,
+            isRecovering,
+            claim,
+            release,
+            begin,
+            onBroadcast,
+            markSent,
+            markPostSend,
+            clear,
+            mayHaveSent,
+            recover,
+        }),
+        [
+            isPending,
+            isRecovering,
+            claim,
+            release,
+            begin,
+            onBroadcast,
+            markSent,
+            markPostSend,
+            clear,
+            mayHaveSent,
+            recover,
+        ]
     )
 }

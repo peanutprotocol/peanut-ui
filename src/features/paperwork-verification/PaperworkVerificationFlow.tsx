@@ -11,6 +11,7 @@ import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useAuth } from '@/context/authContext'
 import { useModalsContextOptional } from '@/context/ModalsContext'
 import { RETRY_ACTIONS } from '@/constants/sumsub-reject-actions.consts'
+import { isTerminalRejection } from '@/constants/sumsub-reject-labels.consts'
 import type { IdentityVerification } from '@/types/capabilities'
 import { identityRejection, rejectionSupportMessage, type IdentityRejection } from '@/utils/identity-rejection.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
@@ -199,8 +200,15 @@ const shapeOf = ({ questions, plan, status }: Loaded) =>
 const RETRY: SaveOutcome = { ok: false, error: 'retry', formError: 'retry' }
 
 /** A decision on the identity: no attempt can pass it, so /verify ends on why, whatever flow the server keeps. */
-const decidedRejection = (identity: IdentityVerification | undefined, status: SumsubKycStatus | undefined) =>
-    status === 'REJECTED' || (identity?.status === 'failed' && identity.canRetry !== true)
+const decidedRejection = (identity: IdentityVerification | undefined, status: SumsubKycStatus | undefined) => {
+    if (status === 'REJECTED') return true
+    if (!identity || identity.reason?.code === 'identity_region_restricted') return false
+    if (identity.status === 'failed' && identity.canRetry !== true) return true
+    return (
+        identity.status === 'action_required' &&
+        isTerminalRejection({ rejectType: identity.rejectType, rejectLabels: identity.rejectLabels })
+    )
+}
 
 /** Support and, for a duplicate, the other account: the ways on from a rejection. */
 function useRejectionExits(rejection: IdentityRejection) {

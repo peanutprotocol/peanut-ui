@@ -215,6 +215,7 @@ export function useDirectSendFlow() {
             // fallback is not an on-chain tx hash and would skip ReadUserOps in
             // recovery, leaving a reverted op held for 24h.
             if (txHashSource !== 'userOpHash') pendingSend.markSent(hash)
+            else pendingSend.markPostSend()
             setTxHash(hash)
             failedStep = 'record-payment'
 
