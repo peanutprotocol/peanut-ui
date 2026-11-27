@@ -15,6 +15,19 @@ export function readyAccountIds(report: FeatureReport | undefined): string[] {
 }
 
 /**
+ * The ready accounts the page has a row for (`methods` are its picker rows): bank accounts under Bank transfer,
+ * ARS under its row, BRL under Pix. An account with no row (Pix paused) stays unannounced and unrecorded until its
+ * row shows.
+ */
+export function rowAccountIds(ready: readonly string[], methods: readonly string[]): string[] {
+    return ready.filter((id) =>
+        id.startsWith('bank.')
+            ? methods.includes('bank')
+            : (id === 'local.ARS' && methods.includes('ars')) || (id === 'local.BRL' && methods.includes('pix'))
+    )
+}
+
+/**
  * The accounts the reminder announces: ready, not shown on this device before, for a person who never added
  * money and is not in a task. Empty: no reminder. `shown` undefined is the first load since this shipped: the
  * accounts ready then are recorded, not announced (Kush: no wave for accounts that opened long ago).

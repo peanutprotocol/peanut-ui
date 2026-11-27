@@ -1,6 +1,12 @@
 import { renderHook } from '@testing-library/react'
 import type { FeatureReport, FeatureReportEntry } from '@/types/capabilities'
-import { bankReadyReminder, markBankReadyShown, readyAccountIds, shownBankReady } from '../bankReadyReminder'
+import {
+    bankReadyReminder,
+    markBankReadyShown,
+    readyAccountIds,
+    rowAccountIds,
+    shownBankReady,
+} from '../bankReadyReminder'
 import { resetBankReadyReminderForTests, useBankReadyReminder } from '../useBankReadyReminder'
 
 const mockReplace = jest.fn()
@@ -33,6 +39,16 @@ describe('readyAccountIds', () => {
     })
 })
 
+describe('rowAccountIds', () => {
+    it('keeps only the ready accounts the page has a row for', () => {
+        const ready = ['bank.USD', 'local.ARS', 'local.BRL']
+        expect(rowAccountIds(ready, ['ars', 'bank', 'crypto'])).toEqual(['bank.USD', 'local.ARS'])
+        // pix paused: no pix row, so BRL is neither announced nor recorded
+        expect(rowAccountIds(ready, ['bank', 'crypto'])).toEqual(['bank.USD'])
+        expect(rowAccountIds(ready, ['pix', 'bank', 'crypto'])).toEqual(['bank.USD', 'local.BRL'])
+    })
+})
+
 describe('bankReadyReminder', () => {
     const base = { shown: [] as string[], addedMoney: false, inTask: false }
     it('shows a newly ready account', () => {
@@ -59,9 +75,10 @@ describe('bankReadyReminder', () => {
 
 describe('useBankReadyReminder', () => {
     // each call is a new app load: the one chance is per load
+    let methods: string[] | undefined
     const load = () => {
         resetBankReadyReminderForTests()
-        return useBankReadyReminder
+        return (added: boolean | undefined) => useBankReadyReminder(added, methods)
     }
     beforeEach(() => {
         localStorage.clear()
@@ -69,6 +86,7 @@ describe('useBankReadyReminder', () => {
         mockBusy = false
         mockInAppHistory = false
         mockReport = report({ USD: on })
+        methods = ['ars', 'bank', 'crypto']
         // a person who already has a record on this device (a later load, or the verified page seen)
         markBankReadyShown('u1', [])
     })
@@ -119,6 +137,24 @@ describe('useBankReadyReminder', () => {
         renderHook(() => load()(true))
         expect(mockReplace).not.toHaveBeenCalled()
         expect(shownBankReady('u1')).toEqual([])
+    })
+
+    it('waits for the picker rows, and an account with no row neither opens nor uses up the page', () => {
+        methods = undefined
+        renderHook(() => load()(false))
+        expect(mockReplace).not.toHaveBeenCalled()
+
+        methods = ['bank', 'crypto']
+        mockReport = report({}, { BRL: on })
+        renderHook(() => load()(false))
+        expect(mockReplace).not.toHaveBeenCalled()
+        expect(shownBankReady('u1')).toEqual([])
+
+        // the pix row shows (the pause lifts): the BRL account opens the page once
+        methods = ['pix', 'bank', 'crypto']
+        renderHook(() => load()(false))
+        expect(mockReplace).toHaveBeenCalledTimes(1)
+        expect(shownBankReady('u1')).toEqual(['local.BRL'])
     })
 
     it('a cached $0 that turns into a live balance never opens it', () => {

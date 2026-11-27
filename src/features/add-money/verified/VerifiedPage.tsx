@@ -24,7 +24,7 @@ import { trackAddMoney } from '../analytics'
 import { addMoneyMethodHref, useAddMoneyMethodRows } from '../useAddMoneyMethodRows'
 import { useAddMoneyReadiness } from '../useAddMoneyReadiness'
 import Loading from '@/components/Global/Loading'
-import { markBankReadyShown, readyAccountIds } from './bankReadyReminder'
+import { markBankReadyShown, readyAccountIds, rowAccountIds } from './bankReadyReminder'
 import { VerifiedArt } from './VerifiedArt'
 import {
     actionStep,
@@ -71,10 +71,6 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
 
     const report = capabilities.features
     const userId = user?.user.userId
-    // an account seen ready here, or from the bank_ready push, never opens the reminder again
-    useEffect(() => {
-        if (userId) markBankReadyShown(userId, readyAccountIds(report))
-    }, [userId, report])
     const pixRoute = findPixRoute(capabilities.routes, 'deposit')
     const bank: Record<BankMethod, ReturnType<typeof verifiedRow>> = {
         ars: verifiedRow(report && accountEntry(report, 'local', 'ARS'), capabilities, settled),
@@ -91,15 +87,9 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
     }
     const methods = readiness.pickerMethods
     const shownBank = methods.filter((method): method is BankMethod => method !== 'crypto')
-    // "Your USD and EUR accounts are open": the open accounts this page has a row for, by currency
-    const rowAccounts = [
-        'bank.',
-        ...(shownBank.includes('ars') ? ['local.ARS'] : []),
-        ...(shownBank.includes('pix') ? ['local.BRL'] : []),
-    ]
-    const readyCurrencies = readyAccountIds(report)
-        .filter((id) => rowAccounts.some((row) => id.startsWith(row)))
-        .map((id) => id.split('.')[1])
+    // the open accounts this page has a row for: named in "Your USD and EUR accounts are open", recorded as shown
+    const rowReady = readiness.isLoading ? [] : rowAccountIds(readyAccountIds(report), methods)
+    const readyCurrencies = rowReady.map((id) => id.split('.')[1])
     const states = shownBank.map((method) => bank[method].state)
     const stateProps = Object.fromEntries(shownBank.map((method) => [method, bank[method].state]))
     const resolved = !readiness.isLoading && !states.includes('loading')
@@ -191,6 +181,12 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
     useEffect(() => {
         if (access === 'leave') router.replace('/home')
     }, [access, router])
+    // an account seen ready here, or from the bank_ready push, never opens the reminder again
+    useEffect(() => {
+        if (userId && access === 'show' && !readiness.isLoading) markBankReadyShown(userId, rowReady)
+        // rowReady by value: a new array on every render
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userId, access, readiness.isLoading, rowReady.join()])
     if (access !== 'show') return <Loading />
     const bankReady = variant === 'bank-ready' && anyBankReady(states)
 

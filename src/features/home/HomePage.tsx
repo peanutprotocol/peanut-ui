@@ -43,7 +43,8 @@ export function HomePage() {
     useBankReadyReminder(
         !isSpendableBalanceReady || spendableBalance === undefined
             ? undefined
-            : onboarding.addMoneyDone || spendableBalance > 0n
+            : onboarding.addMoneyDone || spendableBalance > 0n,
+        addMoney.isLoading ? undefined : addMoney.pickerMethods
     )
 
     if (isPageLoading) {
