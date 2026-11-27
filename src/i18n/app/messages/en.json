@@ -2604,7 +2604,7 @@
             "invalidAmount": "Please enter a valid amount.",
             "minimumSend": "Minimum send amount is {amount}.",
             "minimumWithdrawal": "Minimum withdrawal is {amount}.",
-            "minimumCryptoWithdrawal": "Minimum withdrawal to this network is {amount}.",
+            "minimumCryptoWithdrawal": "This network's minimum is {amount}.",
             "countryUnresolved": "We couldn't determine this account's country. Please contact support.",
             "setupFailed": "Something went wrong setting up your withdrawal. Please contact support.",
             "amountMissing": "Withdrawal amount is missing.",
