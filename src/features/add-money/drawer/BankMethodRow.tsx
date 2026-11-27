@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
+import type { CardPosition } from '@/components/Global/Card/card.utils'
 import type { BankMethodState } from './useBankMethodState'
 
 /** The "Bank transfer" row, with the badge and disabled state `useBankMethodState` gives it. */
@@ -11,10 +12,13 @@ export function BankMethodRow({
     bank,
     onClick,
     testId,
+    position,
 }: {
     bank: BankMethodState
     onClick: () => void
     testId: string
+    /** set by ListGroup: without it the row draws its own full border, a 2px line next to its neighbour */
+    position?: CardPosition
 }) {
     const tAdd = useTranslations('addMoney')
     return (
@@ -29,6 +33,7 @@ export function BankMethodRow({
             chevron={!bank.blocked}
             disabled={bank.blocked}
             onClick={onClick}
+            position={position}
             data-testid={testId}
         />
     )

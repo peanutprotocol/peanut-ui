@@ -111,20 +111,19 @@ export function AddMoneyDrawer({
     const [processing, setProcessing] = useState(false)
     const bank = useBankMethodState(plan)
 
-    // proposal Q1: with bank not usable now, crypto is the only way, so the choice opens on the networks;
-    // until bank is known the choice waits, so it never shows a row it then takes away
+    // Kush (2026-11-27): the choice always shows the bank row, disabled with its badge when bank cannot
+    // be used yet; there is always a bank row, so the choice is never skipped. Until bank is known the
+    // choice waits, so its row never changes under the user's tap.
     const code: AddMoneyDrawerView =
         view.kind === 'methods'
             ? bank.unknown
                 ? 'loading'
-                : bank.blocked
-                  ? 'networks'
-                  : 'methods'
+                : 'methods'
             : view.kind === 'bank'
               ? bankView(plan)
               : view.kind
     const method: AddMoneyMethod | null =
-        code === 'networks' || code === 'address' ? 'crypto' : view.kind === 'methods' ? null : 'bank'
+        code === 'networks' || code === 'address' ? 'crypto' : code === 'methods' ? null : 'bank'
 
     const reportedOpen = useRef(false)
     useEffect(() => {
@@ -178,22 +177,34 @@ export function AddMoneyDrawer({
         }
         if (code === 'methods') {
             const crypto = <CryptoMethodRow onClick={toNetworks} testId="add-money-method-crypto" />
-            // ready bank ways are rows of their own; otherwise one bank row says why, as on the card
+            const bankRow = (
+                <BankMethodRow
+                    bank={bank}
+                    onClick={() => setView({ kind: 'bank', prev: view })}
+                    testId="add-money-method-bank"
+                />
+            )
+            // ready bank ways are rows of their own; otherwise one bank row says why, as on the card, sorted
+            // last when the residence rules bank out
             return plan.kind === 'rows' ? (
                 <DrawerBankRowsView rows={plan.rows} onPick={pickRow}>
                     {crypto}
                 </DrawerBankRowsView>
             ) : (
                 <ListGroup>
-                    <BankMethodRow
-                        bank={bank}
-                        onClick={() => setView({ kind: 'bank', prev: view })}
-                        testId="add-money-method-bank"
-                    />
+                    {bank.offered && bankRow}
                     {crypto}
+                    {!bank.offered && bankRow}
                 </ListGroup>
             )
         }
+        const spinner = (
+            <div className="flex justify-center py-10">
+                <Loading />
+            </div>
+        )
+        // the choice waiting on bank: a not-offered plan with its residence rule unknown is no status yet
+        if (view.kind === 'methods') return spinner
         switch (plan.kind) {
             case 'rows':
                 return code === 'details' ? (
@@ -218,11 +229,7 @@ export function AddMoneyDrawer({
                     />
                 )
             default:
-                return (
-                    <div className="flex justify-center py-10">
-                        <Loading />
-                    </div>
-                )
+                return spinner
         }
     }
 

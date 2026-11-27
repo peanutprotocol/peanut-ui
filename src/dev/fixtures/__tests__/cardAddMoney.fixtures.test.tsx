@@ -186,6 +186,7 @@ describe('send add-money drawer fixtures', () => {
     it.each([
         ['send-add-money', { kind: 'rows', rows: [{ kind: 'page', corridor: 'ACH_US' }] }],
         ['send-add-money-bank-details', { kind: 'rows', rows: [{ kind: 'account', corridor: 'ACH_US' }] }],
+        ['send-add-money-bank-sent', { kind: 'rows', rows: [{ kind: 'account', corridor: 'ACH_US' }] }],
         ['send-add-money-funded', { kind: 'rows', rows: [{ kind: 'page', corridor: 'ACH_US' }] }],
     ])('%s: Send short by $6.80, and the bank choice is %j', async (name, expected) => {
         expect(FIXTURES[name].route).toBe('/send?recipient=alice&amount=10')

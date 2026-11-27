@@ -2796,6 +2796,23 @@ const SEND_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
             ],
         }
     ),
+    'send-add-money-bank-sent': sendAddMoney(
+        'Send $10 with $3.20 spendable: after "I\'ve sent the transfer" from the held USD account, the drawer closes and Send names the $6.80 transfer on its way.',
+        CARD_US_USER,
+        { depositAccounts: [DEPOSIT_ACCOUNT_USD] },
+        {
+            views: [
+                {
+                    id: 'send-add-money-bank-sent-view',
+                    name: 'Send: the bank transfer on its way, back on the step',
+                    flow: 'Send',
+                    route: SEND_ADD_MONEY_ROUTE,
+                    clickTestIds: ['send-add-money', 'card-add-money-rail-ach_us', 'add-money-bank-sent'],
+                    expectSelector: '[data-testid="send-add-money-bank-sent"]',
+                },
+            ],
+        }
+    ),
     'send-add-money-funded': sendAddMoney(
         'Send $10 with $3.20 spendable: tap Add $6.80, Crypto, EVM; a $10 deposit lands, the drawer closes and Send turns on, unsent (wait ~15 s).',
         CARD_US_USER,

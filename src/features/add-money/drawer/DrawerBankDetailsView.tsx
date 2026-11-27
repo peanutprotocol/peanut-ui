@@ -183,7 +183,12 @@ export function DrawerBankDetailsView({
                 withHeading={false}
             />
             {usable && (
-                <Button variant="primary" className="w-full" onClick={() => onSent(!nonUsd)}>
+                <Button
+                    variant="primary"
+                    className="w-full"
+                    onClick={() => onSent(!nonUsd)}
+                    data-testid="add-money-bank-sent"
+                >
                     {tBank('sentTransfer')}
                 </Button>
             )}

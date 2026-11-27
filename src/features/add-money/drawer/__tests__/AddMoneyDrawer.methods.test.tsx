@@ -115,18 +115,44 @@ it('a bank the user can act on is one row with its badge; its status has a back 
     expect(screen.getByTestId('add-money-method-bank')).toBeInTheDocument()
 })
 
-it.each<[string, DrawerBankPlan, typeof region]>([
-    ['under review', { kind: 'under-review' }, region],
-    ['setting up', { kind: 'setting-up', corridor: 'ACH_US' }, region],
-    ['refused for the residence', { kind: 'not-offered' }, { refused: true, known: true }],
-])('with bank %s, crypto is the only way: the drawer opens on the networks (Q1)', (_, plan, nextRegion) => {
-    region = nextRegion
-    renderDrawer(plan)
+it.each<[string, DrawerBankPlan, typeof region, string, 'first' | 'last']>([
+    ['under review', { kind: 'under-review' }, region, 'list.badgeUnderReview', 'first'],
+    ['setting up', { kind: 'setting-up', corridor: 'ACH_US' }, region, 'list.badgeSettingUp', 'first'],
+    [
+        'refused for the residence',
+        { kind: 'not-offered' },
+        { refused: true, known: true },
+        'list.badgeNotOffered',
+        'last',
+    ],
+])(
+    'with bank %s, the choice still shows the bank row, disabled with its badge, next to crypto (Kush 2026-11-27)',
+    (_, plan, nextRegion, badge, place) => {
+        region = nextRegion
+        renderDrawer(plan)
+        const bank = screen.getByTestId('add-money-method-bank')
+        expect(bank).toHaveTextContent(badge)
+        expect(bank).toHaveAttribute('aria-disabled', 'true')
+        fireEvent.click(bank)
+        // a disabled row opens nothing: the choice stays, the root with no back
+        expect(screen.getByTestId('add-money-method-crypto')).toBeInTheDocument()
+        expect(screen.queryByText('back')).not.toBeInTheDocument()
+        const rows = screen.getAllByTestId(/^add-money-method-/).map((row) => row.dataset.testid)
+        expect(rows).toEqual(
+            place === 'first'
+                ? ['add-money-method-bank', 'add-money-method-crypto']
+                : ['add-money-method-crypto', 'add-money-method-bank']
+        )
+        expect(opened()).toEqual([[ANALYTICS_EVENTS.SEND_ADD_MONEY_DRAWER_OPENED, { method: null, view: 'methods' }]])
+    }
+)
+
+it('waits while the residence rule is unknown instead of guessing a not-offered status', () => {
+    region = { refused: false, known: false }
+    renderDrawer({ kind: 'not-offered' })
     expect(screen.queryByTestId('add-money-method-bank')).not.toBeInTheDocument()
-    expect(screen.getByText('network-sol')).toBeInTheDocument()
-    // the root: no back control
-    expect(screen.queryByText('back')).not.toBeInTheDocument()
-    expect(opened()).toEqual([[ANALYTICS_EVENTS.SEND_ADD_MONEY_DRAWER_OPENED, { method: 'crypto', view: 'networks' }]])
+    expect(screen.queryByTestId('card-add-money-status-not-offered')).not.toBeInTheDocument()
+    expect(opened()).toEqual([])
 })
 
 it('waits on the plan instead of showing a choice it may take back', () => {
