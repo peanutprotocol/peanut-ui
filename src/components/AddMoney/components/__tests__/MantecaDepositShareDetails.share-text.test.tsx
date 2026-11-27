@@ -10,7 +10,6 @@ jest.mock('next/navigation', () => ({
     useParams: () => ({ country: 'argentina' }),
 }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/Payment/PaymentInfoRow', () => ({ PaymentInfoRow: () => null }))
 jest.mock('@/components/Global/CopyToClipboard', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Profile/AvatarWithBadge', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Provider/ProviderHelp', () => ({ ProviderHelp: () => null }))

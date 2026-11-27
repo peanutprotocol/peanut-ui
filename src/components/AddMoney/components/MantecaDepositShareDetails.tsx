@@ -12,7 +12,6 @@ import { countryData } from '@/components/AddMoney/consts'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import ShareButton from '@/components/Global/ShareButton'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
-import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { Icon } from '@/components/Global/Icons/Icon'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
@@ -212,22 +211,18 @@ const MantecaDepositShareDetails = ({
                 <Accordion type="single" collapsible>
                     <Accordion.Item value="rate-fees">
                         <Accordion.Trigger title={t('manteca.rateFeesArrival')} />
-                        <Accordion.Content className="py-0">
-                            <PaymentInfoRow
+                        <Accordion.Content className="divide-y divide-dashed divide-border-default py-0">
+                            <DataRow
                                 label={t('manteca.exchangeRate')}
                                 value={`1 USD = ${formatFiatRate(exchangeRate, locale)} ${currencySymbol}`}
                             />
-                            <PaymentInfoRow
+                            <DataRow
                                 label={t('manteca.providerFees')}
                                 value={networkFees}
                                 moreInfoText={t('manteca.providerFeesInfo')}
                             />
-                            <PaymentInfoRow label={tCommon('peanutFee')} value={tCommon('sponsoredByPeanut')} />
-                            <PaymentInfoRow
-                                hideBottomBorder
-                                label={tWithdraw('bank.arrives')}
-                                value={t('manteca.etaInstant')}
-                            />
+                            <DataRow label={tCommon('peanutFee')} value={tCommon('sponsoredByPeanut')} />
+                            <DataRow label={tWithdraw('bank.arrives')} value={t('manteca.etaInstant')} />
                         </Accordion.Content>
                     </Accordion.Item>
                 </Accordion>
