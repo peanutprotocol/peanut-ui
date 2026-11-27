@@ -4910,8 +4910,7 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: {
             'GET /users/history': { entries: [PUBLIC_RECEIPT_SEND_ENTRY], hasMore: false },
             'GET /history/fixture-public-receipt-send': PUBLIC_RECEIPT_SEND_ENTRY,
-            // the send screen Send again opens (TASK-25462): the handle check, then the profile
-            'HEAD /users/username/ana': USERNAME_TAKEN_ANSWER,
+            // the send screen Send again opens (TASK-25462)
             'GET /users/username/ana': {
                 userId: 'fixture-ana',
                 username: 'ana',
@@ -4926,6 +4925,8 @@ export const FIXTURES: Record<string, Fixture> = {
                 accounts: [{ identifier: '0x00000000000000000000000000000000000a0a0a', type: 'peanut-wallet' }],
             },
         },
+        // the demo api has no profile for ana and answers 404; this one is whole
+        completeResponses: ['GET /users/username/ana'],
     },
     'history-qr-pay-public-link': {
         route: '/history?tx=fixture-public-receipt-qr-pay',
