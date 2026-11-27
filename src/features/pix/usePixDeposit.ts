@@ -6,6 +6,7 @@ import { pixApi } from '@/services/pix'
 import { ApiError } from '@/services/api-error'
 import { pixDepositPhase, type PixDepositPhase } from '@/features/pix/pixFlow.utils'
 import { pixDepositQueryKey } from '@/features/pix/pixDepositCode'
+import { saveLastDepositMethod } from '@/features/add-money/lastUsedAddMethod'
 
 const POLLING_INTERVAL_MS = 5000
 const SETTLED_PHASES: PixDepositPhase[] = ['completed', 'returned', 'expired']
@@ -38,6 +39,7 @@ export function usePixDeposit(intentId: string, onComplete: () => void) {
         // the query is keyed by the deposit, so a completed phase is this deposit's
         if (phase === 'completed' && completedFor.current !== intentId) {
             completedFor.current = intentId
+            saveLastDepositMethod('pix')
             onComplete()
         }
     }, [phase, intentId, onComplete])

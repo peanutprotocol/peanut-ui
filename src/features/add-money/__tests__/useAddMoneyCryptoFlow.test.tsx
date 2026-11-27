@@ -42,6 +42,8 @@ jest.mock('@/constants/zerodev.consts', () => ({
 }))
 
 jest.mock('@/utils/general.utils', () => ({
+    // the real storage helpers, so the last deposit method lands in jsdom's localStorage
+    saveToLocalStorage: jest.requireActual('@/utils/general.utils').saveToLocalStorage,
     sanitizeRedirectURL: jest.fn((url: string) =>
         url.startsWith('/') && !url.startsWith('//') && !url.includes('://') ? url : null
     ),
@@ -129,6 +131,14 @@ describe('useAddMoneyCryptoFlow', () => {
         // receipt details derive from the deposit result
         expect(result.current.depositTransactionDetails?.amount).toBe(50)
         expect(result.current.depositTransactionDetails?.tokenSymbol).toBe('USDT')
+    })
+
+    it('records crypto as the last deposit method only when a deposit completes', () => {
+        localStorage.clear()
+        const { result } = renderFlow()
+        expect(localStorage.getItem('peanut-last-add-method')).toBeNull()
+        act(() => result.current.handleSuccess(50))
+        expect(JSON.parse(localStorage.getItem('peanut-last-add-method') ?? 'null')).toBe('crypto')
     })
 
     // A bare hash is not a receipt key: GET /history/:id resolves a crypto

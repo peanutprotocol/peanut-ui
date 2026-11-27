@@ -1,12 +1,14 @@
 import { getFromLocalStorage, saveToLocalStorage } from '@/utils/general.utils'
 import type { AddMoneyMethod } from './addMoneyMethods'
 
-// on the phone only, no backend (Kush, 27 Nov). "used" means tapped in the Home Add drawer.
-const LAST_USED_ADD_METHOD_KEY = 'peanut-last-add-method'
+// on the phone only, no backend. "used" means the method of the last deposit that completed on screen, not a
+// tap (Kush, 27 Nov)
+const LAST_DEPOSIT_METHOD_KEY = 'peanut-last-add-method'
 
-export const readLastUsedAddMethod = (): unknown => getFromLocalStorage(LAST_USED_ADD_METHOD_KEY)
+export const readLastDepositMethod = (): unknown => getFromLocalStorage(LAST_DEPOSIT_METHOD_KEY)
 
-export const saveLastUsedAddMethod = (method: AddMoneyMethod) => saveToLocalStorage(LAST_USED_ADD_METHOD_KEY, method)
+/** Call where a deposit through `method` completes, so Home's Add drawer leads with it next time. */
+export const saveLastDepositMethod = (method: AddMoneyMethod) => saveToLocalStorage(LAST_DEPOSIT_METHOD_KEY, method)
 
 /**
  * Splits the Add rows into the last used one and the others, keeping their order. A stored method that is

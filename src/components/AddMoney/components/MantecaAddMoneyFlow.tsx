@@ -47,6 +47,7 @@ import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
 import { kycFeatureRefusalCopy } from '@/utils/kyc-feature-outcome.utils'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import NavHeader from '@/components/Global/NavHeader'
+import { saveLastDepositMethod } from '@/features/add-money/lastUsedAddMethod'
 
 // Step type for URL state
 type MantecaStep = 'inputAmount' | 'depositDetails'
@@ -118,6 +119,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     // an ARS transfer Manteca let lapse unpaid: the details screen says so and offers a new one
     const arsDeposit = residenceGatedCountry && step === 'depositDetails' ? depositDetails : undefined
     const { status: arsDepositStatus } = useMantecaDepositPolling(arsDeposit?.id, () => {
+        saveLastDepositMethod('ars')
         void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
     })
     const localAccount = residenceGatedCountry ? bankEntryFor('ars') : null

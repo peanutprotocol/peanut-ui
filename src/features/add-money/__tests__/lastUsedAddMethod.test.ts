@@ -1,4 +1,4 @@
-import { readLastUsedAddMethod, saveLastUsedAddMethod, splitLastUsed } from '../lastUsedAddMethod'
+import { readLastDepositMethod, saveLastDepositMethod, splitLastUsed } from '../lastUsedAddMethod'
 import type { AddMoneyMethod } from '../addMoneyMethods'
 
 const argentina: AddMoneyMethod[] = ['ars', 'bank', 'crypto']
@@ -38,8 +38,8 @@ describe('the stored method', () => {
     beforeEach(() => localStorage.clear())
 
     it('reads back what was saved, and nothing before that', () => {
-        expect(readLastUsedAddMethod()).toBeNull()
-        saveLastUsedAddMethod('bank')
-        expect(readLastUsedAddMethod()).toBe('bank')
+        expect(readLastDepositMethod()).toBeNull()
+        saveLastDepositMethod('bank')
+        expect(readLastDepositMethod()).toBe('bank')
     })
 })

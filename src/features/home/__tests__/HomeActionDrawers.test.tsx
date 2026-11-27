@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { withNuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
 import { resolveAddMoneyMethods } from '@/features/add-money/addMoneyMethods'
+import { saveLastDepositMethod } from '@/features/add-money/lastUsedAddMethod'
 import { isCapacitor } from '@/utils/capacitor'
 import { HomeActionDrawers } from '../components/HomeActionDrawers'
 import { resetBottomNavVisibilityForTests, useBottomNavHidden } from '@/utils/bottom-nav-visibility'
@@ -130,18 +131,26 @@ describe('HomeActionDrawers', () => {
     describe('the last used method', () => {
         const ids = () => screen.getAllByTestId(/^home-drawer-add-/).map((row) => row.getAttribute('data-testid'))
 
-        it('shows no Last used section before a method was tapped', () => {
+        it('shows no Last used section before any deposit completed', () => {
             renderWithUrl('?drawer=add')
             expect(screen.queryByText('lastUsed')).not.toBeInTheDocument()
             expect(screen.queryByText('otherWays')).not.toBeInTheDocument()
         })
 
-        it('remembers the tapped method and leads with it under Last used next time', async () => {
+        // Kush, 27 Nov: "last used" is the last completed deposit, never a tap
+        it('does not remember a tap alone', async () => {
             const first = renderWithUrl('?drawer=add')
             fireEvent.click(screen.getByTestId('home-drawer-add-crypto'))
             await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/crypto'))
             first.unmount()
 
+            renderWithUrl('?drawer=add')
+            expect(screen.queryByText('lastUsed')).not.toBeInTheDocument()
+            expect(ids()).toEqual(['home-drawer-add-bank', 'home-drawer-add-crypto'])
+        })
+
+        it('leads with the method of the last completed deposit under Last used', () => {
+            saveLastDepositMethod('crypto')
             renderWithUrl('?drawer=add')
             expect(screen.getByRole('heading', { name: 'lastUsed' })).toBeInTheDocument()
             expect(screen.getByRole('heading', { name: 'otherWays' })).toBeInTheDocument()

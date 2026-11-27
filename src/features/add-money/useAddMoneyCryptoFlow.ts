@@ -18,6 +18,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useQueryState, parseAsStringEnum, parseAsString } from 'nuqs'
 import posthog from 'posthog-js'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { saveLastDepositMethod } from '@/features/add-money/lastUsedAddMethod'
 
 /** An EVM transaction hash, the only shape the history route keys a receipt on. */
 const EVM_TX_HASH = /^0x[0-9a-f]{64}$/i
@@ -92,6 +93,7 @@ export function useAddMoneyCryptoFlow() {
                 method_type: 'crypto',
                 acquisition_source: user?.invitedBy ? 'referred' : 'organic',
             })
+            saveLastDepositMethod('crypto')
             setDepositResult(statusData ?? { status: 'completed', amount })
             setShowSuccessView(true)
         },

@@ -14,7 +14,7 @@ import { useEffect, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { BANK_HUB_PATH, type AddMoneyMethod } from '@/features/add-money/addMoneyMethods'
-import { readLastUsedAddMethod, saveLastUsedAddMethod, splitLastUsed } from '@/features/add-money/lastUsedAddMethod'
+import { readLastDepositMethod, splitLastUsed } from '@/features/add-money/lastUsedAddMethod'
 import type { useAddMoneyReadiness } from '@/features/add-money/useAddMoneyReadiness'
 import { readReturnTo, RETURN_TO_PARAM, withReturnTo } from '@/utils/return-to.utils'
 import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
@@ -82,17 +82,11 @@ export function HomeActionDrawers({
                     method === 'pix'
                     ? PIX_ADD_MONEY_PATH
                     : rewriteMethodPath(ARS_ADD_MONEY_PATH),
-        method,
     })
-    // the Add drawer lists the picker's rows, with the one last tapped here first under its own heading.
-    // read once per opening, so the tapped row does not jump while the sheet slides away
-    const addWasOpen = useRef(false)
-    const storedLastUsed = useRef<unknown>(null)
-    if (drawer === 'add' && !addWasOpen.current) storedLastUsed.current = readLastUsedAddMethod()
-    addWasOpen.current = drawer === 'add'
+    // the Add drawer lists the picker's rows, with the method of the last completed deposit first
     const { lastUsed, others } = splitLastUsed(
         addMoney.pickerMethods,
-        content === 'add' ? storedLastUsed.current : null
+        content === 'add' ? readLastDepositMethod() : null
     )
     const options =
         content === 'add'
@@ -103,13 +97,11 @@ export function HomeActionDrawers({
                   leading: <IconBubble {...CONCEPT_ICONS[option.concept]} size="s" />,
                   title: t(option.titleKey),
                   body: option.bodyKey ? t(option.bodyKey) : undefined,
-                  method: undefined,
               }))
 
-    const navigate = async (option: { href: string; method?: AddMoneyMethod }) => {
+    const navigate = async (option: { href: string }) => {
         if (navigating.current) return
         navigating.current = true
-        if (option.method) saveLastUsedAddMethod(option.method)
         const origin = readReturnTo(new URLSearchParams(returnTo ? { returnTo } : {}), '/home')
         try {
             // Clear Home's drawer state before navigating so Back lands on closed Home.
