@@ -199,9 +199,8 @@ export function SemanticRequestConfirmView() {
                         isCrossChain={isCrossChainPayment}
                         sponsoredGasUsd={calculatedGasCost}
                         estimationFailed={isFeeEstimationError}
+                        hideBottomBorder
                     />
-
-                    <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value="$0" />
                 </Card>
 
                 {/* buttons and error */}

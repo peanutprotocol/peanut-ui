@@ -1,11 +1,12 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import GlobalCard from '@/components/Global/Card'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { ProviderHelp } from '@/components/Provider/ProviderHelp'
 import { PROVIDERS } from '@/constants/providers.consts'
+import { RateHelpTrigger } from '@/features/rates-fees/RateInfoDrawer'
 import type { ProviderId } from '@/types/provider.types'
 import { formatFiatRate } from '@/utils/currency'
 
@@ -44,7 +45,7 @@ export function PaymentDetailsCard({
     providerId: ProviderId | null
 }) {
     const t = useTranslations('qrPay')
-    const tCommon = useTranslations('common')
+    const locale = useLocale()
     const tProvider = useTranslations('provider')
     const tPix = useTranslations('pix.withdraw')
     const tWithdraw = useTranslations('withdraw')
@@ -54,9 +55,15 @@ export function PaymentDetailsCard({
     if (rate !== undefined)
         rows.push({
             key: 'rate',
-            label: t('info.exchangeRate'),
-            value: rate ? `1 USD = ${formatFiatRate(rate.price)} ${rate.code.toUpperCase()}` : '',
-            moreInfoText: tCommon('exchangeRateInfo'),
+            label: rate ? (
+                <span className="flex items-center gap-1">
+                    {t('info.exchangeRate')}
+                    <RateHelpTrigger currency={rate.code} lockedRate={rate.price} lockMode="qr" />
+                </span>
+            ) : (
+                t('info.exchangeRate')
+            ),
+            value: rate ? `1 USD = ${formatFiatRate(rate.price, locale)} ${rate.code.toUpperCase()}` : '',
         })
     if (savings) {
         rows.push({
@@ -67,7 +74,6 @@ export function PaymentDetailsCard({
             moreInfoText: t('info.saveVsCardTooltipArs'),
         })
     }
-    rows.push({ key: 'peanut-fee', label: tCommon('peanutFee'), value: tCommon('sponsoredByPeanut') })
     if (providerFee) rows.push({ key: 'provider-fee', label: tPix('fee'), value: providerFee })
     if (payout !== undefined)
         rows.push({

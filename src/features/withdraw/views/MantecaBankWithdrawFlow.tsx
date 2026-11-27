@@ -116,10 +116,11 @@ import {
 } from '@/features/withdraw/manteca-withdraw-amount'
 import { WITHDRAW_MANTECA_STEPS } from '@/features/withdraw/types'
 import { mantecaStepGuards, type MantecaOutcome } from '@/features/withdraw/step-guards'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { loadingStateKey } from '@/i18n/app/loading-states'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { KycControlFlowProvider } from '@/features/paperwork-verification/analytics'
+import { RateHelpTrigger } from '@/features/rates-fees/RateInfoDrawer'
 
 /** The order a signed withdrawal pays: the card preparation when it has one, else the price lock. */
 const withdrawalOrderId = (artifact: SignedSpendArtifact, priceLockCode: string) =>
@@ -215,6 +216,7 @@ async function readWithdrawal(
 
 export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams: Pick<URLSearchParams, 'get'> }) {
     const t = useTranslations('withdraw')
+    const locale = useLocale()
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const tLoading = useTranslations('loadingStates')
@@ -1630,13 +1632,17 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
                             value={destinationAddress}
                         />
                         <PaymentInfoRow
-                            label={t('manteca.exchangeRate')}
-                            value={`1 USD = ${formatFiatRate(priceLock?.price ?? currencyPrice!.sell)} ${currencyCode!.toUpperCase()}`}
-                            moreInfoText={tCommon('exchangeRateInfo')}
-                        />
-                        <PaymentInfoRow
-                            label={tCommon('peanutFee')}
-                            value={tCommon('sponsoredByPeanut')}
+                            label={
+                                <span className="flex items-center gap-1">
+                                    {t('manteca.exchangeRate')}
+                                    <RateHelpTrigger
+                                        currency={currencyCode!}
+                                        lockedRate={Number(priceLock?.price ?? currencyPrice!.sell)}
+                                        lockMode="qr"
+                                    />
+                                </span>
+                            }
+                            value={`1 USD = ${formatFiatRate(priceLock?.price ?? currencyPrice!.sell, locale)} ${currencyCode!.toUpperCase()}`}
                             hideBottomBorder
                         />
                     </Card>

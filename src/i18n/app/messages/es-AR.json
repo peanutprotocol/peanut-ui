@@ -509,7 +509,14 @@
             "youSend": "Vos enviás",
             "recipientGets": "Recibís"
         },
-        "balanceNote": "Tu saldo de Peanut se muestra en USD. Donde se admitan transferencias bancarias en moneda local, podés retirar en esa moneda."
+        "balanceNote": "Tu saldo de Peanut se muestra en USD. Donde se admitan transferencias bancarias en moneda local, podés retirar en esa moneda.",
+        "title": "Cotizaciones y comisiones",
+        "converter": {
+            "youSendLocal": "Enviás ({currency})",
+            "youSendUsd": "Enviás desde tu saldo (USD)",
+            "youReceiveUsd": "Recibís en tu saldo",
+            "youReceiveLocal": "Recibís en tu banco ({currency})"
+        }
     },
     "setup": {
         "choicesLater": "Podés cambiar tus opciones más adelante.",

@@ -109,6 +109,26 @@
         "addMoney.methods.mercadoPago": {
             "locales": ["es-419", "es-AR", "pt-BR"],
             "reason": "brand name (Mercado Pago), the same in every language"
+        },
+        "exchangeRate.benchmarks.cripto": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "Argentine FX benchmark proper name (Dólar cripto), kept in Spanish in en as well"
+        },
+        "exchangeRate.benchmarks.mep": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "Argentine FX benchmark proper name (Dólar MEP), kept in Spanish in en as well"
+        },
+        "exchangeRate.benchmarks.blue": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "Argentine FX benchmark proper name (Dólar blue), kept in Spanish in en as well"
+        },
+        "exchangeRate.benchmarks.tarjeta": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "Argentine FX benchmark proper name (Dólar tarjeta), kept in Spanish in en as well"
+        },
+        "exchangeRate.benchmarks.oficial": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "Argentine FX benchmark proper name (Dólar oficial), kept in Spanish in en as well"
         }
     }
 }
