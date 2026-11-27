@@ -4906,10 +4906,24 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'history-receipt-public-link': {
         route: '/history?tx=fixture-public-receipt-send',
-        about: 'A P2P send with a public receipt: Share receipt sends the link, the PDF is under More actions.',
+        about: 'A completed P2P send with a public receipt: Share receipt sends the link, Send again opens the send screen with the amount and note, the PDF is under More actions.',
         responses: {
             'GET /users/history': { entries: [PUBLIC_RECEIPT_SEND_ENTRY], hasMore: false },
             'GET /history/fixture-public-receipt-send': PUBLIC_RECEIPT_SEND_ENTRY,
+            // the send screen Send again opens (TASK-25462)
+            'GET /users/username/ana': {
+                userId: 'fixture-ana',
+                username: 'ana',
+                fullName: 'Ana Ruiz',
+                firstName: 'Ana',
+                lastName: 'Ruiz',
+                showFullName: true,
+                avatarKey: 'basic.frog',
+                isVerified: true,
+                totalUsdSentToCurrentUser: '0',
+                totalUsdReceivedFromCurrentUser: '25',
+                accounts: [{ identifier: '0x00000000000000000000000000000000000a0a0a', type: 'peanut-wallet' }],
+            },
         },
     },
     'history-qr-pay-public-link': {
