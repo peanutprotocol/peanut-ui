@@ -133,12 +133,20 @@ describe('useAddMoneyCryptoFlow', () => {
         expect(result.current.depositTransactionDetails?.tokenSymbol).toBe('USDT')
     })
 
-    it('records crypto as the last deposit method only when a deposit completes', () => {
+    it('records crypto as the last deposit method when a deposit seen open completes', () => {
         localStorage.clear()
         const { result } = renderFlow()
         expect(localStorage.getItem('peanut-last-add-method')).toBeNull()
-        act(() => result.current.handleSuccess(50))
+        act(() => result.current.handleSuccess(50, undefined, true))
         expect(JSON.parse(localStorage.getItem('peanut-last-add-method') ?? 'null')).toBe('crypto')
+    })
+
+    it('keeps a newer method when the cached address replays an old completed deposit', () => {
+        localStorage.setItem('peanut-last-add-method', JSON.stringify('pix'))
+        const { result } = renderFlow()
+        act(() => result.current.handleSuccess(50, { status: 'completed', amount: 50 } as never, false))
+        expect(result.current.showSuccessView).toBe(true)
+        expect(JSON.parse(localStorage.getItem('peanut-last-add-method') ?? 'null')).toBe('pix')
     })
 
     // A bare hash is not a receipt key: GET /history/:id resolves a crypto

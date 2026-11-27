@@ -10,7 +10,9 @@
  * receives pre-resolved recipient data from wrapper
  */
 
+import { useEffect, useState } from 'react'
 import { DirectSendFlowProvider, useDirectSendFlowContext, type DirectSendRecipient } from './DirectSendFlowContext'
+import { clearRepeatDraft, peekRepeatDraft } from '@/features/payments/shared/repeat-draft'
 import { SendInputView } from './views/SendInputView'
 import { SendSuccessView } from './views/SendSuccessView'
 
@@ -34,8 +36,18 @@ interface DirectSendPageProps {
 
 // exported page component with provider
 export function DirectSendPage({ recipient }: DirectSendPageProps) {
+    // read in the initializer, cleared after mount: a strict-mode double
+    // initializer must see the draft both times
+    const [draft] = useState(() => {
+        const offered = peekRepeatDraft('user')
+        return offered && offered.username.toLowerCase() === recipient.username.toLowerCase() ? offered : null
+    })
+    useEffect(() => {
+        if (draft) clearRepeatDraft()
+    }, [draft])
+
     return (
-        <DirectSendFlowProvider initialRecipient={recipient}>
+        <DirectSendFlowProvider initialRecipient={recipient} initialDraft={draft ?? undefined}>
             <SendFlowContent />
         </DirectSendFlowProvider>
     )

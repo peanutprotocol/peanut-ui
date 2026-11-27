@@ -59,6 +59,12 @@ export type Fixture = {
      * (the Home checklist's "Add money") says it here.
      */
     balance?: string
+    /**
+     * The balance once a watched crypto deposit lands: after a `GET /rhino/status/*`
+     * answer reads `completed`, the fixture serves this instead of `balance`, as
+     * the backend would credit the deposit. For a screen that reacts to the new balance.
+     */
+    balanceAfterDeposit?: string
     /** ISO 3166-1 alpha-2 country to seed for IP geolocation in screenshots. */
     geoCountry?: string
     /** `METHOD /path` keys that answer 500, for error-state screens. */

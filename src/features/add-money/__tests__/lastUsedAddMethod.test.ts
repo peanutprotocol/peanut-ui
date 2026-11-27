@@ -1,8 +1,8 @@
 import { readLastDepositMethod, saveLastDepositMethod, splitLastUsed } from '../lastUsedAddMethod'
-import type { AddMoneyMethod } from '../addMoneyMethods'
+import type { AddMoneyPickerMethod } from '../addMoneyMethods'
 
-const argentina: AddMoneyMethod[] = ['ars', 'bank', 'crypto']
-const everyRow = (split: ReturnType<typeof splitLastUsed<AddMoneyMethod>>) =>
+const argentina: AddMoneyPickerMethod[] = ['ars', 'bank', 'crypto']
+const everyRow = (split: ReturnType<typeof splitLastUsed<AddMoneyPickerMethod>>) =>
     [split.lastUsed, ...split.others].filter(Boolean).sort()
 
 describe('splitLastUsed', () => {
@@ -22,7 +22,7 @@ describe('splitLastUsed', () => {
         ['an old "Bank accounts" row', 'account', ['pix', 'bank', 'crypto']],
         ['a value that is not a string', { method: 'bank' }, ['bank', 'crypto']],
     ] as const)('ignores %s', (_, stored, methods) => {
-        expect(splitLastUsed(methods as readonly AddMoneyMethod[], stored)).toEqual({
+        expect(splitLastUsed(methods as readonly AddMoneyPickerMethod[], stored)).toEqual({
             lastUsed: null,
             others: methods,
         })

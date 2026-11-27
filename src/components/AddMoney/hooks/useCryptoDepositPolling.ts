@@ -2,6 +2,7 @@
 
 import { rhinoApi } from '@/services/rhino'
 import type { DepositAddressStatusResponse } from '@/services/services.types'
+import { forgetCryptoDepositsAt } from '@/features/add-money/captureCryptoDepositCompleted'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 
@@ -11,24 +12,41 @@ type DepositStatus = 'not_started' | 'loading' | 'failed' | 'completed'
 
 export function useCryptoDepositPolling(
     depositAddress: string | undefined,
-    onSuccess: (amount: number, statusData?: DepositAddressStatusResponse) => void,
+    /** `seenOpen`: this screen read the deposit before it completed, so it is new, not an old one replayed */
+    onSuccess: (amount: number, statusData?: DepositAddressStatusResponse, seenOpen?: boolean) => void,
     /** The charge a request-payment address was opened for; needed to clear its status. */
-    chargeId?: string
+    chargeId?: string,
+    /**
+     * Read the status at once instead of after the delay: a caller that opens on an address the user
+     * may already have sent to must see a deposit in flight before it shows the address again.
+     */
+    { readNow = false }: { readNow?: boolean } = {}
 ) {
-    const [isDelayComplete, setIsDelayComplete] = useState(false)
+    const [isDelayComplete, setIsDelayComplete] = useState(readNow)
     const [isResetting, setIsResetting] = useState(false)
     const hasCalledSuccess = useRef(false)
+    const seenOpen = useRef(false)
     const isResettingRef = useRef(false)
     const queryClient = useQueryClient()
 
     useEffect(() => {
+        if (readNow) return
         const timer = setTimeout(() => setIsDelayComplete(true), POLLING_DELAY)
         return () => clearTimeout(timer)
-    }, [])
+    }, [readNow])
 
     const queryKey = useMemo(() => ['rhino-deposit-address-status', depositAddress], [depositAddress])
 
-    const { data: statusData } = useQuery({
+    // after a clear the status reads "not started" at once, but that answer is ours, not the API's: it
+    // counts as read only once a real answer lands after it (`dataUpdatedAt` past this mark)
+    const [syntheticAt, setSyntheticAt] = useState<number | null>(null)
+
+    const {
+        data: statusData,
+        dataUpdatedAt,
+        isError,
+        refetch,
+    } = useQuery({
         queryKey,
         queryFn: () => {
             if (!depositAddress) {
@@ -56,11 +74,13 @@ export function useCryptoDepositPolling(
     }, [statusData])
 
     useEffect(() => {
+        // an absent status (404) or one still in flight: whatever completes next was sent while on screen
+        if ((statusData || isError) && status !== 'completed' && status !== 'failed') seenOpen.current = true
         if (status === 'completed' && statusData?.amount && !hasCalledSuccess.current) {
             hasCalledSuccess.current = true
-            onSuccess(statusData.amount, statusData)
+            onSuccess(statusData.amount, statusData, seenOpen.current)
         }
-    }, [statusData, status, onSuccess])
+    }, [statusData, status, isError, onSuccess])
 
     const resetStatus = useCallback(async () => {
         if (isResettingRef.current || !depositAddress) return
@@ -71,6 +91,8 @@ export function useCryptoDepositPolling(
             await queryClient.cancelQueries({ queryKey })
             hasCalledSuccess.current = false
             queryClient.setQueryData<DepositAddressStatusResponse>(queryKey, { status: 'not_started' })
+            setSyntheticAt(queryClient.getQueryState(queryKey)?.dataUpdatedAt ?? Date.now())
+            forgetCryptoDepositsAt(depositAddress)
             await queryClient.invalidateQueries({ queryKey })
         } catch (error) {
             console.error('Failed to reset deposit status:', error)
@@ -81,5 +103,20 @@ export function useCryptoDepositPolling(
         }
     }, [depositAddress, chargeId, queryKey, queryClient])
 
-    return { status, resetStatus, isResetting }
+    const synthetic = syntheticAt !== null && dataUpdatedAt <= syntheticAt
+    /**
+     * `isStatusRead`: the API answered with a status, so `status` is not a guess. Until then (no answer
+     * yet, or only the "not started" a clear wrote) a failed read (`statusError`) is unknown, never "not
+     * started": a deposit may be on its way. The poll keeps reading; `refetchStatus` reads again at once.
+     */
+    return {
+        status,
+        resetStatus,
+        isResetting,
+        isStatusRead: statusData !== undefined && !synthetic,
+        statusError: isError && (statusData === undefined || synthetic),
+        /** the latest read failed, so even a known status may be out of date (the poll keeps trying) */
+        statusFailing: isError,
+        refetchStatus: refetch,
+    }
 }

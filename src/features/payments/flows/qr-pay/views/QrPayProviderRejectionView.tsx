@@ -113,7 +113,8 @@ export function QrPayProviderRejectionView() {
                           : {
                                 text: tCommon('contactSupport'),
                                 onClick: () => setIsSupportModalOpen(true),
-                                variant: 'secondary' as const,
+                                // the only path out, so it is the primary (design.md: secondary needs a primary beside it)
+                                variant: 'primary' as const,
                             },
                 ]}
             />

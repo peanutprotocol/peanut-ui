@@ -13,7 +13,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
-import { BANK_HUB_PATH, type AddMoneyMethod } from '@/features/add-money/addMoneyMethods'
+import { BANK_HUB_PATH, type AddMoneyPickerMethod } from '@/features/add-money/addMoneyMethods'
 import { readLastDepositMethod, splitLastUsed } from '@/features/add-money/lastUsedAddMethod'
 import type { useAddMoneyReadiness } from '@/features/add-money/useAddMoneyReadiness'
 import { readReturnTo, RETURN_TO_PARAM, withReturnTo } from '@/utils/return-to.utils'
@@ -61,7 +61,7 @@ export function HomeActionDrawers({
         }
         if (drawer !== 'add') redirecting.current = false
     }, [drawer, staleAdd, returnTo, router, setDrawer, setReturnTo])
-    const addRow = (method: AddMoneyMethod) => ({
+    const addRow = (method: AddMoneyPickerMethod) => ({
         key: method,
         title:
             method === 'ars'

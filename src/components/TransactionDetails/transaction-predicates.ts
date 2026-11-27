@@ -48,6 +48,36 @@ export function isSplittable(transaction: TransactionDetails): boolean {
 }
 
 /**
+ * The Peanut user a completed send can go to again from its receipt
+ * (TASK-25462), or null. Direct sends only: a paid request belongs to that
+ * request, a link names no recipient, and bank, crypto, card and QR payments
+ * are not to a Peanut user.
+ */
+export function sendAgainUsername(transaction: TransactionDetails): string | null {
+    // P2P_SEND: the legacy charge-backed send, still in older histories
+    if (!isDirectSendEntry(transaction) && !isKind(transaction, 'P2P_SEND')) return null
+    if (transaction.direction !== 'send' || transaction.status !== 'completed') return null
+    return transaction.isPeerActuallyUser ? (transaction.peer?.username ?? null) : null
+}
+
+/**
+ * The destination a completed bank or Pix payout can go to again from its
+ * receipt (TASK-25462), or null. `isSend`: a Pix payout to another person's
+ * key, which Send repeats; the user's own payout is a withdrawal. A bank
+ * send-link claim is not a payout of the viewer's. The owner's history carries
+ * the raw identifier; the button shows only when it matches a saved account.
+ */
+export function payoutAgainDestination(
+    transaction: TransactionDetails
+): { identifier: string; isSend: boolean } | null {
+    if (!isKind(transaction, 'OFFRAMP') || transaction.status !== 'completed') return null
+    if (transaction.extraDataForDrawer?.bridgeFlow === 'BANK_SEND_LINK_CLAIM') return null
+    if (transaction.direction !== 'bank_withdraw' && transaction.direction !== 'send') return null
+    const identifier = transaction.bankAccountDetails?.identifier
+    return identifier ? { identifier, isSend: transaction.direction === 'send' } : null
+}
+
+/**
  * A payout to a bank account or a Pix key, whose intent id the receipt prints as the Transfer ID
  * support asks for. A Pix payout to another person's key reads as a send (TASK-24947) and keeps
  * it; a bank send-link claimed by a Peanut user is a send to them, not a payout.

@@ -2,7 +2,8 @@ import { corridorHasTopUp } from './countryRoutes'
 import { DEPOSIT_RAIL_ORDER, DEPOSIT_RAILS, isClaimable } from '@/features/deposit-accounts/rails'
 import { residenceAllows } from '@/features/deposit-accounts/residenceGate'
 
-export type AddMoneyMethod = 'bank' | 'pix' | 'ars' | 'crypto'
+/** The rows of the Add picker, Home's Add drawer and the card's funding step. */
+export type AddMoneyPickerMethod = 'ars' | 'pix' | 'bank' | 'crypto'
 
 /** the bank hub: its country list routes to the reusable account or the one-time transfer (`useDepositCountryRouting`) */
 export const BANK_HUB_PATH = '/add-money?method=bank'
@@ -88,7 +89,7 @@ export function resolveAddMoneyMethods(input: {
     // makes the user returning but is no usable method on its own: it sits behind the bank row.
     const accountsOffered = input.standingEnabled || ready.account.length > 0
     const usable = arsRow || pixRow !== null || accountsOffered || input.cryptoReady
-    const pickerMethods: AddMoneyMethod[] = []
+    const pickerMethods: AddMoneyPickerMethod[] = []
     if (arsRow) pickerMethods.push('ars')
     if (pixRow === 'first') pickerMethods.push('pix')
     // One bank row for everybody (the owner, 25 Nov, Release 170.2): it opens the bank hub, where a

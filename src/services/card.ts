@@ -51,4 +51,19 @@ export const cardApi = {
         }
         return (await response.json()) as CardInfoResponse
     },
+
+    /**
+     * POST /card/funding-pending — the user sent a bank transfer from the card's funding step. The API
+     * keeps that for 7 days, so the push for the landing deposit opens the card step (TASK-25169). No
+     * body: the session names the user.
+     */
+    markFundingPending: async (): Promise<void> => {
+        await assertAuthenticated()
+        // the caller reports: a 404 (the API that keeps the marker is not deployed yet; peanut-api-ts#2314
+        // ships first) is no error, and the push stays the plain receipt; anything else throws, and
+        // CardFundingStep sends that to Sentry
+        const response = await apiFetch('/card/funding-pending', { method: 'POST', callerReportsFailures: true })
+        if (response.status === 404) return
+        if (!response.ok) throw new Error(`Failed to mark card funding pending: ${response.status}`)
+    },
 }
