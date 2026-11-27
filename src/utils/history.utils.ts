@@ -1,6 +1,7 @@
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { getFromLocalStorage } from '@/utils/general.utils'
+import { sendLinkPasswordKey } from '@/utils/peanut-link.utils'
 import { formatUnits } from 'viem'
 import { type Hash } from 'viem'
 import { getTokenDetails } from '@/utils/token.utils'
@@ -541,7 +542,7 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             // writes that key onto the intent extraData so the lookup
             // works whether the row's `uuid` is the intent id or the pubKey.
             const lookupKey = extraData.parentSendLinkPubKey ?? entry.uuid
-            const password = getFromLocalStorage(`sendLink::password::${lookupKey}`)
+            const password = getFromLocalStorage(sendLinkPasswordKey(lookupKey))
             const { contractVersion, depositIdx } = extraData
             if (password) {
                 link = shareableUrl(`/claim?c=${entry.chainId}&v=${contractVersion}&i=${depositIdx}#p=${password}`)

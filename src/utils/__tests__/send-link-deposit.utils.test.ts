@@ -10,7 +10,9 @@ import {
     LINK_DEPOSIT_LATE_RECEIPT_TIMEOUT_MS,
     LinkDepositUnconfirmedError,
     parseLinkDeposit,
+    readUserOpFate,
     resolveLinkDeposit,
+    unconfirmedLinkStore,
 } from '@/utils/send-link-deposit.utils'
 import { isDemoMode } from '@/utils/demo'
 import {
@@ -135,5 +137,66 @@ describe('resolveLinkDeposit', () => {
         const deposit = await resolveLinkDeposit({ ...base, receipt: null, receiptWaiter })
         expect(deposit.depositIdx).toBe(0)
         expect(receiptWaiter).not.toHaveBeenCalled()
+    })
+})
+
+describe('readUserOpFate', () => {
+    const notFound = (name: string) => Object.assign(new Error('not found'), { name })
+    const lookup = (receipt: unknown, op: unknown) => ({
+        getUserOperationReceipt: jest.fn(async () => {
+            if (receipt instanceof Error) throw receipt
+            return receipt as { success: boolean; receipt: ReturnType<typeof receiptWith> }
+        }),
+        getUserOperation: jest.fn(async () => {
+            if (op instanceof Error) throw op
+            return op
+        }),
+    })
+
+    test('a receipt means the op ran', async () => {
+        const receipt = receiptWith([depositLog({ index: 589n })])
+        expect(await readUserOpFate(lookup({ success: true, receipt }, null), USEROP_HASH)).toEqual({
+            state: 'landed',
+            receipt,
+        })
+        expect(await readUserOpFate(lookup({ success: false, receipt }, null), USEROP_HASH)).toEqual({
+            state: 'reverted',
+        })
+    })
+
+    test('no receipt but a known op: still pending', async () => {
+        const client = lookup(notFound('UserOperationReceiptNotFoundError'), { userOperation: {} })
+        expect(await readUserOpFate(client, USEROP_HASH)).toEqual({ state: 'pending' })
+    })
+
+    test('neither: the bundler dropped it', async () => {
+        const client = lookup(notFound('UserOperationReceiptNotFoundError'), notFound('UserOperationNotFoundError'))
+        expect(await readUserOpFate(client, USEROP_HASH)).toEqual({ state: 'dropped' })
+    })
+
+    test('an RPC failure is not a fate: it propagates', async () => {
+        const client = lookup(new Error('HTTP request failed. Status: 502'), null)
+        await expect(readUserOpFate(client, USEROP_HASH)).rejects.toThrow('502')
+    })
+})
+
+describe('unconfirmedLinkStore', () => {
+    const record = {
+        userOpHash: USEROP_HASH,
+        pubKey: PUB_KEY,
+        sender: SENDER,
+        chainId: '42161',
+        contractVersion: 'v4.4',
+        tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' as const,
+        amount: '5000000',
+    }
+    afterEach(() => unconfirmedLinkStore.clear())
+
+    test('keeps the record for its sender only, until cleared', () => {
+        unconfirmedLinkStore.save(record)
+        expect(unconfirmedLinkStore.read(SENDER)).toEqual(record)
+        expect(unconfirmedLinkStore.read(OTHER_SENDER)).toBeNull()
+        unconfirmedLinkStore.clear()
+        expect(unconfirmedLinkStore.read(SENDER)).toBeNull()
     })
 })

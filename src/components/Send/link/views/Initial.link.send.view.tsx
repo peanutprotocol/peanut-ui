@@ -20,7 +20,7 @@ import { LinkDepositUnconfirmedError } from '@/utils/send-link-deposit.utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
-import { parseUnits } from 'viem'
+import { formatUnits, parseUnits } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import AmountInput from '../../../Global/AmountInput'
@@ -108,10 +108,13 @@ const LinkSendInitialView = () => {
             setErrorState({ showError: false, errorMessage: '' })
 
             // Resolves only once the link is funded and recorded (TASK-24270).
-            const { link, chainId, tokenAddress } = await createLink(
+            const { link, chainId, tokenAddress, amount, recovered } = await createLink(
                 parseUnits(tokenValue!, PEANUT_WALLET_TOKEN_DECIMALS),
                 { message: attachmentOptions?.message, attachment: attachmentOptions?.rawFile }
             )
+            // An earlier link landed late and came back instead of a new one:
+            // show its own amount on the success screen.
+            if (recovered) setTokenValue(formatUnits(amount, PEANUT_WALLET_TOKEN_DECIMALS))
 
             posthog.capture(ANALYTICS_EVENTS.SEND_LINK_CREATED, {
                 amount: tokenValue,
@@ -174,6 +177,7 @@ const LinkSendInitialView = () => {
         setLoadingState,
         attachmentOptions,
         setLink,
+        setTokenValue,
         setView,
         setErrorState,
         balance,

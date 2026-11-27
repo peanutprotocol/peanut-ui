@@ -1,6 +1,7 @@
 import type { Address, Hash, TransactionReceipt } from 'viem'
 import { isAddressEqual, parseEventLogs } from 'viem'
 import { isDemoMode } from '@/utils/demo'
+import { getFromLocalStorage, saveToLocalStorage } from '@/utils/general.utils'
 import { peanutVaultAbi } from '@/utils/peanut-claim.utils'
 import { userOpRevertedError, waitForUserOpReceiptOrNull, type UserOpReceiptWaiter } from '@/utils/userop-rescue.utils'
 
@@ -87,4 +88,64 @@ export async function resolveLinkDeposit({
     // A reverted op moved no money: fail like every other send path.
     if (!late.success) throw userOpRevertedError(userOpHash, late.success)
     return parseLinkDeposit(late.receipt, { vault, sender })
+}
+
+const UNCONFIRMED_LINK_KEY = 'sendLink::unconfirmed'
+
+/**
+ * A link-create op with no receipt yet. It stays on the device until the
+ * chain settles it, so a retry cannot fund a second link while the first can
+ * still land (Chip on ui#4296). The password stays under `sendLinkPasswordKey`.
+ */
+export interface UnconfirmedLink {
+    userOpHash: Hash
+    pubKey: Address
+    sender: Address
+    chainId: string
+    contractVersion: string
+    tokenAddress: Address
+    /** Token units, as a decimal string. */
+    amount: string
+    preparationId?: string
+    message?: string
+}
+
+export const unconfirmedLinkStore = {
+    save: (link: UnconfirmedLink) => saveToLocalStorage(UNCONFIRMED_LINK_KEY, link),
+    /** Another account's record on the same device never blocks this one. */
+    read: (sender: Address): UnconfirmedLink | null => {
+        const link = getFromLocalStorage(UNCONFIRMED_LINK_KEY) as UnconfirmedLink | null | undefined
+        return link && isAddressEqual(link.sender, sender) ? link : null
+    },
+    clear: () => {
+        if (typeof localStorage !== 'undefined') localStorage.removeItem(UNCONFIRMED_LINK_KEY)
+    },
+}
+
+/** The bundler calls that tell what became of an op. */
+export interface UserOpLookup {
+    getUserOperationReceipt(args: { hash: Hash }): Promise<{ success: boolean; receipt: TransactionReceipt }>
+    getUserOperation(args: { hash: Hash }): Promise<unknown>
+}
+
+export type UserOpFate =
+    | { state: 'landed'; receipt: TransactionReceipt }
+    | { state: 'reverted' | 'pending' | 'dropped' }
+
+const nullWhen = (name: string) => (error: unknown) => {
+    if ((error as Error)?.name === name) return null
+    throw error
+}
+
+/**
+ * What became of an op, as the bundler knows it. A receipt means it ran. No
+ * receipt but a known op means it still waits. Neither means the bundler
+ * dropped it, so it can no longer land. Any other RPC error propagates: the
+ * caller then fails before it signs anything new.
+ */
+export async function readUserOpFate(client: UserOpLookup, hash: Hash): Promise<UserOpFate> {
+    const ran = await client.getUserOperationReceipt({ hash }).catch(nullWhen('UserOperationReceiptNotFoundError'))
+    if (ran) return ran.success ? { state: 'landed', receipt: ran.receipt } : { state: 'reverted' }
+    const queued = await client.getUserOperation({ hash }).catch(nullWhen('UserOperationNotFoundError'))
+    return { state: queued ? 'pending' : 'dropped' }
 }

@@ -1,8 +1,8 @@
 'use client'
 import { BASE_URL } from '@/constants/general.consts'
 import { loadingStateContext } from '@/context/loadingStates.context'
-import { saveToLocalStorage } from '@/utils/general.utils'
-import { generateKeysFromString, getLinkFromParams } from '@/utils/peanut-link.utils'
+import { getFromLocalStorage, saveToLocalStorage } from '@/utils/general.utils'
+import { generateKeysFromString, getLinkFromParams, sendLinkPasswordKey } from '@/utils/peanut-link.utils'
 import {
     getContractAddress,
     getLatestContractVersion,
@@ -10,7 +10,7 @@ import {
     peanutVaultAbi,
 } from '@/utils/peanut-claim.utils'
 import { useCallback, useContext } from 'react'
-import type { Address } from 'viem'
+import type { Address, Hash } from 'viem'
 import { encodeFunctionData, parseAbi } from 'viem'
 
 import { useKernelClient } from '@/context/kernelClient.context'
@@ -20,13 +20,34 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { sendLinksApi } from '@/services/sendLinks'
 import { captureNetworkTriagedFailure } from '@/utils/network-triage'
 import { criticalFlowTags } from '@/utils/sentry-critical-flow'
-import { resolveLinkDeposit } from '@/utils/send-link-deposit.utils'
+import {
+    LinkDepositUnconfirmedError,
+    parseLinkDeposit,
+    readUserOpFate,
+    resolveLinkDeposit,
+    unconfirmedLinkStore,
+} from '@/utils/send-link-deposit.utils'
 import { withCeremonyFlow } from '@/utils/webauthn-ceremony-telemetry'
 
 /** What the sender attaches to a link. */
 interface SendLinkDetails {
     message?: string
     attachment?: File
+}
+
+/** A link whose deposit the chain proved. */
+interface FundedLink {
+    link: string
+    pubKey: Address
+    chainId: string
+    contractVersion: string
+    depositIdx: number
+    txHash: Hash
+    tokenAddress: Address
+    amount: bigint
+    preparationId?: string
+    /** Set when this is an earlier link that landed late, not a new deposit. */
+    recovered?: { message?: string }
 }
 
 export const useCreateLink = () => {
@@ -47,23 +68,70 @@ export const useCreateLink = () => {
     }
 
     /**
+     * Settles the last link the app could not confirm, before it funds another
+     * (Chip on ui#4296). A landed op comes back as that link; a reverted or
+     * dropped one is cleared; a pending one blocks a second deposit.
+     */
+    const settleUnconfirmedLink = useCallback(
+        async (owner: Address): Promise<FundedLink | null> => {
+            const pending = unconfirmedLinkStore.read(owner)
+            if (!pending) return null
+            const fate = await readUserOpFate(getClientForChain(pending.chainId), pending.userOpHash)
+            if (fate.state === 'pending') throw new LinkDepositUnconfirmedError(pending.pubKey, pending.userOpHash)
+            unconfirmedLinkStore.clear()
+            if (fate.state !== 'landed') return null
+
+            const vault = getContractAddress(pending.chainId, pending.contractVersion)
+            const { depositIdx, txHash } = parseLinkDeposit(fate.receipt, { vault, sender: owner })
+            // Saved before the first send, beside the record, so both are here.
+            const password = getFromLocalStorage(sendLinkPasswordKey(pending.pubKey)) as string
+            return {
+                link: getLinkFromParams(
+                    pending.chainId,
+                    pending.contractVersion,
+                    depositIdx,
+                    password,
+                    `${BASE_URL}/claim`
+                ),
+                pubKey: pending.pubKey,
+                chainId: pending.chainId,
+                contractVersion: pending.contractVersion,
+                depositIdx,
+                txHash,
+                tokenAddress: pending.tokenAddress,
+                amount: BigInt(pending.amount),
+                preparationId: pending.preparationId,
+                recovered: { message: pending.message },
+            }
+        },
+        [getClientForChain]
+    )
+
+    /**
      * Funds a link in the vault and records it with the backend before it
      * returns (TASK-24270). The success screen used to show first, so a failed
      * record went unseen. The loading state stays busy the whole time, which
      * is what keeps the view's balance gate and its button quiet.
+     *
+     * When an earlier link landed late, it returns that link (`recovered`)
+     * instead of funding a new one.
      */
     const createLink = useCallback(
         async (amount: bigint, { message, attachment }: SendLinkDetails = {}) => {
             let strategy: string | undefined
             const funded = await withCeremonyFlow(
                 'link_create',
-                async () => {
+                async (): Promise<FundedLink> => {
                     // Checked before any signing: the deposit is matched to its sender.
                     if (!sender) throw new Error('Wallet is not ready')
+                    setLoadingState('Loading')
+                    const recovered = await settleUnconfirmedLink(sender)
+                    if (recovered) return recovered
+
                     setLoadingState('Generating details')
                     const password = await generatePassword()
                     const { address: pubKey } = generateKeysFromString(password)
-                    saveToLocalStorage(`sendLink::password::${pubKey}`, password)
+                    saveToLocalStorage(sendLinkPasswordKey(pubKey), password)
 
                     const chainId = PEANUT_WALLET_CHAIN.id.toString()
                     const contractVersion = getLatestContractVersion({ chainId, type: 'normal' })
@@ -99,27 +167,56 @@ export const useCreateLink = () => {
                             },
                         }
                     )
+                    // No receipt yet: put the op on record before the extra wait,
+                    // so a closed app or a retry still settles it first.
+                    if (!receipt && userOpHash) {
+                        unconfirmedLinkStore.save({
+                            userOpHash,
+                            pubKey,
+                            sender,
+                            chainId,
+                            contractVersion,
+                            tokenAddress,
+                            amount: amount.toString(),
+                            preparationId: intentId,
+                            message,
+                        })
+                    }
                     // The send is over but a timed-out receipt means one more
                     // wait: keep the screen busy so the link cannot be created twice.
                     setLoadingState('Executing transaction')
-                    const { depositIdx, txHash } = await resolveLinkDeposit({
-                        receipt,
-                        userOpHash,
-                        // The bundler finds any op by hash, the session-key one included.
-                        receiptWaiter: () => getClientForChain(chainId),
-                        vault,
-                        sender,
-                        pubKey,
-                    })
+                    let deposit: Awaited<ReturnType<typeof resolveLinkDeposit>>
+                    try {
+                        deposit = await resolveLinkDeposit({
+                            receipt,
+                            userOpHash,
+                            // The bundler finds any op by hash, the session-key one included.
+                            receiptWaiter: () => getClientForChain(chainId),
+                            vault,
+                            sender,
+                            pubKey,
+                        })
+                    } catch (error) {
+                        // Only an op that can still land stays on record.
+                        if (!(error instanceof LinkDepositUnconfirmedError)) unconfirmedLinkStore.clear()
+                        throw error
+                    }
+                    unconfirmedLinkStore.clear()
 
                     return {
-                        link: getLinkFromParams(chainId, contractVersion, depositIdx, password, `${BASE_URL}/claim`),
+                        link: getLinkFromParams(
+                            chainId,
+                            contractVersion,
+                            deposit.depositIdx,
+                            password,
+                            `${BASE_URL}/claim`
+                        ),
                         pubKey,
                         chainId,
                         contractVersion,
-                        depositIdx,
-                        txHash,
+                        ...deposit,
                         tokenAddress,
+                        amount,
                         // Present only for collateral-funded ("mixed") links — the Rain
                         // prepare intent id, threaded to /send-links so the backend
                         // adopts it instead of minting a duplicate SEND_LINK.
@@ -130,15 +227,16 @@ export const useCreateLink = () => {
             )
 
             setLoadingState('Creating link')
-            const { link, ...deposit } = funded
+            const { link, recovered, ...deposit } = funded
+            // A recovered link keeps its own note; its attachment was never saved.
+            const details: SendLinkDetails = recovered ? { message: recovered.message } : { message, attachment }
             try {
                 await sendLinksApi.persist({
                     ...deposit,
-                    amount,
-                    reference: message,
-                    attachment,
-                    filename: attachment?.name,
-                    mimetype: attachment?.type,
+                    reference: details.message,
+                    attachment: details.attachment,
+                    filename: details.attachment?.name,
+                    mimetype: details.attachment?.type,
                 })
             } catch (error) {
                 // The money is in the vault and the link still claims: the API
@@ -153,9 +251,15 @@ export const useCreateLink = () => {
                     extra: deposit,
                 })
             }
-            return { link, chainId: funded.chainId, tokenAddress: funded.tokenAddress }
+            return {
+                link,
+                chainId: deposit.chainId,
+                tokenAddress: deposit.tokenAddress,
+                amount: deposit.amount,
+                recovered: !!recovered,
+            }
         },
-        [getClientForChain, sendTransactions, sender, setLoadingState]
+        [getClientForChain, sendTransactions, sender, setLoadingState, settleUnconfirmedLink]
     )
 
     return {

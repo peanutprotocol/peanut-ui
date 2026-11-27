@@ -400,8 +400,43 @@ describe('LinkSendInitialView link creation', () => {
             link: 'https://peanut.me/claim?c=42161&v=v4.4&i=589#p=x',
             chainId: '42161',
             tokenAddress: '0x',
+            amount: usdc(20),
+            recovered: false,
         })
         await waitFor(() => expect(screen.getByTestId('view')).toHaveTextContent('SUCCESS'))
+    })
+
+    // A Retry can bring back an earlier link that landed late (Chip on
+    // ui#4296): the success screen shows that link's own amount.
+    test('a recovered earlier link shows its own amount', async () => {
+        mockUseWallet.mockReturnValue(walletState(100))
+        mockCreateLink.mockResolvedValue({
+            link: 'https://peanut.me/claim?c=42161&v=v4.4&i=589#p=x',
+            chainId: '42161',
+            tokenAddress: '0x',
+            amount: usdc(5),
+            recovered: true,
+        })
+        const Probe = () => {
+            const { view, tokenValue } = useLinkSendFlow()
+            return <span data-testid="probe">{`${view}:${tokenValue}`}</span>
+        }
+
+        render(
+            <IntlWrapper>
+                <QueryClientProvider client={queryClient}>
+                    <LinkSendFlowProvider>
+                        <SetAmount amount="20" />
+                        <Probe />
+                        <LinkSendInitialView />
+                    </LinkSendFlowProvider>
+                </QueryClientProvider>
+            </IntlWrapper>
+        )
+        fireEvent.click(screen.getByTestId('set-amount'))
+        fireEvent.click(screen.getByText('Create link'))
+
+        await waitFor(() => expect(screen.getByTestId('probe')).toHaveTextContent('SUCCESS:5'))
     })
 })
 

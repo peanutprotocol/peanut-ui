@@ -6,6 +6,10 @@ import { privateKeyToAccount } from 'viem/accounts'
 import type { Hex } from 'viem'
 import { getLatestContractVersion } from './peanut-claim.utils'
 
+/** Where the sender's device keeps a link's password, keyed by its pubKey.
+ *  The password never leaves the device; history rebuilds the claim URL from it. */
+export const sendLinkPasswordKey = (pubKey: string) => `sendLink::password::${pubKey}`
+
 /** Mirror of SDK `generateKeysFromString(s)` — keccak256(utf8(s)) is the
  *  private key; address derives from it. Used by the send-link flow to
  *  derive the deterministic claim keypair from the link's `#p=` password. */
