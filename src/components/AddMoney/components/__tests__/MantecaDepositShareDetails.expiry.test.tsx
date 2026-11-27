@@ -55,6 +55,8 @@ describe('the order countdown', () => {
         )
         expect(screen.getByText('Valid for')).toBeInTheDocument()
         expect(screen.getByText('1:30')).toBeInTheDocument()
+        // the CVU shows its first 10 and last 4 digits in the compact row
+        expect(screen.getByText('0000003100 … 0001')).toBeInTheDocument()
         expect(screen.queryByText(EXPIRED_COPY)).not.toBeInTheDocument()
 
         act(() => jest.advanceTimersByTime(60_000))
@@ -65,7 +67,7 @@ describe('the order countdown', () => {
         expect(screen.getByText(EXPIRED_COPY)).toBeInTheDocument()
         expect(screen.getByText('ARS 10,000')).toBeInTheDocument()
         expect(screen.queryByText('Share details')).not.toBeInTheDocument()
-        expect(screen.queryByText('0000003100...0000000001')).not.toBeInTheDocument()
+        expect(screen.queryByText('0000003100 … 0001')).not.toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
         expect(onContactSupport).toHaveBeenCalledTimes(1)

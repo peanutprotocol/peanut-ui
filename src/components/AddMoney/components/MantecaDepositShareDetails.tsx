@@ -13,6 +13,7 @@ import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import ShareButton from '@/components/Global/ShareButton'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { Icon } from '@/components/Global/Icons/Icon'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { Card } from '@/components/0_Bruddle/Card'
@@ -23,7 +24,7 @@ import {
     MANTECA_ARG_DEPOSIT_NAME,
     MANTECA_COUNTRIES_CONFIG,
 } from '@/constants/manteca.consts'
-import { shortenStringLong } from '@/utils/general.utils'
+import { middleEllipsisAccount } from '@/utils/general.utils'
 import { formatAmountNumber, formatFiatRate } from '@/utils/currency'
 import { useLocale, useTranslations } from 'next-intl'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
@@ -80,7 +81,8 @@ const MantecaDepositShareDetails = ({
 
     // the fallback keeps the static path total
     const depositAddress = depositDetails.details.depositAddress ?? ''
-    const shortenedAddress = depositAddress.length > 30 ? shortenStringLong(depositAddress, 10) : depositAddress
+    // a 22-digit CVU fits one compact row as its first 10 and last 4 digits; copy and share keep it whole
+    const shortenedAddress = middleEllipsisAccount(depositAddress, 17)
     const depositAlias = depositDetails.details.depositAlias
     // The order's own amount, at the price it locked. The amount step's figure is an estimate at an earlier
     // price, so next to the locked rate it looked short (26 Nov: ARS 1.780,39 shown for a 1.777,34 order).
@@ -181,30 +183,26 @@ const MantecaDepositShareDetails = ({
                     </div>
                 </Card>
                 <h2 className="text-label-l text-foreground-primary">{t('manteca.sendTo')}</h2>
-                <Card className="space-y-0 px-4">
+                {/* compact label-left rows, the card draws the dashed dividers */}
+                <Card className="divide-y divide-dashed divide-border-default px-4 py-0">
                     {depositAddress && (
-                        <PaymentInfoRow
+                        <DataRow
                             label={depositAddressLabel}
                             value={shortenedAddress}
                             copyValue={depositAddress}
                             allowCopy
                         />
                     )}
-                    {depositAlias && <PaymentInfoRow label={t('manteca.alias')} value={depositAlias} allowCopy />}
+                    {depositAlias && <DataRow label={t('manteca.alias')} value={depositAlias} allowCopy />}
                     {currentCountryDetails?.id === 'AR' && (
                         <>
-                            <PaymentInfoRow label={t('manteca.razonSocial')} value={MANTECA_ARG_DEPOSIT_NAME} />
-                            <PaymentInfoRow
-                                label={t('manteca.cuit')}
-                                value={MANTECA_ARG_DEPOSIT_CUIT}
-                                hideBottomBorder={!countdown.timeLeft}
-                            />
+                            <DataRow label={t('manteca.razonSocial')} value={MANTECA_ARG_DEPOSIT_NAME} />
+                            <DataRow label={t('manteca.cuit')} value={MANTECA_ARG_DEPOSIT_CUIT} />
                         </>
                     )}
                     {/* something waits on the user: the pending badge, as on the Pix code */}
                     {countdown.timeLeft && (
-                        <PaymentInfoRow
-                            hideBottomBorder
+                        <DataRow
                             label={t('manteca.validFor')}
                             value={<Badge status="pending" customText={countdown.timeLeft} />}
                         />
