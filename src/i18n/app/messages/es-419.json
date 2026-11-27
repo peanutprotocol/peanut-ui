@@ -2248,7 +2248,7 @@
             "waiting": "Esperando el depósito…",
             "doneTitle": "Dinero agregado",
             "stillLandingBody": "Recibimos tu depósito y todavía se está acreditando. Puede tardar unos minutos.",
-            "sendMoreInstead": "Mejor enviar más",
+            "sendMore": "Enviar más",
             "stillLandingSupportMessage": "¡Hola! Envié un depósito en cripto por {network} para mi tarjeta y todavía no llegó a mi saldo. ¿Me ayudan a revisarlo?",
             "shortReceived": "Recibimos {received}",
             "shortStillNeeded": "Todavía faltan {remaining}.",

@@ -406,15 +406,22 @@ describe('a completed outcome found at open', () => {
         expect(deposits()).toHaveLength(1)
     })
 
-    it('offers Contact support beside "Send more instead" once the deposit is still landing', async () => {
+    it('offers Contact support beside "Send more" once the deposit is still landing', async () => {
         jest.useFakeTimers()
         pollStatus = 'completed'
         pollCompletedAmount = 7.5
         renderView()
         await openedHolding()
         expect(screen.queryByTestId('card-add-money-contact-support')).not.toBeInTheDocument()
-        await readsUntil('card-add-money-send-more')
+        const sendMore = await readsUntil('card-add-money-send-more')
         const support = screen.getByTestId('card-add-money-contact-support')
+        // Kush (27 Nov): "Send more" is the primary on top, support the secondary under it; no links
+        expect(sendMore).toHaveTextContent('sendMore')
+        expect(sendMore.tagName).toBe('BUTTON')
+        expect(sendMore).toHaveClass('btn-primary')
+        expect(support.tagName).toBe('BUTTON')
+        expect(support).toHaveClass('btn-secondary')
+        expect(sendMore.compareDocumentPosition(support) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
         expect(support).toHaveTextContent('contactSupport')
         fireEvent.click(support)
         // the user's own words, in their language: the catalog's message with the network named
@@ -423,7 +430,7 @@ describe('a completed outcome found at open', () => {
         expect(screen.queryByTestId('qr')).not.toBeInTheDocument()
     })
 
-    it('after "Send more instead", keeps reading, so the ask shrinks if the old deposit lands', async () => {
+    it('after "Send more", keeps reading, so the ask shrinks if the old deposit lands', async () => {
         jest.useFakeTimers()
         mockCreateDepositAddress.mockResolvedValue({ depositAddress: ADDRESS, minDepositLimitUsd: 1 })
         pollStatus = 'completed'
@@ -437,7 +444,7 @@ describe('a completed outcome found at open', () => {
         await waitFor(() => expect(screen.getByTestId('card-add-money-ask')).toHaveTextContent('sendAsk($3.50)'))
     })
 
-    it('after "Send more instead", says done when a fresh read shows the gap covered', async () => {
+    it('after "Send more", says done when a fresh read shows the gap covered', async () => {
         jest.useFakeTimers()
         pollStatus = 'completed'
         renderView()

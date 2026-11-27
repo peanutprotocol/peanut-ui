@@ -7,7 +7,6 @@ import type { Address } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import SupportedEvmNetworksCard from '@/components/AddMoney/components/SupportedEvmNetworksCard'
 import { DepositAddressCard } from '@/components/AddMoney/components/DepositAddressCard'
 import SupportedTokensRow from '@/components/AddMoney/components/SupportedTokensRow'
@@ -353,7 +352,7 @@ export function CardCryptoDepositView({
     useEffect(() => onProcessingChange(processing), [processing, onProcessingChange])
 
     /**
-     * "Send more instead": the user chose to see the address while a deposit may still be landing. The
+     * "Send more": the user chose to see the address while a deposit may still be landing. The
      * address view then keeps reading the balance, so the ask shrinks if that deposit lands meanwhile.
      */
     const [sentMore, setSentMore] = useState(false)
@@ -480,19 +479,27 @@ export function CardCryptoDepositView({
                     testId="card-add-money-processing"
                 >
                     {hold?.waited && (
-                        // two tertiary links, centred and stacked: neither is a third button
-                        <div className="mt-2 flex flex-col items-center gap-3">
-                            <LinkButton onClick={sendMore} data-testid="card-add-money-send-more">
-                                {t('sendMoreInstead')}
-                            </LinkButton>
-                            <LinkButton
+                        // Kush (27 Nov): "Send more" is the primary; support is a second path of equal weight
+                        // under it, at the ctas' 16px (ActionModal), not a dismiss, so a secondary
+                        <div className="flex w-full flex-col gap-4">
+                            <Button
+                                variant="primary"
+                                className="w-full"
+                                onClick={sendMore}
+                                data-testid="card-add-money-send-more"
+                            >
+                                {t('sendMore')}
+                            </Button>
+                            <Button
+                                variant="secondary"
+                                className="w-full"
                                 onClick={() =>
                                     openSupportWithMessage(t('stillLandingSupportMessage', { network: networkLabel }))
                                 }
                                 data-testid="card-add-money-contact-support"
                             >
                                 {tCommon('contactSupport')}
-                            </LinkButton>
+                            </Button>
                         </div>
                     )}
                 </CardDrawerStatus>
