@@ -121,6 +121,8 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     const arsDeposit = residenceGatedCountry && step === 'depositDetails' ? depositDetails : undefined
     const { status: arsDepositStatus } = useMantecaDepositPolling(arsDeposit?.id, () => {
         void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+        // COMPLETED means Manteca sent the USDC to the wallet; the success view says the balance has it
+        void queryClient.invalidateQueries({ queryKey: ['balance'] })
     })
     const localAccount = residenceGatedCountry ? bankEntryFor('ars') : null
     const accountRejected = isMantecaAccountClosed(localAccount ?? undefined)
