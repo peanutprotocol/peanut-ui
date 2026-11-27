@@ -5,6 +5,7 @@ import { PIX_SEND_PATH, PIX_WITHDRAW_PATH } from '@/features/pix/pix.routes'
 import type { PixDraftFlow } from '@/features/pix/pixWithdrawDraft'
 import type { PixKeySend } from '@/features/pix/pixRoute.utils'
 import { mantecaWithdrawUrl } from '@/features/withdraw/routes'
+import { SAVED_ACCOUNT_PARAM } from '@/features/withdraw/useSavedAccountParam'
 import type { WithdrawMethod } from '@/features/withdraw/types'
 import { isUsableSavedAccount } from '@/utils/bridge-accounts.utils'
 
@@ -49,6 +50,21 @@ export interface SavedAccountRoute {
         | { kind: 'amount' } // the shared amount step
 }
 
+/**
+ * The Pix-key form a Brazilian destination opens, or null when Send pays the
+ * key elsewhere (the Manteca pay route). The user's own key: the withdrawal
+ * page, where the backend's route picks the provider. Someone else's key, on a
+ * withdraw route that pays any key (Avenia): the same form, from Send.
+ */
+export function pixKeyRoute(ctx: Pick<SavedAccountContext, 'isBankFromSend' | 'pixKeySend'>): {
+    flow: PixDraftFlow
+    path: string
+} | null {
+    if (!ctx.isBankFromSend) return { flow: 'withdraw', path: PIX_WITHDRAW_PATH }
+    if (ctx.pixKeySend.via === 'withdraw') return { flow: 'send', path: PIX_SEND_PATH }
+    return null
+}
+
 export function savedAccountRoute(
     account: Account,
     path: string | undefined,
@@ -59,22 +75,16 @@ export function savedAccountRoute(
         return { method: { type: 'bridge', countryPath, title: 'To Bank' }, next: { kind: 'amount' } }
     }
     const method: WithdrawMethod = { type: 'manteca', countryPath, title: 'To Bank' }
-    // Brazil's own-account withdrawal has one page, where the backend's route picks the provider.
-    if (countryPath === 'brazil' && !ctx.isBankFromSend) {
-        return { method, next: { kind: 'pix', flow: 'withdraw', path: PIX_WITHDRAW_PATH } }
-    }
-    // a withdraw route on Avenia sends to a saved key on the same Pix-key form
-    if (countryPath === 'brazil' && ctx.pixKeySend.via === 'withdraw') {
-        return { method, next: { kind: 'pix', flow: 'send', path: PIX_SEND_PATH } }
-    }
+    const pix = countryPath === 'brazil' ? pixKeyRoute(ctx) : null
+    if (pix) return { method, next: { kind: 'pix', ...pix } }
     return {
         method,
         next: {
             kind: 'manteca',
             url: mantecaWithdrawUrl({
                 country: countryPath,
-                destination: account.identifier,
-                isSavedAccount: 'true',
+                // the account's id, never its CBU, alias or key (`SAVED_ACCOUNT_PARAM`)
+                [SAVED_ACCOUNT_PARAM]: account.id,
                 method: ctx.isBankFromSend && countryPath === 'brazil' ? 'pix' : undefined,
                 sendMethod: ctx.isBankFromSend ? (ctx.sendMethod ?? undefined) : undefined,
                 amount: ctx.amount,

@@ -84,15 +84,16 @@ describe('useRepeatPayment on payouts (TASK-25462)', () => {
         tap(payout('0000003100010000000001', { amount: 20.456 }))
 
         expect(mockPush).toHaveBeenCalledWith(
-            '/withdraw/manteca?country=argentina&destination=0000003100010000000001&isSavedAccount=true&amount=20.46'
+            '/withdraw/manteca?country=argentina&account=acc-0000003100010000000001&amount=20.46'
         )
         expect(peekRepeatDraft('bank')).toBeNull()
     })
 
-    test("a Pix withdrawal to the user's own key fills the Pix form's draft, not the URL", () => {
-        mockAccounts = [account('manteca', 'ana@example.com', 'brazil')]
+    const pix = (identifier: string, overrides: Record<string, unknown> = {}) =>
+        payout(identifier, { extraDataForDrawer: { kind: 'OFFRAMP', isPix: true }, ...overrides })
 
-        tap(payout('ana@example.com'))
+    test("a Pix withdrawal to the user's own key fills the Pix form's draft, saved or not", () => {
+        tap(pix('ana@example.com'))
 
         expect(mockPush).toHaveBeenCalledWith('/withdraw/pix')
         expect(readPixWithdrawDraft('u1', 'withdraw')).toMatchObject({
@@ -101,15 +102,24 @@ describe('useRepeatPayment on payouts (TASK-25462)', () => {
         })
     })
 
-    test("a Pix payout to someone else's saved key is a send, on the send draft", () => {
+    test("a Pix payout to someone else's key is a send on the same form when the withdraw route pays any key", () => {
         mockPixKeySend = { via: 'withdraw', block: null }
-        mockAccounts = [account('manteca', '+5511999990000', 'brazil', { isPixRecipient: true })]
 
-        const repeat = tap(payout('+5511999990000', { direction: 'send' }))
+        const repeat = tap(pix('+5511999990000', { direction: 'send' }))
 
         expect(repeat.title).toBe('actions.sendAgain')
         expect(mockPush).toHaveBeenCalledWith('/withdraw/pix?sendMethod=bank')
         expect(readPixWithdrawDraft('u1', 'send')).toMatchObject({ destination: '+5511999990000', amountUsd: '150' })
+    })
+
+    test("on the pay route, someone else's saved key opens the key screen by the account's id", () => {
+        mockAccounts = [account('manteca', '+5511999990000', 'brazil', { isPixRecipient: true })]
+
+        tap(pix('+5511999990000', { direction: 'send' }))
+
+        expect(mockPush).toHaveBeenCalledWith(
+            '/withdraw/manteca?country=brazil&account=acc-%2B5511999990000&method=pix&sendMethod=bank&amount=150'
+        )
     })
 
     test.each([
@@ -124,6 +134,7 @@ describe('useRepeatPayment on payouts (TASK-25462)', () => {
             [account('manteca', '+5511999990000', 'brazil', { isPixRecipient: true })],
             payout('+5511999990000'),
         ],
+        ["someone else's unsaved key on the pay route", [], payout('+5511999990000', { direction: 'send' })],
         ['a pending payout', [account('iban', 'DE89', 'germany')], payout('DE89', { status: 'pending' })],
         [
             'a bank send-link claim',

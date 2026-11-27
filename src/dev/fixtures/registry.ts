@@ -260,6 +260,21 @@ const NAMED_BANK_ACCOUNTS = [
     { ...BANK_ACCOUNTS[1], label: null, lastUsedAt: '2026-06-02T09:00:00.000Z' },
 ]
 
+// A saved Argentine bank account: /withdraw/manteca names it by id (`account`),
+// never by its CBU or alias.
+const AR_SAVED_ACCOUNT = {
+    id: 'fixture-ar-1',
+    userId: 'demo-user',
+    bridgeAccountId: '',
+    type: 'manteca',
+    identifier: 'fixture.account',
+    label: null,
+    details: { bankName: null, accountOwnerName: 'Demo User', countryCode: 'ARG', countryName: 'argentina' },
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    chainId: null,
+}
+
 // A PIX key saved to favorites after a payment, with the bank the PIX directory
 // named (TASK-23738). Offered under Send → Bank, never as a withdrawal.
 /** The pay:PIX_BR route as the API sends it: paused by the Brazil pause, or refused for a residence. */
@@ -3952,16 +3967,16 @@ export const FIXTURES: Record<string, Fixture> = {
     // Manteca is entered with no amount now and collects it itself, in the
     // local currency — the amount as the last step before the review.
     'withdraw-amount-last': {
-        route: '/withdraw/manteca?method=bank-transfer&country=argentina&destination=fixture.account&isSavedAccount=true',
+        route: '/withdraw/manteca?method=bank-transfer&country=argentina&account=fixture-ar-1',
         about: 'Withdraw amount as the last step, in local currency, with its own minimum.',
-        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS] } },
+        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS, AR_SAVED_ACCOUNT] } },
     },
     // A saved destination opens amount entry; an amount below the minimum shows the field error.
     'withdraw-amount-error': {
-        route: '/withdraw/manteca?method=bank-transfer&country=argentina&destination=fixture.account&isSavedAccount=true&amount=0.01',
+        route: '/withdraw/manteca?method=bank-transfer&country=argentina&account=fixture-ar-1&amount=0.01',
         about: 'Withdraw amount step with its inline error — the amount is below the minimum.',
         waitFor: 'p[role="alert"]',
-        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS] } },
+        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS, AR_SAVED_ACCOUNT] } },
     },
     // ---- merchant Pix QR on Avenia, through the neutral pay routes (TASK-24947 M4) ----
     'qr-pay-avenia-form': {
