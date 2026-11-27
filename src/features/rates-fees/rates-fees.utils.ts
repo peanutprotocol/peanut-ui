@@ -63,7 +63,7 @@ export function getOrderedCurrencies(countryCode: string | null | undefined): Su
 /**
  * Pure bilateral conversion:
  * - `add`: local currency → USD balance (subtracts any flat local-currency fee before converting).
- * - `withdraw`: USD balance → local currency.
+ * - `withdraw`: USD balance → local currency (subtracts any mandatory flat local-currency fee from proceeds).
  */
 export function convertCurrencyAmount(params: {
     amount: number
@@ -76,15 +76,49 @@ export function convertCurrencyAmount(params: {
     if (direction === 'add') {
         return Math.max(0, (amount - flatFeeLocal) / rate)
     }
-    return amount * rate
+    return Math.max(0, amount * rate - flatFeeLocal)
 }
 
-/** Parse a user-typed decimal string respecting either `.` or `,` decimal separators. */
+/**
+ * Parse a user-typed decimal string respecting locale grouping while tolerating
+ * dot-decimal entry (e.g. `0.5`, `12.34`) on Spanish and Portuguese keyboards.
+ */
 export function parseLocaleAmount(raw: string, locale: string): number {
     const cleaned = raw.replace(/[^\d.,]/g, '')
     if (!cleaned) return 0
     const usesCommaDecimal = locale.startsWith('es') || locale.startsWith('pt')
-    const normalized = usesCommaDecimal ? cleaned.replace(/\./g, '').replace(',', '.') : cleaned.replace(/,/g, '')
+    const hasDot = cleaned.includes('.')
+    const hasComma = cleaned.includes(',')
+
+    let normalized: string
+    if (hasDot && hasComma) {
+        // Whichever separator appears last is the decimal separator.
+        normalized =
+            cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')
+                ? cleaned.replace(/\./g, '').replace(',', '.')
+                : cleaned.replace(/,/g, '')
+    } else if (hasComma) {
+        const commaCount = (cleaned.match(/,/g) ?? []).length
+        if (usesCommaDecimal) {
+            normalized = commaCount > 1 ? cleaned.replace(/,/g, '') : cleaned.replace(',', '.')
+        } else {
+            // In English, treat `1,500` or multiple commas as thousands; `0,5` or `12,34` as decimal.
+            const isThousands = commaCount > 1 || /^[1-9]\d{0,2},\d{3}$/.test(cleaned)
+            normalized = isThousands ? cleaned.replace(/,/g, '') : cleaned.replace(',', '.')
+        }
+    } else if (hasDot) {
+        const dotCount = (cleaned.match(/\./g) ?? []).length
+        if (usesCommaDecimal) {
+            // In es/pt, treat `100.000` or `1.500` as thousands grouping; treat `0.5`, `0.500`, `12.34` as decimal.
+            const isThousands = dotCount > 1 || /^[1-9]\d{0,2}\.\d{3}$/.test(cleaned)
+            normalized = isThousands ? cleaned.replace(/\./g, '') : cleaned
+        } else {
+            normalized = dotCount > 1 ? cleaned.replace(/\./g, '') : cleaned
+        }
+    } else {
+        normalized = cleaned
+    }
+
     const parsed = Number.parseFloat(normalized)
     return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0
 }

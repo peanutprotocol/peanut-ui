@@ -42,20 +42,20 @@ function formatCryptoNetworkFee(flatFeeUsd: string, pctFee: string): string {
 }
 
 /**
- * Derive a clean representative list of `$0` withdrawal chains straight from
- * `CHAIN_REGISTRY` (excluding the network-fee chains), so adding/removing a
- * chain in the registry keeps the Fees tab honest without hardcoding a count.
+ * Derive a clean representative list of quote-priced L2/other withdrawal chains
+ * straight from `CHAIN_REGISTRY` (excluding Arbitrum and the fixed-fee networks),
+ * so adding/removing a chain in the registry keeps the Fees tab honest.
  */
-function buildSponsoredChainsPreview(feeChains: ReadonlySet<string>): string {
+function buildQuotedChainsPreview(excludedChains: ReadonlySet<string>): string {
     const names: string[] = []
     for (const entry of CHAIN_REGISTRY) {
         if (!entry.rhinoName || !entry.withdraw) continue
-        if (feeChains.has(entry.rhinoName)) continue
+        if (excludedChains.has(entry.rhinoName)) continue
         const key = entry.displayName ?? entry.rhinoName
         const label = CHAIN_DISPLAY_NAMES[key]
         if (label && !names.includes(label)) names.push(label)
     }
-    return names.slice(0, 10).join(', ')
+    return names.slice(0, 9).join(', ')
 }
 
 export function FeesScheduleView({ schedule }: FeesScheduleViewProps) {
@@ -69,8 +69,11 @@ export function FeesScheduleView({ schedule }: FeesScheduleViewProps) {
     const pixBrRaw = Number(byId.get('brl-pix-br')?.flatFee ?? '0.75')
     const pixBrFee = `R$ ${formatAmountNumber(pixBrRaw, 2, 2, locale)}`
 
-    const feeChains = new Set(schedule.crypto.networkFeeWithdrawals.map((row) => row.chain.toUpperCase()))
-    const sponsoredChainsPreview = buildSponsoredChainsPreview(feeChains)
+    const excludedFromQuotedList = new Set([
+        'ARBITRUM',
+        ...schedule.crypto.networkFeeWithdrawals.map((row) => row.chain.toUpperCase()),
+    ])
+    const quotedChainsPreview = buildQuotedChainsPreview(excludedFromQuotedList)
 
     return (
         <div className="flex flex-col gap-4">
@@ -104,7 +107,8 @@ export function FeesScheduleView({ schedule }: FeesScheduleViewProps) {
                 <h2 className="px-0.5 text-label-l text-foreground-primary">{t('sections.crypto')}</h2>
                 <Card className="divide-y divide-dashed divide-border-default px-4">
                     <DataRow label={t('rows.cryptoDeposits')} value="$0" />
-                    <DataRow label={t('rows.cryptoL2Withdrawals')} value="$0" />
+                    <DataRow label="Arbitrum" value="$0" />
+                    <DataRow label={t('rows.cryptoL2Withdrawals')} value={t('rows.cryptoL2Quoted')} />
                     {schedule.crypto.networkFeeWithdrawals.map((row) => (
                         <DataRow
                             key={row.chain}
@@ -114,7 +118,7 @@ export function FeesScheduleView({ schedule }: FeesScheduleViewProps) {
                     ))}
                 </Card>
                 <p className="px-0.5 text-body-xs text-foreground-secondary">
-                    {t('notes.cryptoNetworks', { networks: sponsoredChainsPreview })}
+                    {t('notes.cryptoNetworks', { networks: quotedChainsPreview })}
                 </p>
             </div>
 

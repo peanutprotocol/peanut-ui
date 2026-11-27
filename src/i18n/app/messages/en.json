@@ -979,13 +979,14 @@
                 "brlPixBr": "BRL · Pix (Brazil)",
                 "cardIssuance": "Issuance, monthly & top-up",
                 "cardPayments": "Card payments",
-                "cryptoDeposits": "All crypto deposits",
-                "cryptoL2Withdrawals": "L2s & other networks"
+                "cryptoDeposits": "USDC / USDT deposits",
+                "cryptoL2Withdrawals": "Other L2s & networks",
+                "cryptoL2Quoted": "Shown in quote"
             },
             "notes": {
                 "bankTransfers": "USD Wire ({wireFee}) and Brazil Pix ({pixFee}) are provider fees. Cross-currency transfers use the live exchange rate.",
                 "cardVisa": "Visa may apply its own exchange rate and network fees on cross-currency or international payments.",
-                "cryptoNetworks": "{networks} & more."
+                "cryptoNetworks": "{networks} & more. Other tokens convert at market rate."
             },
             "fullScheduleLink": "Full fee schedule & terms ↗"
         }

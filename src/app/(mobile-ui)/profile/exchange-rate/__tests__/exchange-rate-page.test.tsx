@@ -240,7 +240,21 @@ describe('Rates & Fees tabs and sub-views', () => {
         expect(screen.getByText('€0')).toBeInTheDocument()
         expect(screen.getByText('R$ 0.75')).toBeInTheDocument()
         expect(screen.getByText('0%')).toBeInTheDocument()
+        expect(screen.getByText('USDC / USDT deposits')).toBeInTheDocument()
+        expect(screen.getByText('Shown in quote')).toBeInTheDocument()
         expect(screen.getByText('$0.50 + 0.07%')).toBeInTheDocument()
+    })
+
+    it('deducts the R$ 0.75 provider fee from Brazil Pix withdrawal proceeds', () => {
+        mockUseAuth.mockReturnValue({ user: { residence: { verified: { country: 'BR' } } } })
+        mockQuery.from = ''
+        mockQuery.to = ''
+        mockQuery.cur = 'BRL'
+        mockQuery.dir = 'withdraw'
+        renderPage()
+
+        // Default withdraw amount is 100 USD * 5.70 BRL/USD - R$ 0.75 = R$ 569.25
+        expect(screen.getByTestId('rates-converted-output')).toHaveTextContent('569.25')
     })
 
     it('renders All currencies with adaptable order and keeps USD 1:1', () => {

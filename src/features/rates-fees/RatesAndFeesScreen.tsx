@@ -167,7 +167,7 @@ export function RatesAndFeesScreen() {
                 <NavHeader title={headerTitle} onPrev={handleBack} />
 
                 {subView === 'main' && (
-                    <div className="flex flex-col gap-5">
+                    <div className="flex flex-col gap-4">
                         <Tabs
                             aria-label={t('title')}
                             fullWidth="stretch"
@@ -180,7 +180,7 @@ export function RatesAndFeesScreen() {
                         />
 
                         {activeTab === 'rates' ? (
-                            <div className="flex flex-col gap-5">
+                            <div className="flex flex-col gap-4">
                                 <RateConverterCard
                                     currency={activeCurrency}
                                     direction={activeDirection}

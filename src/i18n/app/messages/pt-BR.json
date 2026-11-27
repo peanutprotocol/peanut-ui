@@ -979,13 +979,14 @@
                 "brlPixBr": "BRL · Pix (Brasil)",
                 "cardIssuance": "Emissão, mensalidade e recarga",
                 "cardPayments": "Pagamentos no cartão",
-                "cryptoDeposits": "Todos os depósitos cripto",
-                "cryptoL2Withdrawals": "L2s e outras redes"
+                "cryptoDeposits": "Depósitos USDC / USDT",
+                "cryptoL2Withdrawals": "Outras L2s e redes",
+                "cryptoL2Quoted": "Na cotação"
             },
             "notes": {
                 "bankTransfers": "USD Wire ({wireFee}) e Pix no Brasil ({pixFee}) são taxas do provedor. Conversões usam a cotação ao vivo.",
                 "cardVisa": "A Visa pode aplicar sua própria taxa de câmbio e tarifas de rede em pagamentos internacionais ou em outras moedas.",
-                "cryptoNetworks": "{networks} e mais."
+                "cryptoNetworks": "{networks} e mais. Outros tokens convertem a taxa de mercado."
             },
             "fullScheduleLink": "Ver tabela completa de taxas ↗"
         }

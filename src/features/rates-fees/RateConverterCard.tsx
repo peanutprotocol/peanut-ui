@@ -63,7 +63,12 @@ export function RateConverterCard({
 
     const parsedAmount = parseLocaleAmount(amountInput, locale)
     const activeFlatFee = getActiveFlatFeeForCurrency(feeSchedule, currency, direction, userCountryCode)
-    const flatFeeLocal = isAdd && activeFlatFee && activeFlatFee.currency === currency ? activeFlatFee.amount : 0
+    // Deduct mandatory local-rail flat fees (e.g. BR resident Avenia Pix R$ 0.75) on both
+    // deposit and withdrawal estimates, but never deduct optional USD Wire ($20) from the default ACH estimate.
+    const flatFeeLocal =
+        activeFlatFee && activeFlatFee.currency === currency && activeFlatFee.railHint !== 'wire'
+            ? activeFlatFee.amount
+            : 0
 
     const convertedAmount =
         activeRate && activeRate > 0
@@ -113,7 +118,7 @@ export function RateConverterCard({
                 <label htmlFor="rates-amount-input" className="text-body-s text-foreground-secondary">
                     {isAdd ? t('converter.youSendLocal', { currency }) : t('converter.youSendUsd')}
                 </label>
-                <div className="flex min-h-12 items-center justify-between gap-2 rounded-sm border border-border-default bg-background-default px-3 focus-within:outline-[3px] focus-within:outline-action-focus">
+                <Card className="flex min-h-12 items-center justify-between gap-2 px-3 focus-within:outline-[3px] focus-within:outline-action-focus">
                     <input
                         id="rates-amount-input"
                         type="text"
@@ -123,7 +128,7 @@ export function RateConverterCard({
                         aria-label={t('converter.amountAria')}
                         className="w-full min-w-0 bg-transparent text-body-m-semibold text-foreground-primary outline-none"
                     />
-                    <span className="inline-flex shrink-0 items-center gap-1.5 text-label-l text-foreground-primary">
+                    <span className="inline-flex shrink-0 items-center gap-2 text-label-l text-foreground-primary">
                         {fromFlag && (
                             <Image
                                 src={fromFlag}
@@ -135,7 +140,7 @@ export function RateConverterCard({
                         )}
                         {fromCode}
                     </span>
-                </div>
+                </Card>
             </div>
 
             {/* Bilateral 1-tap swap */}
@@ -163,7 +168,7 @@ export function RateConverterCard({
                     >
                         {formattedOutput}
                     </span>
-                    <span className="inline-flex shrink-0 items-center gap-1.5 text-label-l text-foreground-primary">
+                    <span className="inline-flex shrink-0 items-center gap-2 text-label-l text-foreground-primary">
                         {toFlag && (
                             <Image
                                 src={toFlag}
