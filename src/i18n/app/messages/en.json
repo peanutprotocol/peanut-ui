@@ -2283,6 +2283,7 @@
         "eurAccountsOnlyDescription": "Only EUR accounts with IBAN can add money. Your local currency account may not work.",
         "chainTokenOnly": "{chain} · {tokens} only",
         "methods": {
+            "moreWays": "More ways to add money",
             "pixDetails": "Scan or copy code",
             "arsDetails": "From your Mercado Pago or bank account",
             "cryptoDetails": "From wallets or exchanges",

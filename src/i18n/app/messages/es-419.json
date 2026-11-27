@@ -2283,6 +2283,7 @@
         "eurAccountsOnlyDescription": "Solo funcionan cuentas en EUR con IBAN para agregar dinero. Puede que tu cuenta en moneda local no funcione.",
         "chainTokenOnly": "{chain} · solo {tokens}",
         "methods": {
+            "moreWays": "Más formas de agregar dinero",
             "pixDetails": "Escanea o copia el código",
             "arsDetails": "Desde tu cuenta de Mercado Pago o de tu banco",
             "cryptoDetails": "Desde billeteras o exchanges",
