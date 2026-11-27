@@ -1388,6 +1388,8 @@ function PaperworkVerificationSteps({
                 title={candidate ? t('reverify.pendingTitle') : undefined}
                 note={candidate ? t('reverify.pendingDescription') : undefined}
                 hasQuestions={questionIds.length > 0}
+                // "Back to Home" would be false when the check returns to where it was opened from
+                cta={firstTimeReturn ? t('continue') : undefined}
                 onBack={finish}
                 onContinue={finish}
             />
@@ -1401,7 +1403,8 @@ function PaperworkVerificationSteps({
                 // proof of address, a bank's document) as steps of its own, before Unlock.
                 followUps={candidate ? undefined : followUps.map((followUp) => followUp.label)}
                 note={!candidate && followUps[0] ? tRoot(followUps[0].note) : undefined}
-                cta={candidate || followUps[0] ? t('continue') : undefined}
+                // a returnTo target is not "payments": the neutral label is true for any place returned to
+                cta={candidate || followUps[0] || firstTimeReturn ? t('continue') : undefined}
                 aside={!candidate && bankRefusal && <BankRefusalNotice refusal={bankRefusal} />}
                 onBack={finish}
                 // opened with a returnTo (the card step): back there, which leads to what is still needed

@@ -1166,6 +1166,26 @@ describe('PaperworkVerificationFlow', () => {
             fireEvent.click(await screen.findByTestId('verify-review-home'))
         }
 
+        it('says Continue, not "Back to Home", when it returns to where it was opened from', async () => {
+            mockSave.mockResolvedValue({ kind: 'conflict', code: 'identity_submitted' })
+            await startFlow('', undefined, '/card?card_step=funding')
+            await screen.findByTestId('verify-pick-annualSalary')
+            mockStatus.mockResolvedValue('IN_REVIEW')
+            fireEvent.click(continueButton())
+            const cta = await screen.findByTestId('verify-review-home')
+            expect(cta).toHaveTextContent('Continue')
+            expect(cta).not.toHaveTextContent('Back to Home')
+        })
+
+        it('keeps "Back to Home" without returnTo', async () => {
+            mockSave.mockResolvedValue({ kind: 'conflict', code: 'identity_submitted' })
+            await startFlow()
+            await screen.findByTestId('verify-pick-annualSalary')
+            mockStatus.mockResolvedValue('IN_REVIEW')
+            fireEvent.click(continueButton())
+            expect(await screen.findByTestId('verify-review-home')).toHaveTextContent('Back to Home')
+        })
+
         it('ends on the card step it was opened from', async () => {
             await reachReview('/card?card_step=funding')
             await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/card?card_step=funding'))
@@ -1418,11 +1438,22 @@ describe('PaperworkVerificationFlow', () => {
         expect(screen.getByText(/^Your ID isn’t from/)).toBeInTheDocument()
     })
 
+    it('an approved user with no returnTo keeps "Set up payments"', async () => {
+        mockStatus.mockResolvedValue('APPROVED')
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+        renderFlow('')
+        expect(await screen.findByTestId('verify-verified-payments')).toHaveTextContent('Set up payments')
+    })
+
     it('an approved user opened from the card step goes back there on Continue, not to payments', async () => {
         mockStatus.mockResolvedValue('APPROVED')
         mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
         renderFlow('', undefined, undefined, '/card?card_step=funding')
-        fireEvent.click(await screen.findByTestId('verify-verified-payments'))
+        const cta = await screen.findByTestId('verify-verified-payments')
+        // the target is not payments: a neutral label
+        expect(cta).toHaveTextContent('Continue')
+        expect(cta).not.toHaveTextContent('Set up payments')
+        fireEvent.click(cta)
         await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/card?card_step=funding'))
         expect(mockPush).not.toHaveBeenCalledWith('/profile/payments')
     })
