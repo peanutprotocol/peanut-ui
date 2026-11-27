@@ -58,6 +58,7 @@ import { ClosedFeaturesNotice, ProofOfAddressScreen, ReviewScreen } from './comp
 import { StepsScreen } from './components/StepsScreen'
 import { VerifyStartIntro } from '@/components/Setup/redesign/VerifyStart/VerifyStartIntro'
 import { currentVerifySource } from './verifySource'
+import { isSelfStartedVerification, VERIFIED_PAGE_PATH } from '@/features/add-money/verified/verifiedRows'
 import { BankRefusalNotice } from './components/BankRefusalNotice'
 import { supportRefusal } from '@/features/kyc-features/report'
 import {
@@ -600,10 +601,13 @@ function PaperworkVerificationSteps({
     const latestStatus = useRef(status)
     const activeSdk = useRef<ReturnType<typeof usePaperworkVerificationIdentity>['session']>(null)
     const approvedSdk = useRef<ReturnType<typeof usePaperworkVerificationIdentity>['session']>(null)
+    // a replacement of an approved identity is not a first verification: it keeps the verified step
+    const replacing = useRef(initial.status === 'REVERIFYING')
     const setStatus = useCallback(
         (next: Loaded['status']) => {
             if (candidate && (latestStatus.current === 'APPROVED' || latestStatus.current === 'REJECTED')) return
             latestStatus.current = next
+            if (next === 'REVERIFYING') replacing.current = true
             if (next === 'APPROVED') approvedSdk.current = activeSdk.current
             setStatusState(next)
         },
@@ -612,6 +616,10 @@ function PaperworkVerificationSteps({
     const [queryStep] = useQueryState('step')
     const stepParam = candidate ? null : queryStep
     const [returnToFeature] = useQueryState('returnToFeature')
+    // a self-started check (sign-up, Home, Settings, a direct visit) ends on the verified page; one opened from a
+    // task (a feature, a re-verification) keeps the verified step, which returns to that task
+    const endsOnVerifiedPage = () =>
+        !candidate && !replacing.current && returnToFeature !== '1' && isSelfStartedVerification(currentVerifySource())
     const linkedQuestion = useRef(stepParam)
     const enterLastPage = useRef<PaperworkVerificationStepId | undefined>(undefined)
     // A replacement hands off before its submission webhook necessarily arrives.
@@ -1199,9 +1207,15 @@ function PaperworkVerificationSteps({
                     return
                 }
                 if (fresh) setPlan(fresh)
+                if (fresh?.proofOfAddress !== 'suggested' && endsOnVerifiedPage()) {
+                    router.replace(VERIFIED_PAGE_PATH)
+                    return
+                }
                 void stepper.goTo(fresh?.proofOfAddress === 'suggested' ? 'address-proof' : 'verified')
             }
         )
+        // endsOnVerifiedPage reads session storage and the query param at approval
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [candidate, decided, fetchUser, stepper, status, router])
 
     const tracking = useMemo<PaperworkVerificationTrackingContext>(
@@ -1405,7 +1419,8 @@ function PaperworkVerificationSteps({
                             ? ANALYTICS_EVENTS.KYC_PV_POA_SKIPPED
                             : ANALYTICS_EVENTS.KYC_PV_POA_UPLOADED
                     )
-                    void stepper.goTo('verified')
+                    if (endsOnVerifiedPage()) router.replace(VERIFIED_PAGE_PATH)
+                    else void stepper.goTo('verified')
                 }}
                 onUploadStarted={() => track(ANALYTICS_EVENTS.KYC_PV_POA_UPLOAD_STARTED)}
             />

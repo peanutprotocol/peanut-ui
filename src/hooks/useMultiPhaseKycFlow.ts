@@ -169,6 +169,12 @@ interface UseMultiPhaseKycFlowOptions {
      * happens next, so no progress modal opens.
      */
     onActionSubmitted?: (key: string) => void
+    /**
+     * A self-started identity check was approved (not an action on an approved identity): the caller opens the
+     * verified page, which loads the bank rows in place, so no "Setting up account" or "All set" modal opens and
+     * `onKycSuccess` does not fire. Task-started callers leave it out and keep today's modals.
+     */
+    onIdentityVerified?: () => void
     regionIntent?: KYCRegionIntent
     /** False where the page resumes its own Sumsub session from the shared `kyc` param. */
     resumeOnReload?: boolean
@@ -187,6 +193,7 @@ export const useMultiPhaseKycFlow = ({
     onKycApproved,
     onManualClose,
     onActionSubmitted,
+    onIdentityVerified,
     regionIntent,
     resumeOnReload = true,
 }: UseMultiPhaseKycFlowOptions) => {
@@ -267,29 +274,43 @@ export const useMultiPhaseKycFlow = ({
         }
     }, [])
 
-    // complete the flow — close everything, call original onKycSuccess
-    const completeFlow = useCallback(() => {
-        if (finishedRef.current) return
-        finishedRef.current = true
-        flowGenerationRef.current += 1
-        const effectiveIntent = lastIntentRef.current ?? regionIntent
-        posthog.capture(
-            effectiveIntent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_COMPLETED : ANALYTICS_EVENTS.KYC_APPROVED,
-            { region_intent: effectiveIntent, acquisition_source: acquisitionSource, ...verifySourceProperty() }
-        )
-        isRealtimeFlowRef.current = false
-        setForceShowModal(false)
-        setModalPhase('verifying')
-        setPreparingTimedOut(false)
-        setTosLink(null)
-        setShowTosIframe(false)
-        setTosError(null)
-        setIsLoadingTos(false)
-        clearPreparingTimer()
-        closeVerificationModalRef.current()
-        if (completionNoticeRef.current) onManualClose?.()
-        else onKycSuccess?.()
-    }, [onKycSuccess, onManualClose, clearPreparingTimer, regionIntent, acquisitionSource])
+    // complete the flow — close everything, then call original onKycSuccess unless the caller takes over
+    const finishFlow = useCallback(
+        (notify: boolean) => {
+            if (finishedRef.current) return
+            finishedRef.current = true
+            flowGenerationRef.current += 1
+            const effectiveIntent = lastIntentRef.current ?? regionIntent
+            posthog.capture(
+                effectiveIntent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_COMPLETED : ANALYTICS_EVENTS.KYC_APPROVED,
+                { region_intent: effectiveIntent, acquisition_source: acquisitionSource, ...verifySourceProperty() }
+            )
+            isRealtimeFlowRef.current = false
+            setForceShowModal(false)
+            setModalPhase('verifying')
+            setPreparingTimedOut(false)
+            setTosLink(null)
+            setShowTosIframe(false)
+            setTosError(null)
+            setIsLoadingTos(false)
+            clearPreparingTimer()
+            closeVerificationModalRef.current()
+            if (!notify) return
+            if (completionNoticeRef.current) onManualClose?.()
+            else onKycSuccess?.()
+        },
+        [onKycSuccess, onManualClose, clearPreparingTimer, regionIntent, acquisitionSource]
+    )
+    const completeFlow = useCallback(() => finishFlow(true), [finishFlow])
+    // read in the approval callback, which is built before useSumsubKycFlow returns the flag
+    const isActionFlowRef = useRef(false)
+    // a self-started identity approval ends on the caller's verified page instead of the post-approval modals
+    const leaveForVerifiedPage = useCallback(() => {
+        if (!onIdentityVerified || isActionFlowRef.current) return false
+        finishFlow(false)
+        onIdentityVerified()
+        return true
+    }, [onIdentityVerified, finishFlow])
 
     const showCompletionNotice = useCallback(
         (notice: KycCompletionNotice) => {
@@ -329,6 +350,7 @@ export const useMultiPhaseKycFlow = ({
         // user's side. Fire here (not in completeFlow) so a "completed" signal
         // survives a drop during the post-approval ToS / preparing steps.
         onKycApproved?.()
+        if (leaveForVerifiedPage()) return
 
         // for real-time flow, optimistically show "Identity verified!" while we check rails
         if (isRealtimeFlowRef.current) {
@@ -410,6 +432,7 @@ export const useMultiPhaseKycFlow = ({
         onKycApproved,
         regionIntent,
         showCompletionNotice,
+        leaveForVerifiedPage,
     ])
 
     const {
@@ -456,6 +479,8 @@ export const useMultiPhaseKycFlow = ({
         onManualClose,
         regionIntent,
     })
+
+    isActionFlowRef.current = isActionFlow
 
     const [submissionAttempt, setSubmissionAttempt] = useState(() => ({
         id: 0,
@@ -748,6 +773,11 @@ export const useMultiPhaseKycFlow = ({
         }
         const key = `${sessionId}:${sessionGeneration}`
         if (completedSessionRef.current === key) return
+        // the verified page loads the accounts in place, so a self-started check leaves once the provider has it
+        if (!isArgentinaSingleLevelSession && leaveForVerifiedPage()) {
+            completedSessionRef.current = key
+            return
+        }
         let cancelled = false
         let timer: ReturnType<typeof setTimeout> | undefined
         const refreshBeforeCompletion = async () => {
@@ -792,6 +822,7 @@ export const useMultiPhaseKycFlow = ({
         completeFlow,
         clearPreparingTimer,
         showCompletionNotice,
+        leaveForVerifiedPage,
     ])
 
     // phase transitions driven by rail tracking

@@ -1009,6 +1009,84 @@ describe('useMultiPhaseKycFlow — the proof of address after the identity', () 
  * without reporting it (TASK-23881). The wrapper reports that as `returned`,
  * and Bridge's answer decides. A manual exit stays on the terms step.
  */
+describe('useMultiPhaseKycFlow — a self-started check ends on the verified page', () => {
+    // a bank account that still needs Bridge's terms: today's flow opens the terms modal after approval
+    const tos = {
+        capabilities: withFeatureReport(
+            {
+                rails: [
+                    {
+                        id: 'bridge.ach_us',
+                        provider: 'bridge',
+                        channel: 'bank',
+                        country: 'US',
+                        currency: 'USD',
+                        status: 'blocked',
+                        blockingActions: ['bridge-tos'],
+                        resolved: { status: 'fixable', nextAction: { key: 'bridge-tos', kind: 'accept-tos' } },
+                    },
+                ],
+                nextActions: [{ key: 'bridge-tos', kind: 'accept-tos' }],
+                restrictions: [],
+            } as never,
+            { identity: { status: 'verified' } }
+        ),
+    }
+    const mockStartAction = jest.requireMock('@/app/actions/sumsub').startKycAction as jest.Mock
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockFetchUser.mockResolvedValue(tos)
+        mockInitiate.mockResolvedValue({ data: { token: 'tok', applicantId: 'app', status: 'PENDING' } })
+        mockStartAction.mockResolvedValue({ data: { token: 'poa-token', levelName: 'provider-rfi-proof-of-address' } })
+    })
+
+    const approve = async (options: Parameters<typeof useMultiPhaseKycFlow>[0]) => {
+        const view = renderHook(() => useMultiPhaseKycFlow(options))
+        await act(async () => {
+            await view.result.current.handleInitiateKyc()
+        })
+        await act(async () => {
+            mockWs.handler?.('APPROVED')
+        })
+        return view
+    }
+
+    it('self-started: leaves for the page at approval, with no terms or setup modal and no onKycSuccess', async () => {
+        const onIdentityVerified = jest.fn()
+        const onKycSuccess = jest.fn()
+        const { result } = await approve({ onIdentityVerified, onKycSuccess })
+
+        expect(onIdentityVerified).toHaveBeenCalledTimes(1)
+        expect(onKycSuccess).not.toHaveBeenCalled()
+        expect(result.current.isModalOpen).toBe(false)
+        expect(result.current.modalPhase).toBe('verifying')
+        expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.KYC_APPROVED, expect.anything())
+    })
+
+    it('task-started: keeps the terms modal after approval', async () => {
+        const onKycSuccess = jest.fn()
+        const { result } = await approve({ onKycSuccess })
+
+        expect(result.current.modalPhase).toBe('bridge_tos')
+        expect(result.current.isModalOpen).toBe(true)
+        expect(onKycSuccess).not.toHaveBeenCalled()
+    })
+
+    it('an action on an approved identity is not a new verification: it never opens the page', async () => {
+        const onIdentityVerified = jest.fn()
+        const { result } = renderHook(() => useMultiPhaseKycFlow({ onIdentityVerified }))
+        await act(async () => {
+            await result.current.handleStartAction('supplement:bridge')
+        })
+        await act(async () => {
+            result.current.handleSdkComplete()
+        })
+
+        expect(onIdentityVerified).not.toHaveBeenCalled()
+    })
+})
+
 describe('useMultiPhaseKycFlow — Bridge ToS page close', () => {
     const mockGetTosLink = getBridgeTosLink as jest.MockedFunction<typeof getBridgeTosLink>
     const mockConfirm = confirmBridgeTos as jest.MockedFunction<typeof confirmBridgeTos>

@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { VERIFIED_PAGE_PATH } from '@/features/add-money/verified/verifiedRows'
 import { useIdentityCheckStart } from '@/features/paperwork-verification/useIdentityCheckStart'
 import { useAccountSetup } from '@/hooks/useAccountSetup'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
@@ -11,10 +13,15 @@ import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
  * SumsubKycModals.
  */
 export function useCelebrationVerify() {
+    const router = useRouter()
     const { consumeRedirect, handleRedirect } = useAccountSetup()
     const leave = () => handleRedirect({ isNewAccount: true })
-    // today's check finishes over the Celebration: once verified, go where sign-up goes
-    const kycFlow = useMultiPhaseKycFlow({ onKycSuccess: leave })
+    // today's check finishes over the Celebration: once verified it ends on the verified page, which replaces
+    // sign-up so Back cannot reopen it
+    const kycFlow = useMultiPhaseKycFlow({
+        onKycSuccess: leave,
+        onIdentityVerified: () => router.replace(VERIFIED_PAGE_PATH),
+    })
     // /verify takes sign-up's place, so Back cannot reopen it; closing today's check leaves sign-up as Remind me later does
     const identityCheck = useIdentityCheckStart(kycFlow, { replace: true, onClose: leave, source: 'signup' })
     const [starting, setStarting] = useState(false)

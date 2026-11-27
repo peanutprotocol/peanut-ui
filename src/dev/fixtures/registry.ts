@@ -1761,6 +1761,39 @@ const ARS_TOP_UP_RESIDENT = {
     capabilities: MANTECA_AR_CAPABILITIES,
 }
 
+/**
+ * "Your ID is verified" (/verified, add-money proposal): the report right after approval, by account. `wait` is a
+ * provider review, `tos` Bridge's terms; the bank feature's USD and EUR accounts share one entry.
+ */
+const VERIFIED_WAIT = { key: 'provider-wait', kind: 'wait' }
+const VERIFIED_TOS = { key: 'bridge-tos', kind: 'accept-tos' }
+type VerifiedEntry = { state: string; action?: string }
+const verifiedUser = (
+    country: 'AR' | 'BR',
+    local: Record<string, VerifiedEntry>,
+    bank: VerifiedEntry,
+    extra: Record<string, unknown> = {}
+) => ({
+    user: { username: 'lena' },
+    identityVerification: { status: 'verified' },
+    residence: {
+        verified: { country, status: 'VERIFIED', updatedAt: null },
+        declared: null,
+        secondaryDeclaredCountry: null,
+    },
+    capabilities: {
+        ...MANTECA_AR_CAPABILITIES,
+        nextActions: [VERIFIED_WAIT, VERIFIED_TOS],
+        ...extra,
+        features: {
+            qr: { state: 'on' },
+            card: { state: 'ready' },
+            local: { ...Object.values(local)[0], accounts: local },
+            bank: { ...bank, accounts: { USD: bank, EUR: bank } },
+        },
+    },
+})
+
 /** The ARS bank rail waits on the person's Manteca step (questionnaire and phone check), as the API reports it. */
 const mantecaArStepCapabilities = (code: 'manteca_action_incomplete' | 'manteca_action_expired') => {
     const userMessage =
@@ -2731,6 +2764,59 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/add-money?method=bank',
         about: 'Add money by bank: the accounts you hold, crypto, and every country you can send from.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
+    },
+    'verified-loading': {
+        route: '/verified',
+        geoCountry: 'AR',
+        isLoadingState: true,
+        about: 'Verified page right after approval: the ARS and bank rows load in place, crypto works.',
+        responses: { 'GET /users/me': verifiedUser('AR', { ARS: { state: 'pending' } }, { state: 'pending' }) },
+    },
+    'verified-not-ready': {
+        route: '/verified',
+        geoCountry: 'AR',
+        about: "Verified page: ARS under review by Manteca, the bank row needs Bridge's terms, crypto works now.",
+        responses: {
+            'GET /users/me': verifiedUser(
+                'AR',
+                { ARS: { state: 'setting_up', action: VERIFIED_WAIT.key } },
+                { state: 'action_required', action: VERIFIED_TOS.key }
+            ),
+        },
+    },
+    'verified-after-terms': {
+        route: '/verified',
+        geoCountry: 'AR',
+        about: 'Verified page after the terms: both bank rows under review, crypto works now.',
+        responses: {
+            'GET /users/me': verifiedUser(
+                'AR',
+                { ARS: { state: 'setting_up', action: VERIFIED_WAIT.key } },
+                { state: 'setting_up', action: VERIFIED_WAIT.key }
+            ),
+        },
+    },
+    'verified-ready': {
+        route: '/verified',
+        geoCountry: 'AR',
+        about: 'Verified page once the accounts work: every row opens, the name chip has its green check.',
+        responses: { 'GET /users/me': verifiedUser('AR', { ARS: { state: 'on' } }, { state: 'on' }) },
+    },
+    'verified-brazil': {
+        route: '/verified',
+        geoCountry: 'BR',
+        about: "Verified page in Brazil: Pix leads on Avenia's route, the bank row under review by Bridge.",
+        responses: {
+            'GET /users/me': verifiedUser(
+                'BR',
+                { BRL: { state: 'on' } },
+                { state: 'setting_up', action: VERIFIED_WAIT.key },
+                {
+                    rails: aveniaResponses('enabled')['GET /users/me'].capabilities.rails,
+                    routes: aveniaRoutes('enabled'),
+                }
+            ),
+        },
     },
     'add-money-crypto': { route: '/add-money/crypto', about: 'Crypto deposit: the network picker.' },
     // TASK-21375: Argentina's bank transfer and Mercado Pago open the same

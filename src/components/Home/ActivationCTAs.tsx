@@ -24,6 +24,7 @@ import { buildContactSupportMessage } from '@/utils/contact-support.utils'
 import { identityRejection, rejectionSupportMessage } from '@/utils/identity-rejection.utils'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { VERIFIED_PAGE_PATH } from '@/features/add-money/verified/verifiedRows'
 import { useProviderRejection } from '@/hooks/useProviderRejection'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { useIdentityCheckStart } from '@/features/paperwork-verification/useIdentityCheckStart'
@@ -117,7 +118,9 @@ export default function ActivationCTAs({
     // re-upload directly, instead of routing to /profile/accounts (which
     // only showed the regions list, forcing the user to hunt for the Upload-document
     // CTA again). Mirrors the add-money bank flow + the Unlock payments view.
-    const kycFlow = useMultiPhaseKycFlow({})
+    // A check started here is self-started: its approval ends on the verified page (actions such as the
+    // document re-upload are not, and keep their modals).
+    const kycFlow = useMultiPhaseKycFlow({ onIdentityVerified: () => router.push(VERIFIED_PAGE_PATH) })
     // The checklist's Verify row: the same start the sign-up Verify start offers.
     const identityCheck = useIdentityCheckStart(kycFlow)
 
