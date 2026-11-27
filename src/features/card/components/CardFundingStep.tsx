@@ -19,6 +19,7 @@ import { addMoneyGapUsd, bankPageHref, drawerBankPlan } from '@/features/add-mon
 import {
     captureAddMoneyDrawerClosed,
     captureAddMoneyRailPicked,
+    pickerMethodOf,
     type AddMoneyDrawerView,
     type AddMoneyMethod,
 } from '@/features/add-money/drawer/drawerAnalytics'
@@ -73,13 +74,17 @@ export function CardFundingStep({
     // the drawer closes on funding only when it opened short; a funded user who opens it stays in it
     const openedShort = useRef(false)
     const pickMethod = (method: AddMoneyMethod) => {
-        captureCardGateAddFundsTapped('funding', funded, method)
         openedShort.current = !funded
         // one bank way, and it is a page: a drawer with one row would only add a tap
-        if (method === 'bank' && plan.kind === 'rows' && plan.rows.length === 1 && plan.rows[0].kind === 'page') {
-            const { corridor } = plan.rows[0]
-            captureAddMoneyRailPicked('card', corridor, 'page')
-            router.push(bankPageHref(corridor, gapUsd, readiness.residenceIso2s, CARD_FUNDING_RETURN_TO))
+        const onlyPage =
+            method === 'bank' && plan.kind === 'rows' && plan.rows.length === 1 && plan.rows[0].kind === 'page'
+                ? plan.rows[0].corridor
+                : undefined
+        // this tap picks that rail itself, so ARS and Pix count as themselves (TASK-25444)
+        captureCardGateAddFundsTapped('funding', funded, onlyPage ? pickerMethodOf(onlyPage) : method)
+        if (onlyPage) {
+            captureAddMoneyRailPicked('card', onlyPage, 'page')
+            router.push(bankPageHref(onlyPage, gapUsd, readiness.residenceIso2s, CARD_FUNDING_RETURN_TO))
             return
         }
         shown.current = null
@@ -223,6 +228,7 @@ export function CardFundingStep({
                     open={open}
                     method={drawer.method}
                     targetUsd={CARD_MIN_BALANCE_USD}
+                    funded={funded}
                     gapUsd={gapUsd}
                     plan={plan}
                     residenceIso2s={readiness.residenceIso2s}

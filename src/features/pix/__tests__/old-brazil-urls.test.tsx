@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 
 const mockSearch = { current: new URLSearchParams() }
 const mockParams = { current: {} as Record<string, string> }
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'user-1' }, accounts: [] } }) }))
 jest.mock('next/navigation', () => ({
     useSearchParams: () => mockSearch.current,
     useParams: () => mockParams.current,

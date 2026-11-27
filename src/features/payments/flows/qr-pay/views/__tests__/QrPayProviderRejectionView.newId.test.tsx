@@ -11,13 +11,14 @@ import { QrPayProviderRejectionView } from '../QrPayProviderRejectionView'
 
 const mockHandleRestartIdentity = jest.fn()
 let mockReason: string | null = null
+let mockGateState: QrKycState = QrKycState.PROVIDER_RESTART_IDENTITY
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }), usePathname: () => '/qr-pay' }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
 jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }) }))
 jest.mock('../../QrPayFlowContext', () => ({
     useQrPayFlow: () => ({
         gate: {
-            kycGateState: QrKycState.PROVIDER_RESTART_IDENTITY,
+            kycGateState: mockGateState,
             qrKycUserMessage: 'English prose from the API',
             qrKycActionKey: null,
             needsIdentityRestart: true,
@@ -36,7 +37,10 @@ const renderView = () =>
         </IntlWrapper>
     )
 
-beforeEach(() => jest.clearAllMocks())
+beforeEach(() => {
+    jest.clearAllMocks()
+    mockGateState = QrKycState.PROVIDER_RESTART_IDENTITY
+})
 
 it.each([
     ['id_expired', 'Your ID has expired. Add a valid one to keep your accounts working.'],
@@ -52,4 +56,12 @@ it.each([
     const cta = screen.getAllByText('Verify with a different document').find((node) => node.closest('button'))
     fireEvent.click(cta!)
     expect(mockHandleRestartIdentity).toHaveBeenCalled()
+})
+
+it('a blocked rejection offers contact support as the primary button, its only path out', () => {
+    mockGateState = QrKycState.PROVIDER_REJECTION_BLOCKED
+    renderView()
+    const cta = screen.getByText('Contact support').closest('button')
+    expect(cta).toHaveClass('btn-primary')
+    expect(cta).not.toHaveClass('btn-secondary')
 })

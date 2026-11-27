@@ -1,5 +1,6 @@
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import type { AddMoneyPickerMethod } from '@/features/add-money/addMoneyMethods'
 import type { AddMoneyMethod } from '@/features/add-money/drawer/drawerAnalytics'
 
 /*
@@ -21,7 +22,7 @@ export function captureCardGateStepViewed(step: CardGateStep, funded: boolean, m
 export function captureCardGateAddFundsTapped(
     step: CardGateStep,
     funded: boolean,
-    method: AddMoneyMethod | null = null
+    method: AddMoneyPickerMethod | null = null
 ): void {
     posthog.capture(ANALYTICS_EVENTS.CARD_GATE_ADD_FUNDS_TAPPED, { step, method, funded })
 }

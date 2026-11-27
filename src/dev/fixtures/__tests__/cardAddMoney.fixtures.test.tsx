@@ -91,7 +91,7 @@ describe('card add-money drawer fixtures', () => {
     const names = Object.keys(FIXTURES).filter((name) => name.startsWith('card-add-money-'))
 
     it('all open the funding step with no card collateral in the balance', () => {
-        expect(names.length).toBe(14)
+        expect(names.length).toBe(16)
         for (const name of names) {
             expect(FIXTURES[name].route).toBe('/card?card_step=funding')
             expect((FIXTURES[name].responses?.['GET /rain/cards'] as { balance: unknown }).balance).toBeNull()
@@ -112,10 +112,33 @@ describe('card add-money drawer fixtures', () => {
             },
         ],
         ['card-add-money-bank-ars', { kind: 'rows', rows: [{ kind: 'page', corridor: 'BANK_TRANSFER_AR' }] }],
-        ['card-add-money-bank-setting-up', { kind: 'setting-up', corridor: 'BANK_TRANSFER_AR' }],
+        ['card-add-money-bank-setting-up', { kind: 'setting-up', corridor: 'ACH_US' }],
         ['card-add-money-not-verified', { kind: 'not-verified' }],
         ['card-add-money-under-review', { kind: 'under-review' }],
         ['card-add-money-bank-not-offered', { kind: 'not-offered' }],
+        // TASK-25444's fixtures: one bank way each, so Bank opens that page
+        ['card-funding-ars', { kind: 'rows', rows: [{ kind: 'page', corridor: 'BANK_TRANSFER_AR' }] }],
+        ['card-funding-pix', { kind: 'rows', rows: [{ kind: 'page', corridor: 'PIX_BR' }] }],
+        [
+            'card-add-money-bank-ars-two',
+            {
+                kind: 'rows',
+                rows: [
+                    { kind: 'page', corridor: 'BANK_TRANSFER_AR' },
+                    { kind: 'account', corridor: 'ACH_US' },
+                ],
+            },
+        ],
+        [
+            'card-add-money-bank-pix-two',
+            {
+                kind: 'rows',
+                rows: [
+                    { kind: 'page', corridor: 'PIX_BR' },
+                    { kind: 'account', corridor: 'ACH_US' },
+                ],
+            },
+        ],
     ])('%s: the bank view is %j', async (name, expected) => {
         expect(await bankPlanOf(name)).toEqual(expected)
     })

@@ -18,9 +18,11 @@ import { DrawerBankStatusView } from './DrawerBankStatusView'
 import { DrawerCryptoDepositView } from './DrawerCryptoDepositView'
 import {
     captureAddMoneyDrawerOpened,
+    captureAddMoneyMethodPicked,
     captureAddMoneyNetworkPicked,
     captureAddMoneyRailPicked,
     captureAddMoneyVerifyTapped,
+    pickerMethodOf,
     type AddMoneyDrawerView,
     type AddMoneyMethod,
     type AddMoneyPlace,
@@ -63,6 +65,7 @@ export function AddMoneyDrawer({
     open,
     method: openedWith,
     targetUsd,
+    funded,
     gapUsd,
     plan,
     residenceIso2s,
@@ -74,6 +77,8 @@ export function AddMoneyDrawer({
 }: {
     open: boolean
     method: AddMoneyMethod
+    /** the place's funded state, for the add-funds event a rail picked here sends */
+    funded: boolean
     /** the spendable balance the place needs: each view reads the balance fresh and asks for the gap to it */
     targetUsd: number
     /** the place's cached gap, only to prefill a bank page's amount field */
@@ -117,6 +122,9 @@ export function AddMoneyDrawer({
     const toNetworksFromBank = () => setView({ kind: 'networks', fromBank: true })
     const pickRow = (row: DrawerBankRow) => {
         captureAddMoneyRailPicked(place, row.corridor, row.kind)
+        // the place's Bank tap counted as bank; ARS and Pix are picked here, so they count here (TASK-25444)
+        const picked = pickerMethodOf(row.corridor)
+        if (picked !== 'bank') captureAddMoneyMethodPicked(place, funded, picked)
         if (row.kind === 'account') setView({ kind: 'details', corridor: row.corridor })
         else router.push(bankPageHref(row.corridor, gapUsd, residenceIso2s, returnTo))
     }

@@ -14,6 +14,9 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { Card } from '@/components/0_Bruddle/Card'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
+import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import {
     MANTECA_ARG_DEPOSIT_CUIT,
     MANTECA_ARG_DEPOSIT_NAME,
@@ -31,12 +34,15 @@ const MantecaDepositShareDetails = ({
     arsStatus,
     onStartOver,
     onBack,
+    onDone,
 }: {
     depositDetails: MantecaDepositResponseData
     arsStatus?: 'pending' | 'processing' | 'completed' | 'failed' | 'expired'
     onStartOver?: () => void
     // Parent owns step navigation — usually a setUrlState({ step: 'inputAmount' }).
     onBack: () => void
+    // Leaves the flow once the pesos arrived.
+    onDone: () => void
 }) => {
     const params = useParams()
     const t = useTranslations('addMoney')
@@ -119,6 +125,32 @@ const MantecaDepositShareDetails = ({
                     </Button>
                 )}
             </div>
+        )
+
+    // The pesos reached Manteca: the bank details would invite a second transfer, and back would offer the amount again.
+    if (arsStatus === 'processing')
+        return (
+            <PageStack>
+                <NavHeader title={t('title')} onPrev={onDone} />
+                <ProcessingScreen
+                    title={t('manteca.paymentReceivedTitle')}
+                    description={t('manteca.paymentReceivedDescription')}
+                />
+            </PageStack>
+        )
+
+    if (arsStatus === 'completed')
+        return (
+            <PageStack>
+                <NavHeader title={t('title')} onPrev={onDone} />
+                <PageStack.Center className="items-center text-center">
+                    <IconBubble icon="check" size="l" color="green" />
+                    <TitleBlock align="center" title={t('depositReceived')} description={t('balanceUpdated')} />
+                    <Button variant="primary" className="w-full" onClick={onDone}>
+                        {tCommon('done')}
+                    </Button>
+                </PageStack.Center>
+            </PageStack>
         )
 
     const transferDeadline = arsStatus === 'pending' ? Date.parse(depositDetails.stages?.['1']?.expireAt ?? '') : NaN
