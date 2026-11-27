@@ -1200,6 +1200,7 @@ describe('a lock above the balance', () => {
             surface!.setAmount(shownUsd!)
         })
         expect(surface?.balanceErrorMessage).toBeNull()
+        expect(surface?.isShortOfBalance).toBe(false)
     })
 
     test('typed amount, live balance below what the form showed: the wait copy stays until the balance is really short', async () => {
@@ -1220,6 +1221,7 @@ describe('a lock above the balance', () => {
         mockUseWallet.mockReturnValue({ address: ACCOUNT, balance: 500_000_000n, spendableBalance: 500_000_000n })
         refresh()
         await waitFor(() => expect(surface?.balanceErrorMessage).toBe(en.errors.notEnoughBalanceAddFunds))
+        expect(surface?.isShortOfBalance).toBe(true)
         expect(surface?.errorMessage).toBeNull()
     })
 
@@ -1242,6 +1244,23 @@ describe('a lock above the balance', () => {
         await waitFor(() =>
             expect(surface?.balanceErrorMessage).toBe('Your balance is $0.01 short. Add money to continue.')
         )
+        expect(surface?.isShortOfBalance).toBe(true)
         expect(surface?.errorMessage).toBeNull()
+    })
+
+    // Add money is offered only where the balance is what refuses the amount (TASK-25444).
+    test('typed amount over the cap and the balance: the cap error shows and Add money is not offered', async () => {
+        await typeOpenAmount()
+        await act(async () => {
+            surface!.setAmount('2500')
+        })
+        expect(surface?.balanceErrorMessage).toBe(en.qrPay.errors.maxQrAmount.replace('{amount}', '2000'))
+        expect(surface?.isShortOfBalance).toBe(false)
+
+        await act(async () => {
+            surface!.setAmount('600')
+        })
+        expect(surface?.balanceErrorMessage).toBe(en.errors.notEnoughBalanceAddFunds)
+        expect(surface?.isShortOfBalance).toBe(true)
     })
 })

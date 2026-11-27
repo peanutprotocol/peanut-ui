@@ -1773,6 +1773,7 @@
     },
     "qrPay": {
         "youArePaying": "Paying",
+        "addMoney": "Add money",
         "reviewUpdatedQuote": "Review the updated quote to continue.",
         "paymentMethodAlt": "Payment method",
         "peanutManAlt": "Peanut Man",
@@ -4880,7 +4881,7 @@
     },
     "errors": {
         "balanceSettling": "Your balance isn't fully available yet. Please try again in a few seconds.",
-        "notEnoughBalanceAddFunds": "Not enough balance. Add funds to continue.",
+        "notEnoughBalanceAddFunds": "Not enough balance. Add money to continue.",
         "balanceShortBy": "Your balance is ${amount} short. Add money to continue.",
         "insufficientFunds": "You don't have enough funds.",
         "userRejectedTransaction": "Please confirm the transaction in your wallet.",

@@ -3,6 +3,7 @@
 import { formatFiniteDisplay } from '@/utils/currency'
 
 import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
 import { formatUnits } from 'viem'
 import { loadingStateKey } from '@/i18n/app/loading-states'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
@@ -24,6 +25,7 @@ import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
 import { useModalsContext } from '@/context/ModalsContext'
 import { calculateSavingsInCents, hasCardMarkupComparison } from '@/utils/qr-payment.utils'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
+import { withReturnTo } from '@/utils/return-to.utils'
 import { useQrPayFlow } from '../QrPayFlowContext'
 import { pixKeyOwnerDetails } from '@/utils/pix.utils'
 import { AmountCard } from '@/features/payments/shared/components/AmountCard'
@@ -35,6 +37,7 @@ export function QrPayFormView() {
     const t = useAppTranslations('qrPay')
     const tNav = useTranslations('navigation')
     const tLoading = useTranslations('loadingStates')
+    const router = useRouter()
     const {
         qrPayment,
         merchantName,
@@ -59,6 +62,7 @@ export function QrPayFormView() {
         errorInitiatingPayment,
         isBlockingError,
         balanceErrorMessage,
+        isShortOfBalance,
         rateUnavailable,
         retryRate,
         shouldBlockPay,
@@ -119,6 +123,10 @@ export function QrPayFormView() {
                   }),
               }
             : null
+
+    // The scan lives in this page's URL, so Add money can bring the user back to the same QR.
+    const addMoney = () =>
+        router.push(withReturnTo('/add-money', `${window.location.pathname}${window.location.search}`))
 
     const limitsCardProps = getLimitsWarningCardProps({
         validation: limitsValidation,
@@ -197,32 +205,39 @@ export function QrPayFormView() {
                         providerId={providerId}
                     />
 
-                    {/* Send Button */}
-                    <Button
-                        data-testid="qr-pay-confirm"
-                        onClick={payQR}
-                        shadowSize="4"
-                        loading={isLoading || isQuoteRecovering}
-                        disabled={
-                            !!errorInitiatingPayment ||
-                            isBlockingError ||
-                            rateUnavailable ||
-                            !amount ||
-                            isLoading ||
-                            // A replacement quote is being obtained — paying now
-                            // would submit under terms the user has not seen.
-                            isQuoteRecovering ||
-                            !!balanceErrorMessage ||
-                            shouldBlockPay ||
-                            isAwaitingPixKeyOwner ||
-                            pixKeySave.blocksPay ||
-                            !usdAmount ||
-                            usdAmount === '0.00' ||
-                            limitsValidation.isBlocking
-                        }
-                    >
-                        {isLoading ? tLoading(loadingStateKey(loadingState)) : tNav('pay')}
-                    </Button>
+                    {/* The balance cannot cover the amount: adding money is the way on, not a disabled Pay.
+                        Never while a payment is in flight. */}
+                    {isShortOfBalance && !limitsValidation.isBlocking && !isLoading ? (
+                        <Button data-testid="qr-pay-add-money" onClick={addMoney} shadowSize="4">
+                            {t('addMoney')}
+                        </Button>
+                    ) : (
+                        <Button
+                            data-testid="qr-pay-confirm"
+                            onClick={payQR}
+                            shadowSize="4"
+                            loading={isLoading || isQuoteRecovering}
+                            disabled={
+                                !!errorInitiatingPayment ||
+                                isBlockingError ||
+                                rateUnavailable ||
+                                !amount ||
+                                isLoading ||
+                                // A replacement quote is being obtained — paying now
+                                // would submit under terms the user has not seen.
+                                isQuoteRecovering ||
+                                !!balanceErrorMessage ||
+                                shouldBlockPay ||
+                                isAwaitingPixKeyOwner ||
+                                pixKeySave.blocksPay ||
+                                !usdAmount ||
+                                usdAmount === '0.00' ||
+                                limitsValidation.isBlocking
+                            }
+                        >
+                            {isLoading ? tLoading(loadingStateKey(loadingState)) : tNav('pay')}
+                        </Button>
+                    )}
 
                     {/* Neutral controller-rotation notice — the quote moved, the payment did not fail */}
                     {quoteUpdatedNotice && (

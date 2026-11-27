@@ -1773,6 +1773,7 @@
     },
     "qrPay": {
         "youArePaying": "Pagando",
+        "addMoney": "Adicionar dinheiro",
         "reviewUpdatedQuote": "Revise a cotação atualizada para continuar.",
         "paymentMethodAlt": "Método de pagamento",
         "peanutManAlt": "Peanut Man",
@@ -4880,7 +4881,7 @@
     },
     "errors": {
         "balanceSettling": "Seu saldo ainda não está totalmente disponível. Tente novamente em alguns segundos.",
-        "notEnoughBalanceAddFunds": "Saldo insuficiente. Adicione fundos para continuar.",
+        "notEnoughBalanceAddFunds": "Saldo insuficiente. Adicione dinheiro para continuar.",
         "balanceShortBy": "Faltam ${amount} no seu saldo. Adicione dinheiro para continuar.",
         "insufficientFunds": "Você não tem fundos suficientes.",
         "userRejectedTransaction": "Confirme a transação na sua carteira.",

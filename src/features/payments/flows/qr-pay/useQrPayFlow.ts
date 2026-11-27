@@ -1472,15 +1472,16 @@ export function useQrPayFlowController(
 
     /*
      * Balance and floor/cap validation, derived — the old effect-and-state pair
-     * could only ever restate these inputs.
+     * could only ever restate these inputs. `shortOfBalance` marks the one
+     * refusal that adding money fixes, so the form offers Add money for it.
      */
-    const balanceErrorMessage = useMemo(() => {
+    const balanceError = useMemo((): { message: string; shortOfBalance?: true } | null => {
         // The pay route's minimum, checked before any call (Aleks, 2026-11-14), then the review's refusal
         // of the amount typed. Both name the amount, so both sit under the amount field.
         if (isPixPay && pixPayMinimumBrl && isUnderPixMinimum(currencyAmount, pixPayMinimumBrl)) {
-            return tPix('deposit.minimum', { amount: formatBankAmount(pixPayMinimumBrl, 'BRL') })
+            return { message: tPix('deposit.minimum', { amount: formatBankAmount(pixPayMinimumBrl, 'BRL') }) }
         }
-        if (isPixPay && pixPayment.amountRefusal) return pixPayment.amountRefusal
+        if (isPixPay && pixPayment.amountRefusal) return { message: pixPayment.amountRefusal }
         if (
             (!Number(usdAmount) && !Number(currencyAmount)) ||
             !usdAmount ||
@@ -1494,31 +1495,41 @@ export function useQrPayFlowController(
         // Manteca-specific validation (PIX, MercadoPago, QR3)
         if (paymentProcessor === 'MANTECA') {
             if (paymentAmount < parseUnits(MIN_MANTECA_QR_PAYMENT_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
-                return t(pixKeyLabel ? 'errors.minTransferAmount' : 'errors.minMantecaAmount', {
-                    amount: MIN_MANTECA_QR_PAYMENT_AMOUNT,
-                })
+                return {
+                    message: t(pixKeyLabel ? 'errors.minTransferAmount' : 'errors.minMantecaAmount', {
+                        amount: MIN_MANTECA_QR_PAYMENT_AMOUNT,
+                    }),
+                }
             }
             // PIX rail enforces a 1 BRL minimum, stricter than the USD floor above
             if (currency?.code === 'BRL' && currencyAmount && parseFloat(currencyAmount) < MIN_PIX_AMOUNT_BRL) {
-                return t('errors.minPixAmountBrl', { amount: MIN_PIX_AMOUNT_BRL })
+                return { message: t('errors.minPixAmountBrl', { amount: MIN_PIX_AMOUNT_BRL }) }
             }
         }
 
         // Common validations for all payment processors
         if (paymentAmount > parseUnits(MAX_QR_PAYMENT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
-            return t(pixKeyLabel ? 'errors.maxTransferAmount' : 'errors.maxQrAmount', { amount: MAX_QR_PAYMENT_AMOUNT })
+            return {
+                message: t(pixKeyLabel ? 'errors.maxTransferAmount' : 'errors.maxQrAmount', {
+                    amount: MAX_QR_PAYMENT_AMOUNT,
+                }),
+            }
         }
         if (paymentAmount < parseUnits(MIN_QR_PAYMENT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
-            return t(pixKeyLabel ? 'errors.minTransferAmount' : 'errors.minQrAmount', { amount: MIN_QR_PAYMENT_AMOUNT })
+            return {
+                message: t(pixKeyLabel ? 'errors.minTransferAmount' : 'errors.minQrAmount', {
+                    amount: MIN_QR_PAYMENT_AMOUNT,
+                }),
+            }
         }
         if (!isAmountWithinBalance(usdAmount, balance)) {
             // gate on the displayed total; an in-transit shortfall passes here and
             // fails late with the settling message at execution. A locked amount
             // cannot be lowered here, so the copy says how much is missing.
-            if (paymentLock?.code) {
-                return tErrors('balanceShortBy', { amount: usdShortfall(paymentAmount, balance) })
-            }
-            return tErrors('notEnoughBalanceAddFunds')
+            const message = paymentLock?.code
+                ? tErrors('balanceShortBy', { amount: usdShortfall(paymentAmount, balance) })
+                : tErrors('notEnoughBalanceAddFunds')
+            return { message, shortOfBalance: true }
         }
         return null
     }, [
@@ -1536,6 +1547,7 @@ export function useQrPayFlowController(
         t,
         tErrors,
     ])
+    const balanceErrorMessage = balanceError?.message ?? null
 
     // "Try again in a few seconds" is untrue once the refreshed balance cannot
     // cover the amount: the field error says what is short instead.
@@ -1686,6 +1698,7 @@ export function useQrPayFlowController(
         initErrorNeedsVerification,
         isBlockingError,
         balanceErrorMessage,
+        isShortOfBalance: !!balanceError?.shortOfBalance,
         rateUnavailable,
         retryRate,
         amountInputRevision,
