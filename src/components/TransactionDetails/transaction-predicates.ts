@@ -77,11 +77,6 @@ export function payoutAgainDestination(
     return identifier ? { identifier, isSend: transaction.direction === 'send' } : null
 }
 
-/** A completed payment its receipt can repeat: a send to a Peanut user, or a bank or Pix payout. */
-export function canRepeatPayment(transaction: TransactionDetails): boolean {
-    return sendAgainUsername(transaction) !== null || payoutAgainDestination(transaction) !== null
-}
-
 /**
  * A payout to a bank account or a Pix key, whose intent id the receipt prints as the Transfer ID
  * support asks for. A Pix payout to another person's key reads as a send (TASK-24947) and keeps

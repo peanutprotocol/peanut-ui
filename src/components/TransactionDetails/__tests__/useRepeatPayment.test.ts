@@ -5,6 +5,7 @@ jest.mock('@/utils/capacitor', () => ({
     isAndroidNative: jest.fn().mockReturnValue(false),
 }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
+jest.mock('@/i18n/app/useAppTranslations', () => ({ useAppTranslations: () => (key: string) => key }))
 const mockPush = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
 let mockAccounts: unknown[] = []
@@ -42,8 +43,8 @@ const payout = (identifier: string, overrides: Record<string, unknown> = {}) =>
     }) as unknown as TransactionDetails
 
 const tap = (transaction: TransactionDetails) => {
-    const { result } = renderHook(() => useRepeatPayment(transaction))
-    act(() => result.current!.run())
+    const { result } = renderHook(() => useRepeatPayment(transaction, { isPublic: false }))
+    act(() => result.current!.onSelect())
     return result.current!
 }
 
@@ -63,7 +64,7 @@ describe('useRepeatPayment on payouts (TASK-25462)', () => {
         // the receipt may print the IBAN in groups
         const repeat = tap(payout('DE89 3704 0044 0532 0130 00'))
 
-        expect(repeat.labelKey).toBe('actions.withdrawAgain')
+        expect(repeat.title).toBe('actions.withdrawAgain')
         expect(peekRepeatDraft('bank')).toEqual({
             to: 'bank',
             account: iban,
@@ -72,7 +73,7 @@ describe('useRepeatPayment on payouts (TASK-25462)', () => {
         expect(mockPush).toHaveBeenCalledWith('/withdraw?step=amount&amount=150')
         expect(posthog.capture).toHaveBeenCalledWith('receipt_action_tapped', {
             action: 'withdraw_again',
-            placement: 'secondary',
+            placement: 'more_actions',
             kind: 'OFFRAMP',
         })
     })
@@ -106,7 +107,7 @@ describe('useRepeatPayment on payouts (TASK-25462)', () => {
 
         const repeat = tap(payout('+5511999990000', { direction: 'send' }))
 
-        expect(repeat.labelKey).toBe('actions.sendAgain')
+        expect(repeat.title).toBe('actions.sendAgain')
         expect(mockPush).toHaveBeenCalledWith('/withdraw/pix?sendMethod=bank')
         expect(readPixWithdrawDraft('u1', 'send')).toMatchObject({ destination: '+5511999990000', amountUsd: '150' })
     })
@@ -131,7 +132,7 @@ describe('useRepeatPayment on payouts (TASK-25462)', () => {
         ],
     ])('no button when %s', (_, accounts, transaction) => {
         mockAccounts = accounts
-        const { result } = renderHook(() => useRepeatPayment(transaction))
+        const { result } = renderHook(() => useRepeatPayment(transaction, { isPublic: false }))
         expect(result.current).toBeNull()
     })
 })

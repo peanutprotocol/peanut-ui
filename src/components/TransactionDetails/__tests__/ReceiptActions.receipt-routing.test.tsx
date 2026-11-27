@@ -479,27 +479,27 @@ describe('Send again (TASK-25462)', () => {
             ...overrides,
         }) as unknown as TransactionDetails
 
-    test('a completed send to a Peanut user: Share receipt, Send again, then the More actions link — three at most', () => {
+    test('a completed send to a Peanut user: Share receipt and More actions stay the two buttons, Send again leads the menu', () => {
         renderActions(sentToHugo(), vm())
 
         expect(receiptButtons().map((b) => b.getAttribute('data-testid'))).toEqual([
             'link-share',
-            'repeat-payment',
             'more-actions-trigger',
         ])
-        expect(screen.getByTestId('repeat-payment')).toHaveTextContent('actions.sendAgain')
+        expect(menuRows()[0]).toBe('more-action-repeat')
+        expect(screen.getByTestId('more-action-repeat')).toHaveTextContent('actions.sendAgain')
     })
 
     test('the tap opens the send screen with the amount and note as a suggestion', () => {
         renderActions(sentToHugo(), vm())
 
-        fireEvent.click(screen.getByTestId('repeat-payment'))
+        fireEvent.click(screen.getByTestId('more-action-repeat'))
 
         expect(mockPush).toHaveBeenCalledWith('/send/hugo')
         expect(peekRepeatDraft('user')).toEqual({ to: 'user', username: 'hugo', amount: '20.5', message: 'Lunch' })
         expect(mockCapture).toHaveBeenCalledWith('receipt_action_tapped', {
             action: 'send_again',
-            placement: 'secondary',
+            placement: 'more_actions',
             kind: 'DIRECT_TRANSFER',
         })
     })
@@ -508,7 +508,7 @@ describe('Send again (TASK-25462)', () => {
         ;(isCapacitor as jest.Mock).mockReturnValue(true)
         renderActions(sentToHugo({ memo: undefined }), vm())
 
-        fireEvent.click(screen.getByTestId('repeat-payment'))
+        fireEvent.click(screen.getByTestId('more-action-repeat'))
 
         expect(mockPush).toHaveBeenCalledWith('/send?recipient=hugo')
         expect(peekRepeatDraft('user')).toEqual({ to: 'user', username: 'hugo', amount: '20.5', message: undefined })
@@ -516,11 +516,11 @@ describe('Send again (TASK-25462)', () => {
 
     test('the public receipt page never offers it', () => {
         renderActions(sentToHugo(), vm(), true)
-        expect(screen.queryByTestId('repeat-payment')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('more-action-repeat')).not.toBeInTheDocument()
     })
 
     test('a paid request has no Send again', () => {
         renderActions(sentToHugo({ extraDataForDrawer: { kind: 'P2P_REQUEST_FULFILL', publicReceipt: true } }), vm())
-        expect(screen.queryByTestId('repeat-payment')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('more-action-repeat')).not.toBeInTheDocument()
     })
 })
