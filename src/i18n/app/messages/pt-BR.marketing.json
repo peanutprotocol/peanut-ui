@@ -104,6 +104,7 @@
         "passkeyNotCompleted": "Seu dispositivo não concluiu a confirmação com passkey. Tente novamente; se continuar falhando, desbloqueie seu gerenciador de senhas (por exemplo, 1Password) ou reinicie o dispositivo.",
         "claimLinkFailed": "Não foi possível resgatar o link, atualize a página. Se o problema persistir, confirme o link com quem enviou.",
         "sendLinkAlreadyClaimed": "O link de envio já foi resgatado.",
+        "sendLinkUnconfirmed": "Ainda não conseguimos confirmar seu link. Confira seu saldo antes de tentar novamente. Se seu saldo diminuiu, entre em contato com o suporte.",
         "lowLiquidity": "Baixa liquidez. Tente um valor menor ou uma rota diferente.",
         "networkBusyTimeout": "A rede está congestionada e sua solicitação expirou. Tente novamente em instantes.",
         "sessionExpired": "Sua sessão expirou. Faça login novamente.",
