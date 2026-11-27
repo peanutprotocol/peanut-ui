@@ -58,19 +58,33 @@ describe('usePixDeposit', () => {
         expect(mockDepositStatus).toHaveBeenCalledWith('d1')
     })
 
-    it('records Pix as the last deposit method once it completes, and not before', async () => {
-        localStorage.clear()
-        mockDepositStatus.mockResolvedValue(read())
-        const pending = renderHook(() => usePixDeposit('d1', jest.fn()), { wrapper })
-        await waitFor(() => expect(pending.result.current.deposit?.brCode).toBe('code'))
-        expect(localStorage.getItem('peanut-last-add-method')).toBeNull()
-        pending.unmount()
+    // the last deposit method: only a deposit this screen saw go from open to completed (Kush, 27 Nov)
+    describe('the last deposit method', () => {
+        const stored = () => JSON.parse(localStorage.getItem('peanut-last-add-method') ?? 'null')
+        beforeEach(() => localStorage.clear())
 
-        queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-        mockDepositStatus.mockResolvedValue(read({ status: 'COMPLETED', pixReceived: true, codePayable: false }))
-        const { result } = renderHook(() => usePixDeposit('d1', jest.fn()), { wrapper })
-        await waitFor(() => expect(result.current.phase).toBe('completed'))
-        expect(JSON.parse(localStorage.getItem('peanut-last-add-method') ?? 'null')).toBe('pix')
+        it('records Pix when a deposit open on screen completes, and not before', async () => {
+            queryClient.setQueryData(pixDepositQueryKey('d1'), read())
+            mockDepositStatus.mockResolvedValue(read())
+            const { result } = renderHook(() => usePixDeposit('d1', jest.fn()), { wrapper })
+            expect(result.current.phase).toBe('pending')
+            expect(stored()).toBeNull()
+
+            mockDepositStatus.mockResolvedValue(read({ status: 'COMPLETED', pixReceived: true, codePayable: false }))
+            await queryClient.refetchQueries({ queryKey: pixDepositQueryKey('d1') })
+            await waitFor(() => expect(result.current.phase).toBe('completed'))
+            expect(stored()).toBe('pix')
+        })
+
+        it('keeps a newer method when an old completed deposit is reopened', async () => {
+            localStorage.setItem('peanut-last-add-method', JSON.stringify('crypto'))
+            mockDepositStatus.mockResolvedValue(read({ status: 'COMPLETED', pixReceived: true, codePayable: false }))
+            const onComplete = jest.fn()
+            const { result } = renderHook(() => usePixDeposit('d1', onComplete), { wrapper })
+            await waitFor(() => expect(result.current.phase).toBe('completed'))
+            expect(onComplete).toHaveBeenCalledTimes(1)
+            expect(stored()).toBe('crypto')
+        })
     })
 
     it('fires onComplete once when the deposit completes', async () => {
