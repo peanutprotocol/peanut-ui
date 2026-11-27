@@ -3,6 +3,8 @@ import { DEPOSIT_RAIL_ORDER, DEPOSIT_RAILS, isClaimable } from '@/features/depos
 import { residenceAllows } from '@/features/deposit-accounts/residenceGate'
 
 export type AddMoneyMethod = 'account' | 'bank' | 'pix' | 'ars' | 'crypto' | 'more'
+/** The rows of the Add picker and of the card's funding step. */
+export type AddMoneyPickerMethod = Extract<AddMoneyMethod, 'ars' | 'pix' | 'bank' | 'crypto'>
 
 /**
  * Where the Pix row stands on both Add lists, Home's drawer and the Add picker, read from the API's Pix
@@ -93,7 +95,7 @@ export function resolveAddMoneyMethods(input: {
     if (input.cryptoReady) drawerMethods.push('crypto')
     const usable = drawerMethods.length > 0
     if (usable && returning) drawerMethods.push('more')
-    const pickerMethods: AddMoneyMethod[] = []
+    const pickerMethods: AddMoneyPickerMethod[] = []
     if (arsRow) pickerMethods.push('ars')
     if (pixRow === 'first') pickerMethods.push('pix')
     // One bank row for everybody (the owner, 25 Nov, Release 170.2): it opens the bank hub, where a

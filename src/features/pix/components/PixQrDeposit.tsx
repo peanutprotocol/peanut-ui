@@ -84,7 +84,7 @@ export function PixQrDeposit({
                 <NavHeader title={t('title')} onPrev={onDone} />
                 <PageStack.Center className="items-center text-center">
                     <IconBubble icon="check" size="l" color="green" />
-                    <TitleBlock align="center" title={t('pix.depositReceived')} description={t('pix.balanceUpdated')} />
+                    <TitleBlock align="center" title={t('depositReceived')} description={t('balanceUpdated')} />
                     <Button variant="primary" className="w-full" onClick={onDone}>
                         {tCommon('done')}
                     </Button>

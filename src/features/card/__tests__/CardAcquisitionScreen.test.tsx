@@ -15,6 +15,16 @@ jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('framer-motion', () => ({ useReducedMotion: () => false }))
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: mockHaptic }) }))
+let mockPickerMethods = ['bank', 'crypto']
+let mockMethodsLoading = false
+let mockResidence = ['PT']
+jest.mock('@/features/add-money/useAddMoneyReadiness', () => ({
+    useAddMoneyReadiness: () => ({
+        pickerMethods: mockPickerMethods,
+        isLoading: mockMethodsLoading,
+        residenceIso2s: mockResidence,
+    }),
+}))
 jest.mock('@/utils/confetti', () => ({ shootDoubleStarConfetti: jest.fn() }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Card/share-asset/ScaledPixelatedCardFace', () => ({ ScaledPixelatedCardFace: () => null }))
@@ -44,7 +54,12 @@ const props = {
 beforeEach(() => {
     jest.clearAllMocks()
     localStorage.clear()
+    mockPickerMethods = ['bank', 'crypto']
+    mockMethodsLoading = false
+    mockResidence = ['PT']
 })
+
+const row = (method: string) => screen.getByTestId(`add-money-method-${method}`)
 
 afterEach(() => {
     jest.useRealTimers()
@@ -72,7 +87,7 @@ it('runs hold, anticipation, availability and funding before exposing the applic
     await act(async () => {
         jest.advanceTimersByTime(100)
     })
-    expect(screen.getByText('methods.bankTransfer')).toBeInTheDocument()
+    expect(row('bank')).toBeInTheDocument()
     expect(screen.getByText('continue')).toBeDisabled()
     rerender(<CardAcquisitionScreen {...props} funded />)
     fireEvent.click(screen.getByText('continue'))
@@ -83,16 +98,75 @@ it('runs hold, anticipation, availability and funding before exposing the applic
     expect(mockApply).toHaveBeenCalledTimes(1)
 })
 
-it.each([
-    ['methods.bankTransfer', '/add-money?method=bank&returnTo=%2Fcard%3Fcard_step%3Dfunding'],
-    ['methods.crypto', '/add-money/crypto?returnTo=%2Fcard%3Fcard_step%3Dfunding'],
-])('carries the card return path through %s', (label, href) => {
-    render(<CardAcquisitionScreen {...props} />, {
-        wrapper: withNuqsTestingAdapter({ searchParams: '?card_step=funding' }),
+// TASK-25444: the step offered only "Bank transfer" and "Crypto", so a resident of Argentina or Brazil who
+// needed the balance for a card found no peso or Pix row. It shows the Add picker's rows now.
+describe('the funding rows', () => {
+    it.each([
+        ['a resident of Argentina', ['ars', 'bank', 'crypto']],
+        ['a user offered Pix on Avenia', ['pix', 'bank', 'crypto']],
+        ['a resident of Brazil whose Pix comes after the bank', ['bank', 'pix', 'crypto']],
+        ['anybody else', ['bank', 'crypto']],
+    ])('are the Add picker rows, in its order, for %s', (_who, methods) => {
+        mockPickerMethods = methods
+        render(<CardAcquisitionScreen {...props} />, {
+            wrapper: withNuqsTestingAdapter({ searchParams: '?card_step=funding' }),
+        })
+        expect(screen.getAllByTestId(/^add-money-method-/).map((item) => item.getAttribute('data-testid'))).toEqual(
+            methods.map((method) => `add-money-method-${method}`)
+        )
     })
-    fireEvent.click(screen.getByText(label))
-    expect(mockPush).toHaveBeenCalledWith(href)
-    expect(mockApply).not.toHaveBeenCalled()
+
+    // Aleks, 26 Nov: Bank transfer and Crypto showed while the methods loaded, then ARS or Pix appeared
+    // above them, so a fast tap could open the wrong deposit
+    it('hold until the methods resolve, then show them in their final order', () => {
+        mockMethodsLoading = true
+        mockResidence = ['AR']
+        const { rerender } = render(<CardAcquisitionScreen {...props} />, {
+            wrapper: withNuqsTestingAdapter({ searchParams: '?card_step=funding' }),
+        })
+        expect(screen.getByTestId('add-money-methods-loading')).toHaveAttribute('aria-busy', 'true')
+        expect(screen.getByTestId('add-money-methods-loading').children).toHaveLength(3)
+        expect(screen.queryAllByTestId(/^add-money-method-/)).toHaveLength(0)
+        mockMethodsLoading = false
+        mockPickerMethods = ['ars', 'bank', 'crypto']
+        rerender(<CardAcquisitionScreen {...props} />)
+        expect(screen.queryByTestId('add-money-methods-loading')).not.toBeInTheDocument()
+        expect(screen.getAllByTestId(/^add-money-method-/).map((item) => item.getAttribute('data-testid'))).toEqual([
+            'add-money-method-ars',
+            'add-money-method-bank',
+            'add-money-method-crypto',
+        ])
+    })
+
+    // Chip, 27 Nov: three placeholders for a user who resolves to two rows made the list jump
+    it.each([
+        [['AR'], 3],
+        [['BR'], 3],
+        [['PT'], 2],
+        [[], 2],
+    ])('hold as many placeholder rows as a resident of %j gets', (residence, rows) => {
+        mockMethodsLoading = true
+        mockResidence = residence
+        render(<CardAcquisitionScreen {...props} />, {
+            wrapper: withNuqsTestingAdapter({ searchParams: '?card_step=funding' }),
+        })
+        expect(screen.getByTestId('add-money-methods-loading').children).toHaveLength(rows)
+    })
+
+    it.each([
+        ['bank', '/add-money?method=bank&returnTo=%2Fcard%3Fcard_step%3Dfunding'],
+        ['crypto', '/add-money/crypto?returnTo=%2Fcard%3Fcard_step%3Dfunding'],
+        ['ars', '/add-money/argentina/manteca?returnTo=%2Fcard%3Fcard_step%3Dfunding'],
+        ['pix', '/add-money/pix?returnTo=%2Fcard%3Fcard_step%3Dfunding'],
+    ])('carry the card return path through %s', (method, href) => {
+        mockPickerMethods = [method]
+        render(<CardAcquisitionScreen {...props} />, {
+            wrapper: withNuqsTestingAdapter({ searchParams: '?card_step=funding' }),
+        })
+        fireEvent.click(row(method))
+        expect(mockPush).toHaveBeenCalledWith(href)
+        expect(mockApply).not.toHaveBeenCalled()
+    })
 })
 
 it('does not promise availability for an unknown residence', () => {
@@ -153,19 +227,20 @@ describe('card gate analytics', () => {
         ])
     })
 
-    it.each([
-        ['methods.bankTransfer', 'bank'],
-        ['methods.crypto', 'crypto'],
-    ])('reports the deposit method picked on the funding screen: %s', (label, method) => {
-        render(<CardAcquisitionScreen {...props} />, {
-            wrapper: withNuqsTestingAdapter({ searchParams: '?card_step=funding' }),
-        })
-        fireEvent.click(screen.getByText(label))
-        expect(gateEvents()).toEqual([
-            ['card_gate_step_viewed', { step: 'funding', funded: false, min_balance_shown: true }],
-            ['card_gate_add_funds_tapped', { step: 'funding', method, funded: false }],
-        ])
-    })
+    it.each(['bank', 'crypto', 'ars', 'pix'])(
+        'reports the deposit method picked on the funding screen: %s',
+        (method) => {
+            mockPickerMethods = [method]
+            render(<CardAcquisitionScreen {...props} />, {
+                wrapper: withNuqsTestingAdapter({ searchParams: '?card_step=funding' }),
+            })
+            fireEvent.click(row(method))
+            expect(gateEvents()).toEqual([
+                ['card_gate_step_viewed', { step: 'funding', funded: false, min_balance_shown: true }],
+                ['card_gate_add_funds_tapped', { step: 'funding', method, funded: false }],
+            ])
+        }
+    )
 
     it('reports the entry "Add money" tap before it opens the funding screen', () => {
         localStorage.setItem('card_anticipation_completed_v1:alice', '1')
