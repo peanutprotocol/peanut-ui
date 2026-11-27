@@ -20,7 +20,7 @@ import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
-import { parseUnits } from 'viem'
+import { formatUnits, parseUnits } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import AmountInput from '../../../Global/AmountInput'
@@ -63,7 +63,14 @@ const LinkSendInitialView = () => {
 
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
 
-    const { fetchBalance, spendableBalance: balance, formattedSpendableBalance, spendableBalanceDecimal } = useWallet()
+    const {
+        fetchBalance,
+        spendableBalance: balance,
+        formattedSpendableBalance,
+        spendableBalanceDecimal,
+        availableSpendableBalance,
+        isSpendableBalanceReady,
+    } = useWallet()
     const queryClient = useQueryClient()
     const { hasPendingTransactions } = usePendingTransactions()
 
@@ -279,10 +286,15 @@ const LinkSendInitialView = () => {
     // a short balance adds the gap in place (TASK-25467), as on Send: the drawer comes back to this URL,
     // amount in it. The gate's own error clears once the balance covers the amount, which turns Create link on.
     const isShort = !!errorState?.showError && errorState.errorCode === 'notEnoughBalanceAddFunds'
+    // the drawer's gap and "funded" read the live total, never the cached display one, as on Send
+    const liveSpendableUsd =
+        isSpendableBalanceReady && availableSpendableBalance !== undefined
+            ? Number(formatUnits(availableSpendableBalance, PEANUT_WALLET_TOKEN_DECIMALS))
+            : undefined
     const addMoney = useAddMoneyAction({
         place: 'send_link',
         targetUsd: enteredAmount || 0,
-        spendableUsd: spendableBalanceDecimal,
+        spendableUsd: liveSpendableUsd,
         step: `link:${tokenValue ?? ''}`,
     })
     const bankSent = isShort ? addMoney.bankSent : undefined
@@ -340,7 +352,6 @@ const LinkSendInitialView = () => {
                         variant="primary"
                         shadowSize="4"
                         icon="arrow-down"
-                        iconSize={16}
                         onClick={addMoney.openAddMoney}
                         data-testid="send-link-add-money"
                     >

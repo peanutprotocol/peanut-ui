@@ -69,7 +69,7 @@ type DrawerProps = {
     open: boolean
     targetUsd: number
     gapUsd?: number
-    returnTo: string
+    returnTo: () => string
     place: string
     onShow: (method: 'bank' | 'crypto' | null, view: string) => void
     onBankSent: (inDollars: boolean) => void
@@ -139,12 +139,19 @@ import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 
 const usdc = (dollars: number) => BigInt(Math.round(dollars * 1e6))
 
-const walletState = (spendableDollars: number | undefined) => ({
-    fetchBalance: jest.fn(),
-    spendableBalance: spendableDollars === undefined ? undefined : usdc(spendableDollars),
-    formattedSpendableBalance: spendableDollars === undefined ? '0.00' : spendableDollars.toFixed(2),
-    spendableBalanceDecimal: spendableDollars,
-})
+// the displayed (possibly cached) total, and the live one the drawer reads: the same unless a test
+// splits them, null while the live one is not read yet
+const walletState = (spendableDollars: number | undefined, live?: number | null) => {
+    const liveDollars = live === undefined ? spendableDollars : (live ?? undefined)
+    return {
+        fetchBalance: jest.fn(),
+        spendableBalance: spendableDollars === undefined ? undefined : usdc(spendableDollars),
+        formattedSpendableBalance: spendableDollars === undefined ? '0.00' : spendableDollars.toFixed(2),
+        spendableBalanceDecimal: spendableDollars,
+        availableSpendableBalance: liveDollars === undefined ? undefined : usdc(liveDollars),
+        isSpendableBalanceReady: liveDollars !== undefined,
+    }
+}
 
 /** Drives the flow context from inside the provider (AmountInput is mocked out). */
 const SetAmount = ({ amount }: { amount: string }) => {
@@ -406,12 +413,40 @@ describe('LinkSendInitialView add money', () => {
         expect(screen.getByTestId('error-alert')).toHaveTextContent(en.errors.notEnoughBalanceAddFunds)
         expect(screen.queryByText('Create link')).not.toBeInTheDocument()
         expect(screen.getByTestId('drawer')).toBeInTheDocument()
-        expect(drawerProps).toMatchObject({
-            place: 'send_link',
-            targetUsd: 20,
-            gapUsd: 10,
-            returnTo: '/send?view=link&amount=20',
-        })
+        expect(drawerProps).toMatchObject({ place: 'send_link', targetUsd: 20, gapUsd: 10 })
+        expect(drawerProps!.returnTo()).toBe('/send?view=link&amount=20')
+    })
+
+    // Chip on ui#4320: an amount edited after the tap must be the one a bank page or /verify comes back to
+    test('the way back carries the amount as the route opens, not the one at the tap', async () => {
+        mockUseWallet.mockReturnValue(walletState(10))
+        renderView('20')
+        fireEvent.click(await screen.findByText('Add $10'))
+
+        fireEvent.change(screen.getByTestId('amount-input'), { target: { value: '30' } })
+        await waitFor(() => expect(urlUpdates.at(-1)?.queryString).toBe('?view=link&amount=30'))
+        // the router applies that write; the drawer reads the URL only when a route opens
+        window.history.replaceState({}, '', `/send${urlUpdates.at(-1)!.queryString}`)
+        expect(drawerProps!.returnTo()).toBe('/send?view=link&amount=30')
+    })
+
+    // the display cache can read high while the live total is short or not read yet
+    test('a cached balance that covers the amount never reads as funded in the drawer', async () => {
+        mockUseWallet.mockReturnValue(walletState(10))
+        const utils = renderView('20')
+        fireEvent.click(await screen.findByText('Add $10'))
+        act(() => drawerProps!.onShow('crypto', 'address'))
+
+        for (const live of [10, null]) {
+            mockUseWallet.mockReturnValue(walletState(100, live))
+            rerenderView(utils, '20')
+            expect(screen.getByTestId('drawer')).toBeInTheDocument()
+        }
+        expect(drawerProps!.gapUsd).toBeUndefined()
+        expect(mockCapture).not.toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.SEND_LINK_ADD_MONEY_CAME_BACK_FUNDED,
+            expect.anything()
+        )
     })
 
     test('rounds the gap up to the cent', async () => {
