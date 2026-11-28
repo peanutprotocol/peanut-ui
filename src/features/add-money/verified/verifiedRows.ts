@@ -123,14 +123,17 @@ export function verifiedPageAccess(
     return 'leave'
 }
 
-// One visit: from opening the page until leaving it any way but a row. A row's flow comes back to a return path
-// that carries a one-time token; only that way back is the same visit. Any other opening (Home, a link, the
+// One visit: from opening the page until leaving it any way but a row. A row's way back (its return path, or Back
+// to the page's own history entry) carries a one-time token; only that way back is the same visit. Any other opening (Home, a link, the
 // bank-ready reminder) has no token, so it is a new visit even if a row's flow was abandoned (Chip on #4317).
 const ROW_RETURN_KEY = 'peanut:verified-row-return'
 export const VISIT_PARAM = 'visit'
 
-/** the path a row's flow returns to, with a fresh one-time token for this visit */
-export function rowReturnPath(variant: VerifiedPageVariant): string {
+/**
+ * A fresh one-time token for a row's way back, and the return path that carries it. The page also writes the
+ * token onto its own history entry, because Back returns to that entry, not to the return path (Chip on #4317).
+ */
+export function rowReturn(variant: VerifiedPageVariant): { token: string; path: string } {
     const token = String(Date.now())
     try {
         window.sessionStorage.setItem(ROW_RETURN_KEY, token)
@@ -139,7 +142,7 @@ export function rowReturnPath(variant: VerifiedPageVariant): string {
     }
     const params = new URLSearchParams(variant === 'bank-ready' ? { variant } : {})
     params.set(VISIT_PARAM, token)
-    return `${VERIFIED_PAGE_PATH}?${params}`
+    return { token, path: `${VERIFIED_PAGE_PATH}?${params}` }
 }
 
 /** whether this opening is a row's way back (its token matches the one stored); a token works once */
