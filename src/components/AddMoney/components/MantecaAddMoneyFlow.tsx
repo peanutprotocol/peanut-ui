@@ -545,9 +545,11 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                                 </Callout>
                             )
                         }
-                        // the order behind the bank details lives 30 minutes: say so before the amount is typed
+                        // the order behind the bank details lives 30 minutes: say so before the amount is typed.
+                        // an open order already has its own callout on top, so one callout shows at a time (Kush, 28 Nov)
                         details={
-                            residenceGatedCountry && <Callout priority="info">{t('manteca.detailsComeNext')}</Callout>
+                            residenceGatedCountry &&
+                            !openDeposit && <Callout priority="info">{t('manteca.detailsComeNext')}</Callout>
                         }
                         providerFinePrint={residenceGatedCountry && <ProviderFinePrint providerId="manteca-ar" />}
                         // The CBU and alias are minted per order and expire, so none can show before the amount.
