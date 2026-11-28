@@ -39,6 +39,7 @@ import {
     SessionKeyGrantRequiredError,
     type SpendStrategy,
 } from './spendPreflight'
+import { isDefinitiveSendRefusal, markSpendMayHaveBroadcast, type SpendBroadcast } from './spendBroadcast'
 
 type UserOpEncodedParams = { to: Hex; value: bigint; data: Hex }
 
@@ -82,6 +83,11 @@ export interface SpendBundleInput {
      *  the chosen strategy touches Rain collateral and approval is missing). Lets
      *  the caller show UI explaining the extra tap before the WebAuthn sheet. */
     onGrantRequired?: () => void
+    /** Fires right before each send leaves this device. A caller saves it
+     *  before the send can land, so recovery after a lost answer or a reload
+     *  can look the send up instead of offering it again. A throw stops the
+     *  send: nothing has left this device yet. */
+    onBroadcast?: (broadcast: SpendBroadcast) => void
 }
 
 export interface SpendBundleResult {
@@ -165,6 +171,7 @@ export const useSpendBundle = () => {
                 fundsIntentId,
                 onStrategyDecided,
                 onGrantRequired,
+                onBroadcast,
             } = input
 
             // demo mode: simulated success, no chain. Debit the persisted demo
@@ -362,6 +369,8 @@ export const useSpendBundle = () => {
                         const adminSignature = await signRainWithdrawAdmin(signingClient.account!, prep, chainIdNum)
                         abortReplacementIfGone()
 
+                        // first: a marker that cannot be saved stops the send here
+                        onBroadcast?.({ via: 'backend' })
                         broadcastAttempted = true
                         const { txHash } = await rainApi.submitWithdrawal(toSubmitWithdrawalInput(prep, adminSignature))
                         posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_SUCCEEDED, { strategy, kind })
@@ -435,7 +444,12 @@ export const useSpendBundle = () => {
                     if (calls.length === 0) {
                         throw new Error('useSpendBundle: smart-only path needs either recipient or subsequentCalls')
                     }
-                    const { userOpHash, receipt } = await handleSendUserOpEncoded(calls, chainIdStr)
+                    const { userOpHash, receipt } = await handleSendUserOpEncoded(calls, chainIdStr, {
+                        onBroadcastAttempt: (userOp) => {
+                            onBroadcast?.({ via: 'wallet', userOp })
+                            broadcastAttempted = true
+                        },
+                    })
                     posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_SUCCEEDED, { strategy, kind })
                     return { strategy, userOpHash, receipt }
                 }
@@ -492,7 +506,8 @@ export const useSpendBundle = () => {
                             // not escape as a failed spend after /prepare already ran.
                             const patchedSudoValidator = await getPatchedSudoValidator(peanutPublicClient)
                             attempt = await tryMixedEphemeralSpend({
-                                onBroadcastAttempt: () => {
+                                onBroadcastAttempt: (userOp) => {
+                                    onBroadcast?.({ via: 'wallet', userOp })
                                     broadcastAttempted = true
                                     ephemeralCrossed = true
                                     broadcastsAttempted += 1
@@ -609,7 +624,8 @@ export const useSpendBundle = () => {
                             ...subsequentCalls,
                         ]
                         const { userOpHash, receipt } = await handleSendUserOpEncoded(calls, chainIdStr, {
-                            onBroadcastAttempt: () => {
+                            onBroadcastAttempt: (userOp) => {
+                                onBroadcast?.({ via: 'wallet', userOp })
                                 broadcastAttempted = true
                                 broadcastsAttempted += 1
                             },
@@ -713,13 +729,26 @@ export const useSpendBundle = () => {
                     e instanceof SessionKeyGrantRequiredError
                         ? `session-key:${e.cause.kind}`
                         : ((e as Error)?.name ?? 'unknown')
+                // The same boundary decides what the caller may do next: once
+                // the send left this device, a failure that does not prove
+                // "nothing moved" (a refusal, a receipt that reverted, the
+                // backend's controller-changed answer) may hide a send that
+                // lands. The caller must look it up, never offer it again.
+                const mayHaveBroadcast =
+                    ambiguousBroadcast ||
+                    (broadcastAttempted &&
+                        !ceremonyRejection &&
+                        !isUserOpRevertedError(e) &&
+                        !isRainControllerChanged(e) &&
+                        !isDefinitiveSendRefusal(e))
                 posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED, {
                     strategy,
                     kind,
                     error_kind: errorKind,
                     error_message: (e as Error)?.message,
+                    may_have_broadcast: mayHaveBroadcast,
                 })
-                throw e
+                throw mayHaveBroadcast ? markSpendMayHaveBroadcast(e) : e
             }
         },
         [

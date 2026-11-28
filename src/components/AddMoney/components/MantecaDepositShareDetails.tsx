@@ -28,6 +28,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ProviderHelp } from '@/components/Provider/ProviderHelp'
 import { PROVIDERS } from '@/constants/providers.consts'
+import { RateHelpTrigger } from '@/features/rates-fees/RateInfoDrawer'
 
 const MantecaDepositShareDetails = ({
     depositDetails,
@@ -213,7 +214,16 @@ const MantecaDepositShareDetails = ({
                         </>
                     )}
                     <PaymentInfoRow
-                        label={t('manteca.exchangeRate')}
+                        label={
+                            <span className="flex items-center gap-1">
+                                {t('manteca.exchangeRate')}
+                                <RateHelpTrigger
+                                    currency={currencySymbol}
+                                    lockedRate={Number(exchangeRate)}
+                                    lockMode="cbu"
+                                />
+                            </span>
+                        }
                         value={`1 USD = ${formatFiatRate(exchangeRate, locale)} ${currencySymbol}`}
                     />
                     <PaymentInfoRow
@@ -221,7 +231,6 @@ const MantecaDepositShareDetails = ({
                         value={networkFees}
                         moreInfoText={t('manteca.providerFeesInfo')}
                     />
-                    <PaymentInfoRow label={tCommon('peanutFee')} value={tCommon('sponsoredByPeanut')} />
                     <PaymentInfoRow label={tWithdraw('bank.arrives')} value={t('manteca.etaInstant')} />
                     <PaymentInfoRow
                         hideBottomBorder

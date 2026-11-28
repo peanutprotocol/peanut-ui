@@ -153,6 +153,41 @@ jobs:
             - name: DS lint-count ratchet
               run: node scripts/ds-lint-counts.mjs --check
 
+    # API contract (state-machines wave 5). check:api regenerates the types and the status enums
+    # from the committed OpenAPI snapshot and fails when the committed files differ. The second step
+    # is a ratchet: hand-copied API enums in src/ may only go down (scripts/check-api-enum-copies.mjs).
+    api-contract:
+        needs: backdoor-scan
+        runs-on: ubuntu-latest
+        steps:
+            # no submodules: both checks read src/types and src/**/*.ts(x) only
+            - uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
+
+            - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
+
+            - run: pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile
+
+            - name: Generated API types and enums match the snapshot
+              run: pnpm check:api
+
+            - name: Hand-copied API enum ratchet
+              env:
+                  BASE_REF: ${{ github.base_ref }}
+              run: |
+                  if [[ -n "$BASE_REF" ]]; then
+                      git fetch --no-tags --depth=1 origin "$BASE_REF"
+                      node scripts/check-api-enum-copies.mjs --check --base-ref FETCH_HEAD
+                  else
+                      pnpm check:api-enum-copies
+                  fi
+
     # Screen wordiness ratchet (founders daily 2026-09-23). Counts the English
     # copy each screen can show (https://github.com/peanutprotocol/mono/blob/main/engineering/ui/screen-wordiness.md) and prints the
     # heaviest screens to the job summary on every run. Fails when a screen
@@ -208,6 +243,41 @@ jobs:
 
             - name: Run ESLint
               run: pnpm lint
+
+    # TLA+ spec of the payment flow's double-send guard (verification/tla). A *_Buggy*.cfg must
+    # still break (the model still reproduces the bug it documents); every other config must hold.
+    # check-all.sh pins tla2tools.jar by sha256. On a pull request, check-model-sync fails when a
+    # file a spec names in its `Models:` line changes without that spec, unless a commit carries
+    # `Model-unchanged: <reason>`. What TLA+ checks and how to add a model: mono
+    # engineering/api/state-machines/README.md.
+    tla:
+        needs: backdoor-scan
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+                  persist-credentials: false
+
+            - name: Specs change with the code they model
+              env:
+                  BASE_REF: ${{ github.base_ref }}
+              run: |
+                  if [[ -n "$BASE_REF" ]]; then
+                      node scripts/check-model-sync.mjs --base-ref "origin/$BASE_REF"
+                  else
+                      node scripts/check-model-sync.mjs
+                  fi
+
+            - name: Cache tla2tools.jar
+              uses: actions/cache@v4
+              with:
+                  path: ~/.local/share/tla/tla2tools.jar
+                  key: tla2tools-v1.7.4-936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88
+
+            - name: Model-check every spec
+              run: java -version && bash verification/tla/check-all.sh
 
     # Typecheck job. Independent of unit tests so type errors surface in
     # parallel.
@@ -353,9 +423,15 @@ jobs:
                   path: /tmp/be-baseline.jsonl
                   retention-days: 1
 
+    # Sharded 3-way and coverage-free on PRs (same 25% istanbul saving as peanut-api-ts;
+    # pushes to main/dev keep coverage). jest --shard splits by file.
     unit:
         needs: be-baseline
         runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                shard: [1, 2, 3]
         # No checks: write here even though dorny/test-reporter runs below —
         # in summary mode it needs none, and this job runs PR-authored code
         # before the reporter, so any token it holds is capturable.
@@ -375,6 +451,14 @@ jobs:
                   cache: 'pnpm'
 
             - run: pnpm install --frozen-lockfile
+
+            - name: Cache Jest transform cache
+              uses: actions/cache@v4
+              with:
+                  path: node_modules/.cache/jest
+                  key: jest-transform-${{ runner.os }}-s${{ matrix.shard }}-${{ hashFiles('pnpm-lock.yaml', 'tsconfig.test.json') }}
+                  restore-keys: |
+                      jest-transform-${{ runner.os }}-s${{ matrix.shard }}-
 
             - name: Generate Next types
               run: pnpm next typegen
@@ -401,32 +485,36 @@ jobs:
                       src/components/TransactionDetails/__tests__/fixtures/be-entries.json
 
             - name: Run unit tests
-              run: pnpm test:unit:ci
+              run: pnpm test:unit:ci --cacheDirectory=node_modules/.cache/jest --shard=${{ matrix.shard }}/3 ${{ github.event_name == 'push' && '--coverage' || '' }}
 
             - name: Publish unit test report
               uses: dorny/test-reporter@3eeb9fc888e82e8be2fb356bbeec2750231672bc # v1
               if: always()
               with:
-                  name: Unit test report
+                  name: Unit test report (shard ${{ matrix.shard }})
                   path: test-results/junit.xml
                   reporter: jest-junit
                   fail-on-error: false
 
+            # overwrite: v4 artifacts are immutable within a run, so a
+            # "re-run failed jobs" pass would 409 here without it.
             - name: Upload unit coverage
-              if: always()
+              if: always() && github.event_name == 'push'
               uses: actions/upload-artifact@v4
               with:
-                  name: coverage-unit
+                  name: coverage-unit-${{ matrix.shard }}
                   path: coverage/coverage-final.json
                   retention-days: 7
+                  overwrite: true
 
             - name: Upload unit JUnit XML
               if: always()
               uses: actions/upload-artifact@v4
               with:
-                  name: junit-unit
+                  name: junit-unit-${{ matrix.shard }}
                   path: test-results/junit.xml
                   retention-days: 7
+                  overwrite: true
 
     # Feeds ds-shots and i18n-overflow. ds-shots skips PRs into dev (dev
     # captures are opt-in via /ds-shots, ds-shots-request.yml); i18n-overflow
@@ -656,6 +744,8 @@ jobs:
                   SCREEN_CAPTURE_BUILD: '1'
                   # Fonts from the repo, not Google Fonts: see scripts/next-font-google/mock.cjs.
                   NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
+                  # The typecheck job already runs this check; see next.config.js.
+                  NEXT_BUILD_SKIP_TYPECHECK: '1'
               run: pnpm build
 
             # Push runs only (dev/main/DS train land several times a day), so
@@ -880,7 +970,9 @@ jobs:
               timeout-minutes: 9
               run: |
                   for attempt in 1 2 3; do
-                      if timeout --kill-after=15s 150 npx playwright install-deps chromium; then
+                      # apt runs as root. The timeout must too, otherwise its
+                      # signals cannot reap apt and every retry hits the orphan's lock.
+                      if sudo timeout --kill-after=15s 150 env PATH="$PATH" node node_modules/@playwright/test/cli.js install-deps chromium; then
                           exit 0
                       fi
                       echo "::warning::playwright install-deps attempt ${attempt} failed or stalled; retrying"
@@ -923,6 +1015,8 @@ jobs:
                   NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3080
                   # Fonts from the repo, not Google Fonts: see scripts/next-font-google/mock.cjs.
                   NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
+                  # The typecheck job already runs this check; see next.config.js.
+                  NEXT_BUILD_SKIP_TYPECHECK: '1'
               run: pnpm build
 
             - name: i18n overflow gate
@@ -1043,6 +1137,14 @@ jobs:
                   echo "::error::playwright install-deps failed after 3 attempts"
                   exit 1
 
+            - name: Cache Next.js build
+              uses: actions/cache@v4
+              with:
+                  path: .next/cache
+                  key: next-press-contract-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+                  restore-keys: |
+                      next-press-contract-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+
             # The regression config starts `next start`, so the build has to
             # run first. NEXT_PUBLIC_VERCEL_ENV and NEXT_PUBLIC_BASE_URL are
             # inlined at build time — without them /dev routes notFound() and
@@ -1055,6 +1157,8 @@ jobs:
                   NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3081
                   # Fonts from the repo, not Google Fonts: see scripts/next-font-google/mock.cjs.
                   NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
+                  # The typecheck job already runs this check; see next.config.js.
+                  NEXT_BUILD_SKIP_TYPECHECK: '1'
               run: pnpm build
 
             - name: Run the press-physics spec
@@ -1112,7 +1216,9 @@ jobs:
               timeout-minutes: 9
               run: |
                   for attempt in 1 2 3; do
-                      if timeout --kill-after=15s 150 pnpm exec playwright install-deps chromium; then
+                      # apt runs as root. The timeout must too, otherwise its
+                      # signals cannot reap apt and every retry hits the orphan's lock.
+                      if sudo timeout --kill-after=15s 150 env PATH="$PATH" node node_modules/@playwright/test/cli.js install-deps chromium; then
                           exit 0
                       fi
                       echo "::warning::playwright install-deps attempt ${attempt} failed or stalled; retrying"
@@ -1139,6 +1245,8 @@ jobs:
                   # Keep the same bounded build heap as the preview browser contract.
                   NODE_OPTIONS: --max-old-space-size=6144
                   NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
+                  # The typecheck job already runs this check; see next.config.js.
+                  NEXT_BUILD_SKIP_TYPECHECK: '1'
               run: pnpm build
             - name: Check every rendered sitemap URL
               run: pnpm test:seo:rendered
@@ -1174,14 +1282,14 @@ jobs:
               uses: actions/download-artifact@v4
               continue-on-error: true
               with:
-                  name: coverage-unit
+                  pattern: coverage-unit-*
                   path: coverage-raw/unit
 
             - name: Download unit JUnit
               uses: actions/download-artifact@v4
               continue-on-error: true
               with:
-                  name: junit-unit
+                  pattern: junit-unit-*
                   path: junit-raw/unit
 
             - name: Summarize
@@ -1190,7 +1298,14 @@ jobs:
                   set -euo pipefail
                   mkdir -p coverage-merged coverage-input
 
-                  [[ -f coverage-raw/unit/coverage-final.json ]] && cp coverage-raw/unit/coverage-final.json coverage-input/unit.json || echo "no unit coverage"
+                  # One coverage-final.json per shard, each in its own artifact subdir.
+                  found=0
+                  for f in coverage-raw/unit/*/coverage-final.json; do
+                      [[ -f "$f" ]] || continue
+                      found=$((found+1))
+                      cp "$f" "coverage-input/unit-$found.json"
+                  done
+                  [[ $found -gt 0 ]] || echo "no unit coverage"
 
                   if ls coverage-input/*.json >/dev/null 2>&1; then
                       npx --yes nyc@15 merge coverage-input coverage-merged/coverage-final.json
@@ -1227,7 +1342,22 @@ jobs:
                       } catch { return null; }
                   }
 
-                  const unit = parseJunit('junit-raw/unit/junit.xml','unit');
+                  // One junit.xml per shard: sum the counts; wall time is the slowest shard.
+                  let unit = null;
+                  try {
+                      const shards = fs.readdirSync('junit-raw/unit')
+                          .map(d => parseJunit('junit-raw/unit/' + d + '/junit.xml', 'unit'))
+                          .filter(Boolean);
+                      if (shards.length) {
+                          unit = {
+                              tests: shards.reduce((a,s) => a + s.tests, 0),
+                              failures: shards.reduce((a,s) => a + s.failures, 0),
+                              skipped: shards.reduce((a,s) => a + s.skipped, 0),
+                              time: Math.max(...shards.map(s => s.time)),
+                              cases: shards.flatMap(s => s.cases),
+                          };
+                      }
+                  } catch {}
                   const allCases = unit?.cases || [];
                   const failed = allCases.filter(c => c.failed);
                   const slowest = [...allCases].sort((a,b) => b.time - a.time).slice(0, 10);
@@ -1265,7 +1395,8 @@ jobs:
                           '',
                           '</details>',
                       ].join('\n');
-                      const covBlock = [
+                      const hasCov = (p.cov.total.statements?.pct ?? 0) > 0 || (p.cov.total.lines?.pct ?? 0) > 0;
+                      const covBlock = !hasCov ? '' : [
                           '### 📊 Coverage (unit)',
                           '',
                           '| metric | % |',
@@ -1288,7 +1419,7 @@ jobs:
                           '',
                           slowBlock,
                           '',
-                          '<sub>📍 Inline annotations are in the **Unit test report** check above. Coverage artifact: `coverage-unit`. Generated by `.github/workflows/tests.yml`.</sub>',
+                          '<sub>📍 Inline annotations are in the **Unit test report (shard N)** checks above. Coverage artifacts: `coverage-unit-<shard>`. Generated by `.github/workflows/tests.yml`.</sub>',
                       ].filter(Boolean).join('\n');
 
                       const tag = '<!-- ui-test-report -->';
@@ -1488,7 +1619,9 @@ jobs:
                 format,
                 screen-tests,
                 ds-lint,
+                api-contract,
                 eslint,
+                tla,
                 typecheck,
                 native-export,
                 unit,
@@ -1515,7 +1648,9 @@ jobs:
                       echo "  format:    ${{ needs.format.result }}"
                       echo "  screen-tests: ${{ needs['screen-tests'].result }}"
                       echo "  ds-lint:   ${{ needs['ds-lint'].result }}"
+                      echo "  api-contract: ${{ needs['api-contract'].result }}"
                       echo "  eslint:    ${{ needs.eslint.result }}"
+                      echo "  tla:       ${{ needs.tla.result }}"
                       echo "  typecheck: ${{ needs.typecheck.result }}"
                       echo "  native-export: ${{ needs['native-export'].result }}"
                       echo "  unit:      ${{ needs.unit.result }}"

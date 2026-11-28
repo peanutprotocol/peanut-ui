@@ -30,14 +30,6 @@ jest.mock('next/image', () => ({
 
 const mockSendLinksApi = { getClaimStatus: jest.fn() }
 jest.mock('@/services/sendLinks', () => ({
-    ESendLinkStatus: {
-        creating: 'creating',
-        completed: 'completed',
-        CLAIMING: 'CLAIMING',
-        CLAIMED: 'CLAIMED',
-        CANCELLED: 'CANCELLED',
-        FAILED: 'FAILED',
-    },
     sendLinksApi: mockSendLinksApi,
 }))
 

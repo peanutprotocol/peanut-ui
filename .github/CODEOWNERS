@@ -8,3 +8,9 @@
 # Keep this list to people. Never add an app or a bot.
 
 * @Hugo0 @jjramirezn @kushagrasarathe @0xkkonrad @innolope-dev @abalinda
+
+# Formal specs, model-sync and API enum copy ratchet: Hugo reviews changes that weaken verification.
+/verification/ @Hugo0
+/scripts/check-model-sync.mjs @Hugo0
+/scripts/check-api-enum-copies.mjs @Hugo0
+/scripts/api-enum-copies-baseline.json @Hugo0

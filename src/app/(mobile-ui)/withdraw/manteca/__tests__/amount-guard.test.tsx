@@ -12,7 +12,15 @@ let mockBalance: bigint | undefined = parseUnits('10', 6)
 // The first-use activation has its own tests; the amount screen behind it is what these cover.
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
-        user: { user: { userId: 'user-1' }, accounts: [{ id: 'qa-ar-1', type: 'manteca', identifier: 'qa.account' }] },
+        user: {
+            user: { userId: 'user-1' },
+            accounts: [
+                { id: 'qa-ar-1', type: 'manteca', identifier: 'qa.account' },
+                { id: 'acct-qa', type: 'manteca', identifier: 'qa.account' },
+            ],
+        },
+        isAuthed: true,
+        fetchUser: jest.fn(),
     }),
 }))
 jest.mock('@/features/paperwork-verification/KycFeatureActivationGate', () => ({
@@ -44,7 +52,10 @@ jest.mock('@/context/ModalsContext', () => ({
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({ rails: [], nextActions: [], capabilities: { routes: [] } }),
 }))
-jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({ isVerified: true }) }))
+jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({}) }))
+jest.mock('@/hooks/useVerification', () => ({
+    useVerification: () => ({ identityVerified: true, canUse: () => true }),
+}))
 jest.mock('@/hooks/wallet/usePendingTransactions', () => ({
     usePendingTransactions: () => ({ hasPendingTransactions: false }),
 }))
@@ -56,7 +67,6 @@ jest.mock('@/features/limits/utils', () => ({
     getLimitsWarningCardProps: () => null,
     isBrUserEligibleForLimitIncrease: () => false,
 }))
-jest.mock('@/utils/regions.utils', () => ({ isVerifiedForCountry: () => true }))
 jest.mock('@/hooks/usePointsCalculation', () => ({ usePointsCalculation: () => ({}) }))
 jest.mock('@/hooks/usePointsConfetti', () => ({ usePointsConfetti: () => {} }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
@@ -121,6 +131,12 @@ test('blocks an amount above the balance and allows an amount within it', () => 
 // TASK-22589: the amount is the last step now, so this flow is entered without
 // one and collects it here in the local currency.
 test('a saved destination opens the amount step', () => {
+    setup()
+    expect(screen.getByText(/amount to withdraw/i)).toBeInTheDocument()
+})
+
+test('a saved account named by its id (links from the ui#4201 bundle) also opens the amount step', () => {
+    mockParams = 'country=argentina&method=bank-transfer&account=acct-qa'
     setup()
     expect(screen.getByText(/amount to withdraw/i)).toBeInTheDocument()
 })

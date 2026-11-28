@@ -21,6 +21,7 @@ import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { CardResidenceAddressScreen } from './components/CardResidenceAddressScreen'
 import { useCardFlow } from './useCardFlow'
+import { resolveCardViewState, type CardViewState } from './cardViewState'
 import { KycFeatureActivationStatus } from '@/features/paperwork-verification/KycFeatureActivationStatus'
 import { IdentityRejectedScreen, isDecidedRejection } from '@/features/paperwork-verification/PaperworkVerificationFlow'
 import { AddFeatureQuestions } from '@/features/paperwork-verification/AddFeatureFlow'
@@ -127,17 +128,38 @@ export const CardPage: FC = () => {
     const showCardIntro =
         sumsubToken !== null && user?.identityVerification?.status === 'not_started' && introDoneFor !== sumsubToken
 
-    if (state === 'loading') {
-        return (
-            <PageContainer>
-                <div className="flex min-h-inherit w-full items-center justify-center">
-                    <Loading />
-                </div>
-            </PageContainer>
-        )
-    }
+    const activeCard = state === 'active' ? findActiveCard(overview) : null
+    const view: CardViewState = resolveCardViewState({
+        hasLoadError: !!(cardInfoError || overviewError || issuanceReadError),
+        state,
+        issuanceStillCreating,
+        supportRequiredReason,
+        isIdentityRejected: isDecidedRejection(user?.identityVerification),
+        hasResidenceAddressStep: !!residenceAddressStep,
+        hasApplication: !!overview?.status.hasApplication,
+        hasActivationOverlay: !!(
+            activation &&
+            !activation.allowed &&
+            (activation.reverification || activation.result || activation.isLoading)
+        ),
+        isIssuing,
+        pendingApplication,
+        geoBlocked,
+        pendingResidenceBlocked,
+        terminalKycError: kycFlow.isTerminalError && kycFlow.error ? kycFlow.error : null,
+        hasPendingQuestions: !!pendingQuestions,
+        planRefusal,
+        hasPendingCountryConfirmation: !!pendingCountryConfirmation,
+        fundingRequired,
+        hasPendingTerms: !!pendingTerms,
+        hasTermsFundingPath: !!termsFundingPath,
+        fundingAccessLoading,
+        capabilitiesLoading,
+        showIssuedCelebration,
+        hasActiveCard: !!overview && !!activeCard,
+    })
 
-    if (cardInfoError || overviewError || issuanceReadError) {
+    if (view.kind === 'load-error') {
         return (
             <PageContainer>
                 <div className="flex min-h-inherit w-full flex-col items-center justify-center gap-4 p-4">
@@ -159,7 +181,17 @@ export const CardPage: FC = () => {
         )
     }
 
-    if (issuanceStillCreating) {
+    if (view.kind === 'loading') {
+        return (
+            <PageContainer>
+                <div className="flex min-h-inherit w-full items-center justify-center">
+                    <Loading />
+                </div>
+            </PageContainer>
+        )
+    }
+
+    if (view.kind === 'issuance-still-creating') {
         return (
             <PageContainer>
                 <div className="flex min-h-inherit w-full flex-col items-center justify-center gap-4 p-4">
@@ -183,163 +215,118 @@ export const CardPage: FC = () => {
     )
 
     const renderState = () => {
-        if (supportRequiredReason && state !== 'active') {
-            return (
-                <ApplicationStatusScreen
-                    variant="requires-support"
-                    reasonCode={supportRequiredReason}
-                    onContactSupport={() => setIsSupportModalOpen(true)}
-                    onPrev={onBack}
-                />
-            )
-        }
-        // A finally rejected identity cannot apply: its reason and the way on, as /verify shows them.
-        if (state !== 'active' && isDecidedRejection(user?.identityVerification)) {
-            return <IdentityRejectedScreen onHome={() => router.replace('/home')} />
-        }
-        if (
-            residenceAddressStep &&
-            state !== 'active' &&
-            state !== 'geo-blocked' &&
-            !overview?.status.hasApplication &&
-            !planRefusal &&
-            !geoBlocked &&
-            !pendingResidenceBlocked
-        ) {
-            return (
-                <CardResidenceAddressScreen
-                    state={residenceAddressStep}
-                    loading={addressStarting}
-                    error={kycFlow.error}
-                    onStart={() => void handleApply(false)}
-                    onRefresh={refreshResidenceAddress}
-                    onBack={onBack}
-                />
-            )
-        }
-        // Highest priority: show the issuance spinner between "terms accepted"
-        // and the overview refetch landing. Keeps the UX from flipping back
-        // to Add Card for a split second while the API call is in flight.
-        // `onPrev` is not optional here: this screen carries no other control,
-        // so omitting it made a poll that ran long (or never resolved) read as
-        // a frozen app — animations running, nothing tappable.
-        if (
-            activation &&
-            !activation.allowed &&
-            (activation.reverification || activation.result || activation.isLoading)
-        ) {
-            return (
-                <KycFeatureActivationStatus
-                    feature="card"
-                    reverification={activation.reverification}
-                    result={activation.result}
-                    isLoading={activation.isLoading}
-                    onRetry={() => void activation.activate()}
-                    onBack={onBack}
-                />
-            )
-        }
-        if (isIssuing) {
-            return <ApplicationStatusScreen variant="pending" onPrev={onBack} />
-        }
-        if (pendingApplication && state === 'add-card') {
-            return <ApplicationStatusScreen variant={pendingApplication} onPrev={onBack} />
-        }
-        // Terminal regulatory block detected mid-funnel by the BE apply gate —
-        // takes precedence over the confirmation/terms overlays (those flows
-        // are moot once the country verdict is in).
-        if (geoBlocked) {
-            return <ApplicationStatusScreen variant="geo-blocked" onPrev={onBack} />
-        }
-        if (pendingResidenceBlocked) {
-            return <ApplicationStatusScreen variant="pending-residence-blocked" onPrev={onBack} />
-        }
-        // A supplement start the backend refused for good: support is the way on.
-        if (kycFlow.isTerminalError && kycFlow.error) {
-            return (
-                <ApplicationStatusScreen
-                    variant="requires-info"
-                    reasonMessage={kycFlow.error}
-                    onContactSupport={() => setIsSupportModalOpen(true)}
-                    onPrev={onBack}
-                />
-            )
-        }
-        // Smart Paperwork Verification: the card's own questions on one full screen over the page, then the application resumes.
-        if (pendingQuestions) {
-            return (
-                <div className="fixed inset-0 z-30 overflow-y-auto bg-white pt-safe-top pb-safe-bottom">
-                    <AddFeatureQuestions
-                        feature="card"
-                        requiredStep={pendingQuestions}
-                        onBack={() => setPendingQuestions(null)}
-                        onDone={handleQuestionsDone}
+        switch (view.kind) {
+            case 'support-required':
+                return (
+                    <ApplicationStatusScreen
+                        variant="requires-support"
+                        reasonCode={view.reasonCode}
+                        onContactSupport={() => setIsSupportModalOpen(true)}
+                        onPrev={onBack}
                     />
-                </div>
-            )
-        }
-        if (planRefusal) {
-            return (
-                <ApplicationStatusScreen
-                    variant="requires-info"
-                    reasonCode={planRefusal}
-                    onContactSupport={() => setIsSupportModalOpen(true)}
-                    onUploadIdentity={
-                        planRefusal === 'identity_document_insufficient' ||
-                        planRefusal === 'document_country_unsupported'
-                            ? () => void kycFlow.handleRestartIdentity()
-                            : undefined
-                    }
-                    uploadError={kycFlow.error ?? undefined}
-                    onPrev={() => setPlanRefusal(null)}
-                />
-            )
-        }
-        // Residence confirmation comes before terms in the funnel — the
-        // backend won't return terms-required until the country is resolved.
-        if (pendingCountryConfirmation) {
-            return (
-                <CardCountryConfirmScreen
-                    candidates={pendingCountryConfirmation.candidates}
-                    onConfirm={handleConfirmCountry}
-                    onContactSupport={() => setIsSupportModalOpen(true)}
-                    onPrev={() => {
-                        // Clear the shared error too — a confirm failure must not
-                        // leak onto the entry/terms screens after backing out.
-                        setPendingCountryConfirmation(null)
-                        setApplyError(null)
-                    }}
-                    submitError={applyError}
-                />
-            )
-        }
-        // Terms screen takes precedence over the state-machine target — the
-        // user already clicked "Get your card" or completed Sumsub; we need
-        // to collect consent before letting them back out to Add Card.
-        if (fundingRequired) {
-            return (
-                <CardAcquisitionScreen
-                    userId={user?.user.userId ?? ''}
-                    eligible={true}
-                    funded={isCardFunded}
-                    balanceKnown={isBalanceKnown}
-                    spendableUsd={spendableUsd}
-                    needsFundingBeforeApply={needsFundingBeforeApply}
-                    fundingRequired
-                    onApply={() => handleApply(false)}
-                    onPrev={onBack}
-                />
-            )
-        }
-        if (pendingTerms) {
-            // The terms differ by funding path, so they wait for the server's
-            // decision; an unreadable decision offers a retry, never a guess.
-            if (!termsFundingPath) {
-                return fundingAccessLoading ? (
+                )
+            case 'identity-rejected':
+                return <IdentityRejectedScreen onHome={() => router.replace('/home')} />
+            case 'residence-address':
+                return (
+                    <CardResidenceAddressScreen
+                        state={residenceAddressStep!}
+                        loading={addressStarting}
+                        error={kycFlow.error}
+                        onStart={() => void handleApply(false)}
+                        onRefresh={refreshResidenceAddress}
+                        onBack={onBack}
+                    />
+                )
+            case 'feature-activation':
+                return (
+                    <KycFeatureActivationStatus
+                        feature="card"
+                        reverification={activation!.reverification}
+                        result={activation!.result}
+                        isLoading={activation!.isLoading}
+                        onRetry={() => void activation!.activate()}
+                        onBack={onBack}
+                    />
+                )
+            case 'issuing':
+                return <ApplicationStatusScreen variant="pending" onPrev={onBack} />
+            case 'pending-application':
+                return <ApplicationStatusScreen variant={view.variant} onPrev={onBack} />
+            case 'geo-blocked-overlay':
+            case 'geo-blocked':
+                return <ApplicationStatusScreen variant="geo-blocked" onPrev={onBack} />
+            case 'pending-residence-blocked':
+                return <ApplicationStatusScreen variant="pending-residence-blocked" onPrev={onBack} />
+            case 'terminal-kyc-error':
+                return (
+                    <ApplicationStatusScreen
+                        variant="requires-support"
+                        reasonMessage={view.message}
+                        onContactSupport={() => setIsSupportModalOpen(true)}
+                        onPrev={onBack}
+                    />
+                )
+            case 'pending-questions':
+                return (
+                    <div className="fixed inset-0 z-30 overflow-y-auto bg-white pt-safe-top pb-safe-bottom">
+                        <AddFeatureQuestions
+                            feature="card"
+                            requiredStep={pendingQuestions!}
+                            onBack={() => setPendingQuestions(null)}
+                            onDone={handleQuestionsDone}
+                        />
+                    </div>
+                )
+            case 'plan-refusal':
+                return (
+                    <ApplicationStatusScreen
+                        variant={view.canReupload ? 'requires-info' : 'requires-support'}
+                        reasonCode={view.reasonCode}
+                        onContactSupport={() => setIsSupportModalOpen(true)}
+                        onUploadIdentity={view.canReupload ? () => void kycFlow.handleRestartIdentity() : undefined}
+                        uploadError={kycFlow.error ?? undefined}
+                        onPrev={() => setPlanRefusal(null)}
+                    />
+                )
+            case 'country-confirmation':
+                return (
+                    <CardCountryConfirmScreen
+                        candidates={pendingCountryConfirmation!.candidates}
+                        onConfirm={handleConfirmCountry}
+                        onContactSupport={() => setIsSupportModalOpen(true)}
+                        onPrev={() => {
+                            // Clear the shared error too — a confirm failure must not
+                            // leak onto the entry/terms screens after backing out.
+                            setPendingCountryConfirmation(null)
+                            setApplyError(null)
+                        }}
+                        submitError={applyError}
+                    />
+                )
+            case 'funding-required':
+                return (
+                    <CardAcquisitionScreen
+                        userId={user?.user.userId ?? ''}
+                        eligible={true}
+                        funded={isCardFunded}
+                        balanceKnown={isBalanceKnown}
+                        spendableUsd={spendableUsd}
+                        needsFundingBeforeApply={needsFundingBeforeApply}
+                        fundingRequired
+                        onApply={() => handleApply(false)}
+                        onPrev={onBack}
+                    />
+                )
+            case 'terms-loading':
+            case 'requires-info-loading':
+                return (
                     <div className="flex min-h-inherit w-full items-center justify-center">
                         <Loading />
                     </div>
-                ) : (
+                )
+            case 'terms-load-error':
+                return (
                     <div className="flex min-h-inherit w-full flex-col items-center justify-center gap-4 p-4">
                         <CenteredStatusCard title={tCommon('cardCouldNotLoad')} description={t('page.loadFailed')}>
                             <Button onClick={() => void refetchFundingAccess()} variant="primary" shadowSize="4">
@@ -348,18 +335,16 @@ export const CardPage: FC = () => {
                         </CenteredStatusCard>
                     </div>
                 )
-            }
-            return (
-                <CardTermsScreen
-                    isUsResident={pendingTerms.isUsResident}
-                    managedFunding={termsFundingPath === 'managed'}
-                    onAccept={handleAcceptTerms}
-                    onPrev={() => setPendingTerms(null)}
-                    submitError={applyError}
-                />
-            )
-        }
-        switch (state) {
+            case 'terms':
+                return (
+                    <CardTermsScreen
+                        isUsResident={pendingTerms!.isUsResident}
+                        managedFunding={termsFundingPath === 'managed'}
+                        onAccept={handleAcceptTerms}
+                        onPrev={() => setPendingTerms(null)}
+                        submitError={applyError}
+                    />
+                )
             case 'creating-card':
                 return <ApplicationStatusScreen variant="creating-card" onPrev={onBack} />
             case 'add-card':
@@ -387,19 +372,6 @@ export const CardPage: FC = () => {
             case 'manual-review':
                 return <ApplicationStatusScreen variant="manual-review" onPrev={onBack} />
             case 'requires-info': {
-                // Surface the structured remediation reason from the
-                // capabilities read-model — `rail.reason.userMessage` is
-                // display-ready and provider-neutral by contract. The card
-                // provider serves exactly one rail, so [0] is the card rail.
-                // Overview and capabilities load independently — wait for
-                // capabilities so the screen never flashes without its reason.
-                if (capabilitiesLoading) {
-                    return (
-                        <div className="flex min-h-inherit w-full items-center justify-center">
-                            <Loading />
-                        </div>
-                    )
-                }
                 const cardRail = railsForProvider('rain')[0]
                 const cardRailReasonCode = poaSubmitted ? PROOF_OF_ADDRESS_RECEIVED : cardRail?.reason?.code
                 const cardRailReason = poaSubmitted ? undefined : cardRail?.reason?.userMessage
@@ -426,8 +398,6 @@ export const CardPage: FC = () => {
                 )
             }
             case 'requires-support':
-                // Pipeline-side failure — nothing the user can re-submit.
-                // Same support deep-link as 'rejected' below.
                 return (
                     <ApplicationStatusScreen
                         variant="requires-support"
@@ -435,24 +405,7 @@ export const CardPage: FC = () => {
                         onPrev={onBack}
                     />
                 )
-            case 'geo-blocked':
-                // Regulatory dead end (country on Rain's prohibited-issuance
-                // list) — no support CTA, support can't override regulation.
-                return <ApplicationStatusScreen variant="geo-blocked" onPrev={onBack} />
             case 'rejected': {
-                // No retry CTA: Rain denials are terminal on our side. The
-                // only path forward is support reviewing the case manually
-                // (PEP / sanctions / fraud-pattern flags need a human in the
-                // loop on Rain's end). Open Crisp directly — sending the user
-                // to /support's FAQ first adds a step for no upside.
-                //
-                // Surface the specific, vetted rejection reason from the
-                // capabilities read-model (`rail.reason.userMessage` — e.g.
-                // "Peanut cards aren't available in your state yet."). Render
-                // immediately rather than spinner-gating: unlike requires-info
-                // (meaningless without its reason), the rejected screen is useful
-                // on its own (reassurance + support CTA), so show it now and let
-                // the reason fill in once capabilities resolve.
                 const cardRail = capabilitiesLoading ? undefined : railsForProvider('rain')[0]
                 const cardRailReasonCode = poaSubmitted ? PROOF_OF_ADDRESS_RECEIVED : cardRail?.reason?.code
                 const cardRailReason = poaSubmitted ? undefined : cardRail?.reason?.userMessage
@@ -468,23 +421,21 @@ export const CardPage: FC = () => {
                     />
                 )
             }
-            case 'active': {
-                if (showIssuedCelebration) {
-                    return (
-                        <CardMilestoneScreen
-                            issued
-                            onContinue={() => {
-                                removeStoredValue(celebrationKey)
-                                setShowIssuedCelebration(false)
-                            }}
-                        />
-                    )
-                }
-                const card = findActiveCard(overview)!
+            case 'issued-celebration':
+                return (
+                    <CardMilestoneScreen
+                        issued
+                        onContinue={() => {
+                            removeStoredValue(celebrationKey)
+                            setShowIssuedCelebration(false)
+                        }}
+                    />
+                )
+            case 'active':
                 return (
                     <YourCardScreen
                         overview={overview!}
-                        card={card}
+                        card={activeCard!}
                         onPrev={onBack}
                         onStopAttempt={setStopAttempt}
                         statusWarning={stopBanner}
@@ -495,9 +446,6 @@ export const CardPage: FC = () => {
                         verificationError={cardVerification.error}
                     />
                 )
-            }
-            default:
-                return null
         }
     }
 
@@ -505,7 +453,7 @@ export const CardPage: FC = () => {
     return (
         <PageContainer>
             <div className="flex min-h-inherit flex-col gap-6">
-                {screen?.type !== YourCardScreen && stopBanner}
+                {view.kind !== 'active' && stopBanner}
                 {screen}
             </div>
             <KycControlFlowProvider value="kyc_provider_request">

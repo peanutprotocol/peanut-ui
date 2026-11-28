@@ -909,6 +909,86 @@
         "row": {
             "approximate": "An estimate. The rate is set when the transfer converts, so the amount received can differ slightly.",
             "appliesWhenConverting": "Exchange rates apply when converting to {currency}"
+        },
+        "tabs": {
+            "rates": "Exchange rates",
+            "fees": "Fees"
+        },
+        "direction": {
+            "addShort": "Add money",
+            "withdrawShort": "Withdraw",
+            "withdrawQrShort": "Withdraw / QR"
+        },
+        "converter": {
+            "youSendLocal": "You send ({currency})",
+            "youSendUsd": "You send from balance (USD)",
+            "youReceiveUsd": "You receive in balance",
+            "youReceiveLocal": "You receive in bank ({currency})",
+            "amountAria": "Amount",
+            "usdSubline": "Same currency · ACH: $0 · Outgoing Wire: $20",
+            "updatedAt": "Updated {time}",
+            "providerFee": "Provider fee",
+            "flatFee": "Flat fee",
+            "achZero": "ACH: $0"
+        },
+        "compare": {
+            "title": "Compare other dollar rates",
+            "subtitle": "Cripto, MEP, Blue, Card & Official",
+            "pageTitle": "Other dollar rates today"
+        },
+        "allCurrencies": {
+            "title": "All currencies & rails",
+            "subtitle": "ARS, EUR, BRL, USD, GBP, MXN & COP",
+            "pageTitle": "All currencies & rails",
+            "currencyCol": "Currency (per 1 USD)",
+            "buySellCol": "Add / Withdraw"
+        },
+        "currencies": {
+            "ARS": "Argentine Peso",
+            "EUR": "Euro",
+            "USD": "US Dollar",
+            "GBP": "British Pound",
+            "MXN": "Mexican Peso",
+            "COP": "Colombian Peso",
+            "BRL": "Brazilian Real"
+        },
+        "benchmarks": {
+            "heading": "Market benchmarks",
+            "cripto": "Dólar cripto",
+            "mep": "Dólar MEP",
+            "blue": "Dólar blue",
+            "tarjeta": "Dólar tarjeta",
+            "oficial": "Dólar oficial",
+            "sourceNote": "Source: {source}. Indicative references."
+        },
+        "drawer": {
+            "title": "{currency} exchange rates",
+            "subtitleCbu": "Locked for 30 min on this order.",
+            "subtitleQr": "Locks when you confirm.",
+            "subtitleLive": "Live indicative rates.",
+            "openAria": "View {currency} exchange rate details"
+        },
+        "fees": {
+            "sections": {
+                "bankTransfers": "Bank transfers & Pix",
+                "card": "Peanut Card (Visa)",
+                "crypto": "Crypto (deposits & withdrawals)"
+            },
+            "rows": {
+                "usdWireOut": "USD · Wire (out)",
+                "brlPixBr": "BRL · Pix (Brazil)",
+                "cardIssuance": "Issuance, monthly & top-up",
+                "cardPayments": "Card payments",
+                "cryptoDeposits": "USDC / USDT deposits",
+                "cryptoL2Withdrawals": "Other L2s & networks",
+                "cryptoL2Quoted": "Shown in quote"
+            },
+            "notes": {
+                "bankTransfers": "USD Wire ({wireFee}) is a flat Peanut fee; Brazil Pix ({pixFee}) is a provider fee. Cross-currency transfers use the live exchange rate.",
+                "cardVisa": "Visa may apply its own exchange rate and network fees on cross-currency or international payments.",
+                "cryptoNetworks": "{networks} & more. Other tokens convert at market rate."
+            },
+            "fullScheduleLink": "Full fee schedule & terms ↗"
         }
     },
     "setup": {
@@ -1248,7 +1328,7 @@
             "desc": "A virtual Visa to spend the balance wherever Visa is accepted. Oh, and it’s <pink>pink</pink>."
         },
         "residence": {
-            "sentence": "My residence is <nw>in <residence></residence>,</nw> my nationality <nw>is <nationality></nationality>.</nw>",
+            "sentence": "My residence is <nw>in <residence></residence>,</nw> my nationality <nw>is <nationality></nationality></nw>",
             "choose": "Choose",
             "sheetResidence": "Where do you live?",
             "sheetNationality": "What’s your nationality?",
@@ -1631,6 +1711,7 @@
             "requestNotFoundDescription": "This payment request doesn't exist or was removed. Ask the sender for a new link.",
             "requestClosedTitle": "This request is closed",
             "externalPaymentNotConfirmed": "This payment could not be confirmed. If money left your wallet, contact support.",
+            "paymentNotSent": "This payment did not go through, and no money left your wallet. You can try again.",
             "requestTokenNotAccepted": "{symbol} isn’t supported. Ask the sender for a USDC or USDT link.",
             "requestTokenRetired": "This request can't be paid anymore. Ask for a new one in USDC."
         },
@@ -2635,6 +2716,7 @@
             "invalidAmount": "Please enter a valid amount.",
             "minimumSend": "Minimum send amount is {amount}.",
             "minimumWithdrawal": "Minimum withdrawal is {amount}.",
+            "minimumCryptoWithdrawal": "This network's minimum is {amount}.",
             "countryUnresolved": "We couldn't determine this account's country. Please contact support.",
             "setupFailed": "Something went wrong setting up your withdrawal. Please contact support.",
             "amountMissing": "Withdrawal amount is missing.",
@@ -3371,6 +3453,8 @@
         "qrFirstScanDescription": "One notification when it completes."
     },
     "kyc": {
+        "residenceNotSupported": "We can’t verify this country’s residents yet.",
+        "clientUpdateRequired": "Update the Peanut app to continue verification.",
         "statusDrawerTitle": "Verification status",
         "identityVerification": "Identity verification",
         "doesntStoreDocuments": "Peanut doesn't store any of your documents",
@@ -4961,18 +5045,13 @@
         "rainCooldownRetryShortly": "A previous card withdrawal is still active. Please try again shortly.",
         "rainCooldownRetryLive": "A previous card withdrawal is still active. Try again in {time}.",
         "rainCooldownRetryNow": "The card cool-down has ended. You can try again now.",
-        "xchainWithdrawLimit": "You reached the limit for withdrawals to other networks. Withdrawals on Arbitrum have no limit, or contact support to raise yours.",
-        "xchainWithdrawLimitRetry": "You reached the limit for withdrawals to other networks. Try again in about {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minute} other {# minutes}}} one {# hour} other {# hours}}} one {# day} other {# days}}. Withdrawals on Arbitrum have no limit, or contact support to raise yours.",
-        "xchainPaymentLimit": "You made too many transfers to other networks recently. Contact support to raise your limit.",
-        "xchainPaymentLimitRetry": "You made too many transfers to other networks recently. Try again in about {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minute} other {# minutes}}} one {# hour} other {# hours}}} one {# day} other {# days}}, or contact support to raise your limit.",
-        "xchainWithdrawDisabled": "Withdrawals to other networks are limited on your account. You can always withdraw on Arbitrum, or contact support for help.",
-        "xchainPaymentDisabled": "Transfers to other networks are limited on your account. Contact support for help.",
         "rainInsufficientCollateral": "Your card doesn’t have enough collateral for this withdrawal.",
         "staleCardApproval": "Your card needs to be re-enabled before you can withdraw. It only takes one passkey tap.",
         "providerRejected": "Our payment partner couldn't accept this for your account. No money moved. Contact support.",
         "mantecaAccountRejected": "Deposits and withdrawals in this country aren’t available for your account. You can still pay with QR. Contact support for help.",
         "mantecaAccountRejectedForCountry": "You can’t add or withdraw money in {country}. QR payments still work.",
         "bankAccountNotUsable": "This bank account can't be used anymore. Add it again.",
+        "belowMinBridgeAmount": "This amount is below the minimum for this network. Try a larger amount or another network.",
         "cardRateLimited": "Too many card requests. Please wait a moment and try again.",
         "linkTransactionHashFetch": "We couldn’t load this link’s transaction. Please refresh and try again.",
         "cardApprovalCancelled": "Approval cancelled. You can retry anytime.",

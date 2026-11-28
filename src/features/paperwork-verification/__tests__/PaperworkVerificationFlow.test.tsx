@@ -22,7 +22,6 @@ import {
 } from '@/app/actions/kyc-paperwork-verification'
 import { updateUserById } from '@/app/actions/users'
 import { findKycDocumentPlan, getKycDocumentStatus, refreshKycIdentityStatus } from '@/app/actions/kyc-workflow'
-import { KycFlowHandedBackError } from '@/app/actions/kyc-flow-hand-back'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { PaperworkVerificationFlow } from '../PaperworkVerificationFlow'
 import { withFeatureReport } from '@/test-utils/featureReport.fixture'
@@ -341,16 +340,6 @@ describe('PaperworkVerificationFlow: an account missing signup answers', () => {
     })
 })
 
-describe("PaperworkVerificationFlow: a user handed back to today's flow", () => {
-    it('goes to Home even when the plan read fails beside the hand-back', async () => {
-        mockQuestions.mockRejectedValueOnce(new KycFlowHandedBackError())
-        mockPlan.mockRejectedValueOnce(new Error('plan unavailable'))
-        renderFlow()
-
-        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/home'))
-    })
-})
-
 describe('PaperworkVerificationFlow: the steps overview', () => {
     it('keeps paperwork dimensions on loading Back and failed-load Retry controls', async () => {
         const capture = posthog.capture as jest.Mock
@@ -392,6 +381,7 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         expect(screen.getByTestId('verify-steps-continue')).toBeDisabled()
         expect(screen.queryByText('loading')).not.toBeInTheDocument()
 
+        await waitFor(() => expect(mockQuestions).toHaveBeenCalled())
         await act(async () => answer(build({ purpose: false }, 'purpose')))
         expect(await screen.findByTestId('setup-redesign-verify-steps')).toBeInTheDocument()
         expect(screen.getByTestId('verify-steps-continue')).toBeEnabled()
@@ -1687,8 +1677,8 @@ describe('account-bound queued answer saves', () => {
 })
 
 describe('initial paperwork reads belong to the mounted account', () => {
-    it.each(['unavailable questions', 'legacy plan', 'handed-back questions'] as const)(
-        'late initial %s hand-back after unmount never navigates Home',
+    it.each(['unavailable questions', 'legacy plan', 'existing verification conflict'] as const)(
+        'late initial %s response after unmount never navigates Home',
         async (outcome) => {
             let finishQuestions!: (questions: PaperworkVerificationQuestions) => void
             let failQuestions!: (error: Error) => void
@@ -1712,16 +1702,24 @@ describe('initial paperwork reads belong to the mounted account', () => {
             )
             const view = renderFlow()
             await waitFor(() => {
-                expect(mockQuestions).toHaveBeenCalled()
                 expect(mockPlan).toHaveBeenCalled()
-                expect(mockStatus).toHaveBeenCalled()
             })
+            await act(async () =>
+                finishPlan(outcome === 'legacy plan' ? { ...plan, available: false, flow: null } : plan)
+            )
+            expect(mockQuestions).toHaveBeenCalled()
+            expect(mockStatus).toHaveBeenCalled()
             expect(mockReplace).not.toHaveBeenCalled()
             view.unmount()
             await act(async () => {
-                if (outcome === 'handed-back questions') failQuestions(new KycFlowHandedBackError())
-                else finishQuestions({ ...build(), available: outcome !== 'unavailable questions' })
-                finishPlan(outcome === 'legacy plan' ? { ...plan, available: false, flow: null } : plan)
+                if (outcome === 'existing verification conflict') {
+                    failQuestions(
+                        Object.assign(new Error('KYC questions unavailable'), {
+                            status: 409,
+                            code: 'existing_verification',
+                        })
+                    )
+                } else finishQuestions({ ...build(), available: outcome !== 'unavailable questions' })
                 finishStatus('NOT_STARTED')
             })
             expect(mockReplace).not.toHaveBeenCalled()
