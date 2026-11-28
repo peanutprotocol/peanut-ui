@@ -17,7 +17,7 @@ export function canReadLiveSpendable(address: Address | undefined): boolean {
 /**
  * The spendable balance in dollars, read fresh now: the smart account on-chain and the Rain collateral
  * from a new card overview (the same sum `useWallet` shows). Both reads write their queries, so the
- * step's own balance moves with them. Rejects when either read fails or the collateral is unknown: a
+ * place's own balance moves with them. Rejects when either read fails or the collateral is unknown: a
  * money decision never runs on a cached or partial balance. Demo mode and fixtures read the demo
  * balance, as `useWallet` does.
  */

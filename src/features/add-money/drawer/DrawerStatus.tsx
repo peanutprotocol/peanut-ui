@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
  * A status inside the add-money drawer, under its one title "Add money" (design.md: a multi-step flow
  * keeps one title across all steps). The status names itself in body text, never as a second heading.
  */
-export function CardDrawerStatus({
+export function DrawerStatus({
     icon,
     name,
     body,

@@ -1,4 +1,4 @@
-import { cardDepositView } from '../cardDepositView'
+import { depositAddressView } from '../depositAddressView'
 
 // the only state in which the address may show: the API's own "not started", taken in against a fresh
 // balance read, nothing held, nothing being cleared
@@ -18,9 +18,9 @@ const SAFE = {
     done: false,
 }
 
-describe('cardDepositView: the address only when no deposit can be on its way and the balance is fresh', () => {
+describe('depositAddressView: the address only when no deposit can be on its way and the balance is fresh', () => {
     it('shows the address for the API\'s own "not started", checked against a fresh balance read', () => {
-        expect(cardDepositView(SAFE)).toBe('address')
+        expect(depositAddressView(SAFE)).toBe('address')
     })
 
     it.each([
@@ -39,19 +39,19 @@ describe('cardDepositView: the address only when no deposit can be on its way an
         ['the address is loading', { addressLoading: true }, 'loading'],
         ['no address could be opened', { addressError: true }, 'address-error'],
     ])('never shows the address when %s', (_label, change, view) => {
-        expect(cardDepositView({ ...SAFE, ...change })).toBe(view)
+        expect(depositAddressView({ ...SAFE, ...change })).toBe(view)
     })
 
     it('holds processing over a failed read: the hold reads again on its own', () => {
-        expect(cardDepositView({ ...SAFE, holding: true, balanceReadFailed: true })).toBe('processing')
+        expect(depositAddressView({ ...SAFE, holding: true, balanceReadFailed: true })).toBe('processing')
     })
 
     it('stays done when a later poll or read fails: the gap is covered either way', () => {
-        expect(cardDepositView({ ...SAFE, done: true, statusFailing: true })).toBe('done')
-        expect(cardDepositView({ ...SAFE, done: true, balanceReadFailed: true })).toBe('done')
+        expect(depositAddressView({ ...SAFE, done: true, statusFailing: true })).toBe('done')
+        expect(depositAddressView({ ...SAFE, done: true, balanceReadFailed: true })).toBe('done')
     })
 
     it('says done once the gap is covered, over the completed outcome the poll stops on', () => {
-        expect(cardDepositView({ ...SAFE, status: 'completed', done: true })).toBe('done')
+        expect(depositAddressView({ ...SAFE, status: 'completed', done: true })).toBe('done')
     })
 })

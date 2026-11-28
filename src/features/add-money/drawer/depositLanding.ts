@@ -1,7 +1,7 @@
 import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 
 /**
- * A deposit the card drawer saw but has not yet seen settle, kept in session storage so closing and
+ * A deposit the add-money drawer saw but has not yet seen settle, kept in session storage so closing and
  * reopening the drawer keeps holding it (TASK-25169, Chip review of b09c28f and c2344fb). It holds the
  * user's own deposit address, the balance the deposit must rise above and, once the balance rose before
  * the provider said completed, what rose: no personal data, never in the URL.
@@ -16,6 +16,7 @@ export type DepositLanding = {
 /** a landing older than this is no longer trusted as a hold: the balance read decides alone again */
 export const DEPOSIT_LANDING_TTL_MS = 60 * 60 * 1000
 
+// the card prefix stays: a new key would drop the hold of a user mid-deposit
 const key = (userId: string, address: string) => `card_deposit_landing_v1:${userId}:${address.toLowerCase()}`
 
 export function readDepositLanding(userId: string | undefined, address: string, now = Date.now()) {

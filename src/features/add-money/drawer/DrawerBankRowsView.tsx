@@ -5,17 +5,17 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import type { CardBankRow } from '@/features/card/cardAddMoney'
 import { CorridorFlag } from '@/features/deposit-accounts/components/CorridorFlag'
 import { DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
 import { useDepositAccountCopy } from '@/features/deposit-accounts/useDepositAccountCopy'
 import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccounts'
+import type { DrawerBankRow } from './addMoneyDrawerPlan'
 
 /**
  * The bank ways ready now, titled as the Add money picker and options title them. A held account
  * names its own rails, the same name its details title shows.
  */
-export function CardBankRowsView({ rows, onPick }: { rows: CardBankRow[]; onPick: (row: CardBankRow) => void }) {
+export function DrawerBankRowsView({ rows, onPick }: { rows: DrawerBankRow[]; onPick: (row: DrawerBankRow) => void }) {
     const tMethods = useTranslations('addMoney.methods')
     const { accountRailName } = useDepositAccountCopy()
     // only a held account's row names its rails from its details
