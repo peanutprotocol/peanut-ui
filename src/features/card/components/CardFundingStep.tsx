@@ -158,30 +158,13 @@ export function CardFundingStep({
         <PageStack>
             <NavHeader title={t('navTitle')} onPrev={onPrev} />
             <h1 className="text-heading-s text-foreground-primary">{tAdd('title')}</h1>
-            <ListGroup>
-                {bank.offered && bankRow}
-                <CryptoMethodRow onClick={() => pickMethod('crypto')} testId="card-add-money-crypto" />
-                {!bank.offered && bankRow}
-            </ListGroup>
-            {drawer && (
-                <AddMoneyDrawer
-                    key={drawer.n}
-                    open={open}
-                    method={drawer.method}
-                    targetUsd={CARD_MIN_BALANCE_USD}
-                    funded={funded}
-                    gapUsd={gapUsd}
-                    plan={plan}
-                    residenceIso2s={readiness.residenceIso2s}
-                    returnTo={cardReturnTo}
-                    place="card"
-                    onShow={onShow}
-                    onDismiss={dismiss}
-                    onBankSent={bankSent}
-                />
-            )}
-            <PageStack.Footer>
-                {/* one note right above the CTA: the transfer on its way replaces the gap note */}
+            <div className="flex flex-col gap-4">
+                <ListGroup>
+                    {bank.offered && bankRow}
+                    <CryptoMethodRow onClick={() => pickMethod('crypto')} testId="card-add-money-crypto" />
+                    {!bank.offered && bankRow}
+                </ListGroup>
+                {/* one note under the rows: the transfer on its way replaces the gap note */}
                 {sent && !sentLanded ? (
                     <Callout priority="info" data-testid="card-add-money-bank-sent">
                         {sent.usd
@@ -203,6 +186,25 @@ export function CardFundingStep({
                             : t('fundingBody')}
                     </Callout>
                 )}
+            </div>
+            {drawer && (
+                <AddMoneyDrawer
+                    key={drawer.n}
+                    open={open}
+                    method={drawer.method}
+                    targetUsd={CARD_MIN_BALANCE_USD}
+                    funded={funded}
+                    gapUsd={gapUsd}
+                    plan={plan}
+                    residenceIso2s={readiness.residenceIso2s}
+                    returnTo={cardReturnTo}
+                    place="card"
+                    onShow={onShow}
+                    onDismiss={dismiss}
+                    onBankSent={bankSent}
+                />
+            )}
+            <PageStack.Footer>
                 <Button variant="primary" className="w-full" disabled={!funded} onClick={onContinue}>
                     {tCommon('continue')}
                 </Button>
