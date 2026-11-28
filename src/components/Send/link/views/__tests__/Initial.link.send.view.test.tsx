@@ -518,6 +518,16 @@ describe('LinkSendInitialView add money', () => {
         expect(screen.queryByTestId('send-link-add-money-bank-sent')).not.toBeInTheDocument()
     })
 
+    // review on ui#4320: `5e3` is not an amount the field holds; parseFloat would read 5000
+    test.each(['5e3', 'abc'])('a URL amount the field would not hold is ignored: %s', async (bad) => {
+        searchParams = `?view=link&amount=${bad}`
+        mockUseWallet.mockReturnValue(walletState(10))
+        render(viewTree(''))
+        await waitFor(() => expect(screen.getByText('Create link')).toBeInTheDocument())
+        expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('send-link-add-money')).not.toBeInTheDocument()
+    })
+
     test('the amount comes back from the URL, and the URL drops it once the link is created', async () => {
         searchParams = '?view=link&amount=20'
         mockUseWallet.mockReturnValue(walletState(10))

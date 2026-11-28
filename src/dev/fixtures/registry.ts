@@ -2791,9 +2791,12 @@ const sendAddMoney = (
     about: string,
     user: Record<string, unknown>,
     depositAccounts: Record<string, unknown>,
-    extra: Partial<Fixture> = {},
-    route = SEND_ADD_MONEY_ROUTE
-): Fixture => ({ ...cardAddMoney(about, user, depositAccounts, extra), route })
+    extra: Partial<Fixture> = {}
+): Fixture => ({ ...cardAddMoney(about, user, depositAccounts, extra), route: SEND_ADD_MONEY_ROUTE })
+const sendLinkAddMoney = (...args: Parameters<typeof sendAddMoney>): Fixture => ({
+    ...sendAddMoney(...args),
+    route: SEND_LINK_ADD_MONEY_ROUTE,
+})
 const sendView = (
     id: string,
     name: string,
@@ -2879,7 +2882,7 @@ const SEND_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
 }
 
 const SEND_LINK_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
-    'send-link-add-money': sendAddMoney(
+    'send-link-add-money': sendLinkAddMoney(
         'Send a $10 link with $3.20 spendable: the error stays and the button reads "Add $6.80"; it opens the add-money drawer on this step.',
         CARD_US_USER,
         {},
@@ -2894,10 +2897,9 @@ const SEND_LINK_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
                     SEND_LINK_ADD_MONEY_ROUTE
                 ),
             ],
-        },
-        SEND_LINK_ADD_MONEY_ROUTE
+        }
     ),
-    'send-link-add-money-bank-details': sendAddMoney(
+    'send-link-add-money-bank-details': sendLinkAddMoney(
         'Send a $10 link with $3.20 spendable: a held USD account (ACH) next to crypto; tap it for its details in the drawer.',
         CARD_US_USER,
         { depositAccounts: [DEPOSIT_ACCOUNT_USD] },
@@ -2911,10 +2913,9 @@ const SEND_LINK_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
                     SEND_LINK_ADD_MONEY_ROUTE
                 ),
             ],
-        },
-        SEND_LINK_ADD_MONEY_ROUTE
+        }
     ),
-    'send-link-add-money-bank-sent': sendAddMoney(
+    'send-link-add-money-bank-sent': sendLinkAddMoney(
         'Send a $10 link with $3.20 spendable: after "I\'ve sent the transfer" from the held USD account, the drawer closes; the error and Add $6.80 give way to the $6.80 transfer on its way, Add money another way, and Create link waiting off.',
         CARD_US_USER,
         { depositAccounts: [DEPOSIT_ACCOUNT_USD] },
@@ -2929,15 +2930,13 @@ const SEND_LINK_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
                     expectSelector: '[data-testid="send-link-add-money-bank-sent"]',
                 },
             ],
-        },
-        SEND_LINK_ADD_MONEY_ROUTE
+        }
     ),
-    'send-link-add-money-funded': sendAddMoney(
+    'send-link-add-money-funded': sendLinkAddMoney(
         'Send a $10 link with $3.20 spendable: tap Add $6.80, Crypto, EVM; a $10 deposit lands, the drawer closes and Create link turns on, not created (wait ~15 s).',
         CARD_US_USER,
         {},
-        { balanceAfterDeposit: '13.20', responses: { [RHINO_STATUS]: { status: 'completed', amount: 10 } } },
-        SEND_LINK_ADD_MONEY_ROUTE
+        { balanceAfterDeposit: '13.20', responses: { [RHINO_STATUS]: { status: 'completed', amount: 10 } } }
     ),
 }
 

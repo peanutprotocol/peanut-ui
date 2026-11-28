@@ -12,7 +12,8 @@
  */
 
 import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react'
-import { parseAsString, useQueryStates } from 'nuqs'
+import { useQueryStates } from 'nuqs'
+import { parseAsAmount } from '@/utils/amount-param'
 
 // view states for link send flow
 export type LinkSendFlowView = 'INITIAL' | 'SUCCESS'
@@ -62,7 +63,7 @@ export const LinkSendFlowProvider: React.FC<LinkSendFlowProviderProps> = ({ chil
     // the amount rides in the URL too, so a bank page or /verify opened to add money comes back to it
     // (TASK-25467). Never the message or the file: free text may hold personal data. The memory copy
     // keeps the amount on the success view after the URL drops it.
-    const [{ amount }, setQuery] = useQueryStates({ amount: parseAsString })
+    const [{ amount }, setQuery] = useQueryStates({ amount: parseAsAmount })
     const [tokenValue, setTokenValueState] = useState<string | undefined>(amount ?? undefined)
     const setTokenValue = useCallback(
         (value: string | undefined) => {
