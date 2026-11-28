@@ -1024,17 +1024,20 @@ const HUGE_HISTORY_ENTRY = {
 // The capture clock is frozen at 2026-09-01 12:00 UTC. This order's
 // deadline is still ahead of that clock; the expired variant reports the
 // terminal status from the status endpoint instead of inferring it from time.
+// an open order lives 30 minutes from creation: a fixed past time would draw the expired card,
+// since the details screen counts down to expireAt
+const ARS_DEPOSIT_EXPIRES_AT = new Date(Date.now() + 30 * 60_000).toISOString()
 const ARS_DEPOSIT = {
     id: 'fixture-ars-deposit',
     stages: {
-        '1': { thresholdAmount: '10000', asset: 'ARS', expireAt: '2026-09-01T12:30:00.000Z' },
+        '1': { thresholdAmount: '10000', asset: 'ARS', expireAt: ARS_DEPOSIT_EXPIRES_AT },
         '3': { amount: '10' },
     },
     details: {
         depositAddress: '0000000000000000000000',
         depositAlias: 'fixture.deposit.test',
         price: '1000',
-        priceExpireAt: '2026-09-01T12:30:00.000Z',
+        priceExpireAt: ARS_DEPOSIT_EXPIRES_AT,
         withdrawCostInAsset: '0',
     },
 }
@@ -2068,6 +2071,40 @@ const VA_READY_RESPONSE = {
     'GET /users/me': { capabilities: VA_READY_CAPABILITIES, depositAccounts: { enabled: true } },
 }
 
+// HANDOFF rule 7: a Bridge one-time transfer that lands while its bank details are
+// up ends on the success screen. Each poll answers in turn (Fixture.sequences): open, then done.
+const EUR_ONRAMP = {
+    transferId: 'fixture-onramp-eur',
+    depositInstructions: {
+        amount: '20.00',
+        currency: 'eur',
+        depositMessage: 'BRGFIXTURE20EUR',
+        bankName: 'Fixture Bank AG',
+        bankAddress: '1 Fixture Strasse, Berlin',
+        accountHolderName: 'Fixture Payments S.A.',
+        iban: 'DE00000000000000000000',
+        bic: 'FIXTDEFFXXX',
+    },
+}
+const RECEIVED_DEPOSIT_ENTRY = {
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-09-01T11:00:00.000Z'),
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    userRole: 'RECIPIENT',
+    recipientAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+}
+const eurTransferEntry = (status: string) => ({
+    ...RECEIVED_DEPOSIT_ENTRY,
+    uuid: EUR_ONRAMP.transferId,
+    status,
+    amount: '21.62',
+    senderAccount: { identifier: 'bank', type: 'BANK_IBAN', isUser: true },
+    currency: { amount: '20', code: 'EUR' },
+    extraData: { kind: 'ONRAMP', provider: 'BRIDGE', usdAmount: '21.62' },
+})
+
 /**
  * A UK top-up as the API returns it: GBP over Faster Payments, so the bank
  * details are a sort code and an account number, not an IBAN and a BIC.
@@ -2979,8 +3016,10 @@ export const FIXTURES: Record<string, Fixture> = {
     ...Object.fromEntries(
         (
             [
-                ['pending', 'PROCESSING', 1, 'the transfer deadline'],
+                ['pending', 'PROCESSING', 1, 'the details with their countdown'],
                 ['expired', 'CANCELLED', 1, 'the expired order and start-over button'],
+                // the order did not go through: same ended card, no CVU to pay into
+                ['failed', 'FAILED', 1, 'the failed order and start-over button'],
                 // TASK-25444: the pesos reached Manteca, then the balance got them
                 ['received', 'PROCESSING', 2, 'payment received while the balance is credited'],
                 ['completed', 'COMPLETED', 3, 'the received deposit and Done'],
@@ -3089,6 +3128,19 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/add-money/united-kingdom/bank?step=inputAmount&amount=7',
         about: 'Add money by bank, UK: continue to the GBP bank details (sort code and account number).',
         responses: { ...VA_READY_RESPONSE, 'POST /bridge/onramp/create': GBP_ONRAMP },
+    },
+    // Tap Continue and slide to confirm: the transfer's entry reads AWAITING_FUNDS,
+    // and the next poll (15 s) PAYMENT_PROCESSED.
+    'add-money-bank-transfer-received': {
+        route: '/add-money/germany/bank?step=inputAmount&amount=20',
+        about: 'Bridge one-time transfer that lands while the bank details are up: the success screen.',
+        responses: { ...VA_READY_RESPONSE, 'POST /bridge/onramp/create': EUR_ONRAMP },
+        sequences: {
+            [`GET /history/${EUR_ONRAMP.transferId}`]: [
+                eurTransferEntry('AWAITING_FUNDS'),
+                eurTransferEntry('PAYMENT_PROCESSED'),
+            ],
+        },
     },
     // Open /add-money/spain?__fixture=add-money-country-provider-wait and tap
     // "From Bank". The euro rail is under provider review (waiting-on-provider),

@@ -1345,9 +1345,10 @@
         },
         "manteca": {
             "sendOnlyOwnAccountTitle": "Enviá solo desde una cuenta a tu nombre",
-            "transferDeadline": "Transferí antes de las {time}.",
-            "transferExpiredTitle": "La orden de depósito venció",
-            "transferExpiredDescription": "¿Ya enviaste plata? Contactá a soporte.",
+            "transferExpiredDescription": "Esta orden de depósito venció. ¿Ya enviaste plata? Contactá a soporte.",
+            "orderFailedDescription": "Esta orden de depósito no se completó. ¿Ya enviaste plata? Contactá a soporte.",
+            "supportOrderPrefill": "La orden de depósito en pesos {orderId} terminó. Puede que haya enviado plata.",
+            "detailsComeNext": "Después vas a ver los datos bancarios. Sirven por 30 minutos.",
             "startNewDeposit": "Iniciar un nuevo depósito",
             "shareOwnAccountOnly": "Envialo solo desde una cuenta bancaria a mi nombre. Las transferencias desde cuentas de terceros no se pueden acreditar.",
             "etaInstant": "Normalmente en minutos",

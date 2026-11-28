@@ -109,7 +109,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     // otherwise to the hub itself — not the bare `/add-money/argentina` amount
     // route the user never knowingly opened.
     const onBack = useSafeBack(readReturnTo(searchParams) ?? '/add-money?method=bank')
-    // Done after the pesos arrived never reopens a hub: the origin past the Add money hubs, or Home
+    // Done after the pesos arrived, and "I've sent the transfer", never reopen a hub: the origin past the Add money hubs, or Home
     const leaveToOrigin = useReturnTo(originPastHubs(readReturnTo(searchParams), ['/add-money']) ?? '/home')
     // Argentina's Manteca top-up mints a CVU per deposit, and Manteca rejects a
     // non-resident only after amount + KYC. The API's answer for this country's
@@ -547,6 +547,10 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                                 </Callout>
                             )
                         }
+                        // the order behind the bank details lives 30 minutes: say so before the amount is typed
+                        details={
+                            residenceGatedCountry && <Callout priority="info">{t('manteca.detailsComeNext')}</Callout>
+                        }
                         providerFinePrint={residenceGatedCountry && <ProviderFinePrint providerId="manteca-ar" />}
                         // The CBU and alias are minted per order and expire, so none can show before the amount.
                         // The button names what it leads to: replays showed users leaving here, not knowing (TASK-25101).
@@ -575,6 +579,11 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                 // the user start a second deposit).
                 onBack={onBack}
                 onDone={leaveToOrigin}
+                onSent={leaveToOrigin}
+                // the order id lets support find a late transfer to reconcile by hand
+                onContactSupport={() =>
+                    openSupportWithMessage(t('manteca.supportOrderPrefill', { orderId: depositDetails.id }))
+                }
             />
         )
     }
