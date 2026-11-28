@@ -332,7 +332,9 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent }: StuckBuddyCoreProps) 
     const handleSubmitBugReport = useCallback(
         (category: BugReportCategory, note: string) => {
             const replayUrl =
-                typeof posthog.get_session_replay_url === 'function' ? posthog.get_session_replay_url() : undefined
+                !analyticsOptedOut && typeof posthog.get_session_replay_url === 'function'
+                    ? posthog.get_session_replay_url()
+                    : undefined
             posthog.capture(ANALYTICS_EVENTS.STUCK_BUG_REPORT_SUBMITTED, {
                 category,
                 has_note: Boolean(note),
@@ -342,6 +344,7 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent }: StuckBuddyCoreProps) 
                 model_version: scoreResult.modelVersion,
                 replay_url: replayUrl ?? null,
             })
+            // Explicit user-initiated bug report submission; omit session replay and telemetry score when opted out.
             Sentry.captureMessage(`stuck-buddy bug report: ${category}`, {
                 level: 'info',
                 tags: {
@@ -349,15 +352,20 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent }: StuckBuddyCoreProps) 
                     category,
                     route: effectiveRoute,
                 },
-                extra: {
-                    note: note || undefined,
-                    lastErrorCode: runtime.lastErrorCode,
-                    replayUrl,
-                    rawScore: Number(scoreResult.rawScore.toFixed(4)),
-                },
+                extra: analyticsOptedOut
+                    ? {
+                          note: note || undefined,
+                          lastErrorCode: runtime.lastErrorCode,
+                      }
+                    : {
+                          note: note || undefined,
+                          lastErrorCode: runtime.lastErrorCode,
+                          replayUrl,
+                          rawScore: Number(scoreResult.rawScore.toFixed(4)),
+                      },
             })
         },
-        [effectiveRoute, runtime.lastErrorCode, scoreResult.rawScore, scoreResult.modelVersion]
+        [analyticsOptedOut, effectiveRoute, runtime.lastErrorCode, scoreResult.rawScore, scoreResult.modelVersion]
     )
 
     const clearance =

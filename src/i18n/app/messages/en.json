@@ -5682,8 +5682,8 @@
                 "title": "Deposit troubleshooting",
                 "description": "Quick bank transfer checks.",
                 "step1": "Alias rejected? Copy the full account number.",
-                "step2": "Sent from another name? Transfers require the same legal name.",
-                "step3": "Over 15 minutes? Share the bank receipt with support.",
+                "step2": "Sent from another name? Some transfers require an account in the same legal name.",
+                "step3": "Past the arrival time on screen? Share the bank receipt with support.",
                 "primaryCta": "Copy message and contact support",
                 "copyMessage": "Need help with a bank transfer deposit in Peanut."
             },

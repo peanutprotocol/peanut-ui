@@ -5682,8 +5682,8 @@
                 "title": "Ayuda con depósitos",
                 "description": "Revisiones rápidas para transferencias bancarias.",
                 "step1": "¿Rechazaron el alias? Copia el número de cuenta completo.",
-                "step2": "¿Desde otra cuenta? Debe salir de una cuenta del mismo titular.",
-                "step3": "¿Más de 15 minutos? Comparte el comprobante bancario con soporte.",
+                "step2": "¿Enviaste desde otro nombre? Algunas transferencias requieren una cuenta propia.",
+                "step3": "¿Pasó el tiempo de llegada indicado? Comparte el comprobante con soporte.",
                 "primaryCta": "Copiar mensaje y contactar soporte",
                 "copyMessage": "Necesito ayuda con un depósito por transferencia bancaria en Peanut."
             },

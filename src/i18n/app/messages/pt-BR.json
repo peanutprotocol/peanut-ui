@@ -5682,8 +5682,8 @@
                 "title": "Ajuda com depósitos",
                 "description": "Checagens rápidas para transferências bancárias.",
                 "step1": "Dados recusados? Copie o número completo da conta.",
-                "step2": "De outra conta? A transferência precisa ser da mesma titularidade.",
-                "step3": "Mais de 15 minutos? Envie o comprovante para o suporte.",
+                "step2": "Enviado de outro nome? Algumas transferências exigem conta no mesmo nome.",
+                "step3": "Passou o prazo mostrado na tela? Envie o comprovante para o suporte.",
                 "primaryCta": "Copiar mensagem e falar com o suporte",
                 "copyMessage": "Preciso de ajuda com um depósito por transferência bancária no Peanut."
             },

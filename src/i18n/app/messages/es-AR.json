@@ -2506,7 +2506,8 @@
         "drawers": {
             "addMoney": {
                 "step1": "¿Rechazaron el alias? Copiá el CVU o número de cuenta completo.",
-                "step3": "¿Más de 15 minutos? Compartí el comprobante bancario con soporte."
+                "step3": "¿Pasó el tiempo de llegada indicado? Compartí el comprobante con soporte.",
+                "step2": "¿Enviaste desde otro nombre? Algunas transferencias requieren una cuenta propia."
             },
             "homeFunded": {
                 "title": "Pagá en segundos",
