@@ -1,98 +1,98 @@
-import { getExternalNodeUsers, getModeConfigs, getNodePoints, sizeLabelToPoints } from '../utils'
-import {
-    DEFAULT_ACTIVITY_FILTER,
-    DEFAULT_EXTERNAL_NODES_CONFIG,
-    DEFAULT_FORCE_CONFIG,
-    DEFAULT_VISIBILITY_CONFIG,
-} from '../types'
+import { getNodePoints, getUserActivityStatus, MAX_NODES, toUserGraphData } from '../utils'
+import { type GraphData, type GraphNode } from '../types'
 
-describe('sizeLabelToPoints', () => {
-    it('maps qualitative size labels to numeric points', () => {
-        expect(sizeLabelToPoints('tiny')).toBe(5)
-        expect(sizeLabelToPoints('small')).toBe(50)
-        expect(sizeLabelToPoints('medium')).toBe(500)
-        expect(sizeLabelToPoints('large')).toBe(5000)
-        expect(sizeLabelToPoints('huge')).toBe(50000)
-    })
+const DAY_MS = 24 * 60 * 60 * 1000
+const NOW = Date.UTC(2026, 10, 4)
 
-    it('defaults to 10 when size is undefined', () => {
-        expect(sizeLabelToPoints(undefined)).toBe(10)
-    })
-})
+function node(id: string, overrides: Partial<GraphNode> = {}): GraphNode {
+    return { id, username: id, hasAppAccess: true, kycRegions: null, ...overrides }
+}
+
+function graph(nodes: GraphNode[], edges: Array<[string, string]>): GraphData {
+    return {
+        nodes,
+        edges: edges.map(([source, target], i) => ({
+            id: `e${i}`,
+            source,
+            target,
+            type: 'DIRECT',
+            createdAt: '2026-01-01T00:00:00Z',
+        })),
+        p2pEdges: [{ source: 'a', target: 'b', type: 'SEND_LINK', bidirectional: false, count: 1, totalUsd: 5 }],
+        stats: { totalNodes: 0, totalEdges: 0, totalP2PEdges: 1, usersWithAccess: 0, orphans: 0 },
+    }
+}
 
 describe('getNodePoints', () => {
-    it('uses real totalPoints in full mode', () => {
+    it('uses totalPoints', () => {
         expect(getNodePoints({ totalPoints: 1234 })).toBe(1234)
     })
 
-    it('converts size label in payment mode (no totalPoints)', () => {
-        expect(getNodePoints({ size: 'medium' })).toBe(500)
-    })
-
-    it('prefers totalPoints when both are present', () => {
-        expect(getNodePoints({ size: 'huge', totalPoints: 42 })).toBe(42)
-    })
-
-    it('falls back to 0 when nothing is present', () => {
+    it('falls back to 0 when totalPoints is missing', () => {
         expect(getNodePoints({})).toBe(0)
     })
 })
 
-describe('getExternalNodeUsers', () => {
-    it('counts userIds in payment mode', () => {
-        expect(getExternalNodeUsers({ userIds: ['a', 'b', 'c'] })).toBe(3)
-    })
+describe('toUserGraphData', () => {
+    it('keeps a small graph whole, drops P2P edges, and recounts stats', () => {
+        const result = toUserGraphData(graph([node('a'), node('b', { hasAppAccess: false })], [['a', 'b']]))
 
-    it('uses uniqueUsers in full mode', () => {
-        expect(getExternalNodeUsers({ uniqueUsers: 7 })).toBe(7)
-    })
-
-    it('prefers userIds over uniqueUsers when both are present', () => {
-        expect(getExternalNodeUsers({ userIds: ['a'], uniqueUsers: 7 })).toBe(1)
-    })
-
-    it('falls back to 1 when nothing is present', () => {
-        expect(getExternalNodeUsers({})).toBe(1)
-    })
-})
-
-describe('getModeConfigs', () => {
-    const defaults = {
-        initialActivityFilter: DEFAULT_ACTIVITY_FILTER,
-        initialForceConfig: DEFAULT_FORCE_CONFIG,
-        initialVisibilityConfig: DEFAULT_VISIBILITY_CONFIG,
-    }
-
-    it('full mode passes initial configs through unchanged', () => {
-        const result = getModeConfigs({ mode: 'full', ...defaults })
-        expect(result.modeActivityFilter).toBe(DEFAULT_ACTIVITY_FILTER)
-        expect(result.modeVisibilityConfig).toBe(DEFAULT_VISIBILITY_CONFIG)
-        expect(result.finalModeForceConfig).toBe(DEFAULT_FORCE_CONFIG)
-        expect(result.modeExternalNodesConfig).toBe(DEFAULT_EXTERNAL_NODES_CONFIG)
-    })
-
-    it('payment mode fixes the 120-day window, disables invite edges, and weakens external links', () => {
-        const result = getModeConfigs({ mode: 'payment', ...defaults })
-        expect(result.modeActivityFilter.activityDays).toBe(120)
-        expect(result.modeVisibilityConfig.inviteEdges).toBe(false)
-        expect(result.finalModeForceConfig.inviteLinks.enabled).toBe(false)
-        expect(result.finalModeForceConfig.externalLinks.strength).toBeCloseTo(
-            DEFAULT_FORCE_CONFIG.externalLinks.strength * 0.1
-        )
-        expect(result.modeExternalNodesConfig).toEqual({
-            enabled: true,
-            minConnections: 10,
-            limit: 5000,
-            types: { WALLET: false, BANK: false, MERCHANT: true },
+        expect(result.nodes.map((n) => n.id)).toEqual(['a', 'b'])
+        expect(result.edges).toHaveLength(1)
+        expect(result.p2pEdges).toEqual([])
+        expect(result.stats).toEqual({
+            totalNodes: 2,
+            totalEdges: 1,
+            totalP2PEdges: 0,
+            usersWithAccess: 1,
+            orphans: 1,
         })
     })
 
-    it('user mode disables p2p, triples charge, and lengthens invite link distance', () => {
-        const result = getModeConfigs({ mode: 'user', ...defaults })
-        expect(result.modeVisibilityConfig.p2pEdges).toBe(false)
-        expect(result.finalModeForceConfig.p2pLinks.enabled).toBe(false)
-        expect(result.finalModeForceConfig.charge.strength).toBe(DEFAULT_FORCE_CONFIG.charge.strength * 3)
-        expect(result.finalModeForceConfig.inviteLinks.distance).toBe(80)
-        expect(result.modeExternalNodesConfig).toBe(DEFAULT_EXTERNAL_NODES_CONFIG)
+    it('keeps the top nodes by points and only the edges between them', () => {
+        const nodes = Array.from({ length: MAX_NODES + 1 }, (_, i) => node(`n${i}`, { totalPoints: i }))
+        const result = toUserGraphData(
+            graph(nodes, [
+                ['n0', 'n1'],
+                ['n1', 'n2'],
+                [`n${MAX_NODES}`, 'n2'],
+            ])
+        )
+
+        expect(result.nodes).toHaveLength(MAX_NODES)
+        expect(result.nodes.some((n) => n.id === 'n0')).toBe(false)
+        expect(result.edges.map((e) => [e.source, e.target])).toEqual([
+            ['n1', 'n2'],
+            [`n${MAX_NODES}`, 'n2'],
+        ])
+    })
+})
+
+describe('getUserActivityStatus', () => {
+    it('is new when the user signed up within 30 days', () => {
+        expect(getUserActivityStatus({ createdAt: new Date(NOW - 5 * DAY_MS).toISOString() }, NOW)).toBe('new')
+    })
+
+    it('is active when an older user transacted within 30 days', () => {
+        const status = getUserActivityStatus(
+            {
+                createdAt: new Date(NOW - 100 * DAY_MS).toISOString(),
+                lastActiveAt: new Date(NOW - 2 * DAY_MS).toISOString(),
+            },
+            NOW
+        )
+        expect(status).toBe('active')
+    })
+
+    it('is inactive otherwise', () => {
+        const status = getUserActivityStatus(
+            {
+                createdAt: new Date(NOW - 100 * DAY_MS).toISOString(),
+                lastActiveAt: new Date(NOW - 40 * DAY_MS).toISOString(),
+            },
+            NOW
+        )
+        expect(status).toBe('inactive')
+        expect(getUserActivityStatus({}, NOW)).toBe('inactive')
     })
 })

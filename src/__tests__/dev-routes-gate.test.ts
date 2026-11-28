@@ -21,10 +21,9 @@ function routesUnder(dir: string, base = ''): string[] {
 const DEV_ROUTES = routesUnder(path.join(process.cwd(), 'src/app')).filter((route) => route.startsWith('/dev'))
 
 // Only these answer on peanut.me. Widening this list is a deliberate act:
-// payment-graph is the event visualisation (full-graph was dropped — the legacy
-// page loads the same team-gated dataset without the explorer's telemetry
-// suppression), safe-area reads device insets on the production native build,
-// users reads production records behind the API's team check.
+// payment-graph is the event visualisation, safe-area reads device insets on
+// the production native build, users reads production records behind the
+// API's team check.
 const ALLOWED_ON_PROD = ['/dev/payment-graph', '/dev/safe-area', '/dev/users']
 
 const ORIGINAL_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL
