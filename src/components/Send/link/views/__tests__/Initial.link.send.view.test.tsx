@@ -139,8 +139,8 @@ import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 
 const usdc = (dollars: number) => BigInt(Math.round(dollars * 1e6))
 
-// the displayed (possibly cached) total, and the live one the drawer reads: the same unless a test
-// splits them, null while the live one is not read yet
+// the displayed total (held while a refetch settles, or the persisted cache before the first read) and
+// the raw live sum: the same unless a test splits them, null while the live one is not read yet
 const walletState = (spendableDollars: number | undefined, live?: number | null) => {
     const liveDollars = live === undefined ? spendableDollars : (live ?? undefined)
     return {
@@ -418,15 +418,14 @@ describe('LinkSendInitialView add money', () => {
     })
 
     // Chip on ui#4320: an amount edited after the tap must be the one a bank page or /verify comes back to
-    test('the way back carries the amount as the route opens, not the one at the tap', async () => {
+    test('the way back carries the form amount, even before its URL write lands', async () => {
         mockUseWallet.mockReturnValue(walletState(10))
         renderView('20')
         fireEvent.click(await screen.findByText('Add $10'))
 
+        // the route opens before nuqs writes the edit: the URL still says 20
         fireEvent.change(screen.getByTestId('amount-input'), { target: { value: '30' } })
-        await waitFor(() => expect(urlUpdates.at(-1)?.queryString).toBe('?view=link&amount=30'))
-        // the router applies that write; the drawer reads the URL only when a route opens
-        window.history.replaceState({}, '', `/send${urlUpdates.at(-1)!.queryString}`)
+        expect(window.location.search).toBe('?view=link&amount=20')
         expect(drawerProps!.returnTo()).toBe('/send?view=link&amount=30')
     })
 
@@ -437,12 +436,17 @@ describe('LinkSendInitialView add money', () => {
         fireEvent.click(await screen.findByText('Add $10'))
         act(() => drawerProps!.onShow('crypto', 'address'))
 
-        for (const live of [10, null]) {
-            mockUseWallet.mockReturnValue(walletState(100, live))
-            rerenderView(utils, '20')
-            expect(screen.getByTestId('drawer')).toBeInTheDocument()
-        }
+        // the persisted display cache while the live total is not read yet
+        mockUseWallet.mockReturnValue(walletState(100, null))
+        rerenderView(utils, '20')
+        expect(screen.getByTestId('drawer')).toBeInTheDocument()
         expect(drawerProps!.gapUsd).toBeUndefined()
+        // Chip on ui#4320: money moving from Rain to the wallet can count twice for a moment in the raw
+        // sum; useWallet holds the settled total on screen, and the drawer reads that one
+        mockUseWallet.mockReturnValue(walletState(10, 20))
+        rerenderView(utils, '20')
+        expect(screen.getByTestId('drawer')).toBeInTheDocument()
+        expect(drawerProps!.gapUsd).toBe(10)
         expect(mockCapture).not.toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SEND_LINK_ADD_MONEY_CAME_BACK_FUNDED,
             expect.anything()
