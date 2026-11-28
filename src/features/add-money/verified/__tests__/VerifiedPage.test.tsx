@@ -6,6 +6,7 @@ import type { FeatureReport, FeatureReportEntry } from '@/types/capabilities'
 import { renderWithIntl } from '@/test-utils/intl'
 import { resetBankReadyReminder } from '@/test-utils/bankReadyReminder'
 import { markBankReadyShown, markReshowing, shownBankReady } from '../bankReadyReminder'
+import { rowReturn } from '../verifiedRows'
 import { VerifiedPage } from '../VerifiedPage'
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
@@ -29,8 +30,9 @@ jest.mock('../../useAddMoneyMethodRows', () => ({
             { get: (_, method) => ({ title: String(method), description: `${String(method)} row`, icon: null }) }
         ),
 }))
-// a first visit: no token from a row's flow coming back
-jest.mock('nuqs', () => ({ useQueryState: () => [null, jest.fn()] }))
+// the `visit` token on the page's url: null on a first visit, set on a return from a row's flow
+let mockVisitToken: string | null = null
+jest.mock('nuqs', () => ({ useQueryState: () => [mockVisitToken, jest.fn(() => Promise.resolve(null))] }))
 jest.mock('@/features/deposit-accounts/useDepositGateRemediation', () => ({
     useDepositGateRemediation: () => ({ resolveGate: jest.fn(), modals: null }),
 }))
@@ -70,6 +72,7 @@ beforeEach(() => {
     resetBankReadyReminder()
     markBankReadyShown('u1', [])
     mockStatus = 'verified'
+    mockVisitToken = null
     mockReport = report({ USD: on, EUR: on }, { ARS: on, BRL: on })
     mockReadiness = { isLoading: false, pickerMethods: ['ars', 'bank', 'crypto'] }
 })
@@ -116,6 +119,16 @@ describe('VerifiedPage, bank-ready variant', () => {
         expect(eventsNamed(ANALYTICS_EVENTS.VERIFIED_PAGE_RESHOWN)).toEqual([
             [ANALYTICS_EVENTS.VERIFIED_PAGE_RESHOWN, { accounts: ['bank.USD'], variant: 'bank-ready' }],
         ])
+    })
+
+    it("a return from a row's flow is the same visit: no second re-show", () => {
+        markReshowing(['bank.USD'])
+        renderWithIntl(<VerifiedPage variant="bank-ready" />).unmount()
+        // a row was tapped, then Back or the flow's own way back returns with the visit token
+        mockVisitToken = rowReturn('bank-ready').token
+        renderWithIntl(<VerifiedPage variant="bank-ready" />)
+        expect(eventsNamed(ANALYTICS_EVENTS.VERIFIED_PAGE_RESHOWN)).toHaveLength(1)
+        expect(eventsNamed(ANALYTICS_EVENTS.VERIFIED_PAGE_SHOWN)).toHaveLength(1)
     })
 
     it('reports no re-show for a visit Home did not open (the push, a direct link)', () => {
