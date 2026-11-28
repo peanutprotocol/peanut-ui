@@ -23,7 +23,9 @@ jest.mock('@/context/authContext', () => ({
         user: mockAuthUsername ? { user: { username: mockAuthUsername, avatarKey: mockAuthAvatarKey } } : null,
     }),
 }))
-jest.mock('@/hooks/useVerification', () => ({ useVerification: () => ({ identityVerified: false }) }))
+jest.mock('@/hooks/useIdentityVerification', () => ({
+    useIdentityVerification: () => ({ isVerified: false }),
+}))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => mockToast }))
 jest.mock('@/utils/clipboard.utils', () => ({
     copyTextToClipboard: (text: string) => mockCopyToClipboard(text),

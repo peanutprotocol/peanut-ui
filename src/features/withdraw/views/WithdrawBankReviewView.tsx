@@ -52,8 +52,11 @@ interface WithdrawBankReviewViewProps {
     isLoading: boolean
     /** false while the spendable balance or the rail-minimum FX rate loads — submit stays disabled (Chip rounds 3+5). */
     isSubmitReady: boolean
+    /** On-chain leg already fired — never offer Retry (double-pay). */
+    submittedTxHash: string | null
     error: { showError: boolean; errorMessage: string }
     balanceErrorMessage: string | null
+    confirmPendingCopy: string
     /** The limits of the rail's reference field; null when the rail takes none. */
     referenceSpec: BankReferenceSpec | null
     /** `withdraw.bank` key for the rail's payout note; null when we have nothing true to say. */
@@ -64,6 +67,7 @@ interface WithdrawBankReviewViewProps {
     referenceProblem: BankReferenceProblem | null
     onReferenceChange: (reference: string) => void
     onSubmit: () => void
+    onDone: () => void
     /** Set while the quote's last refresh failed: the amounts stay, submit waits for a fresh quote. */
     onRetryQuote?: () => void
     /** Set when the provider refused the saved account for good: add it again replaces Retry. */
@@ -90,8 +94,10 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     verificationDeadline,
     isLoading,
     isSubmitReady,
+    submittedTxHash,
     error,
     balanceErrorMessage,
+    confirmPendingCopy,
     referenceSpec,
     payoutNoteKey,
     payoutDefaultReferenceNoteKey,
@@ -99,6 +105,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     referenceProblem,
     onReferenceChange,
     onSubmit,
+    onDone,
     onRetryQuote,
     onAddBankAccountAgain,
     usdSpeed,
@@ -169,7 +176,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                     options={usdSpeed.options}
                     selected={usdSpeed.selected}
                     onSelect={usdSpeed.onSelect}
-                    disabled={isLoading}
+                    disabled={isLoading || !!submittedTxHash}
                 />
             )}
 
@@ -288,7 +295,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                         value={reference}
                         maxLength={referenceSpec.maxLength}
                         // the transfer is created with the reference; it cannot change after
-                        disabled={isLoading}
+                        disabled={isLoading || !!submittedTxHash}
                         onChange={(e) => onReferenceChange(e.target.value)}
                         onBlur={() => setReferenceTouched(true)}
                         className="text-body-s"
@@ -296,8 +303,16 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 </Field>
             )}
 
-            {onRetryQuote && <RateUnavailable onRetry={onRetryQuote} />}
-            {error.showError && onAddBankAccountAgain ? (
+            {onRetryQuote && !submittedTxHash && <RateUnavailable onRetry={onRetryQuote} />}
+            {submittedTxHash ? (
+                // On-chain leg already fired. Even if confirmOfframp failed
+                // we must NOT offer Retry — it would re-run sendMoney() and
+                // double-pay (Sentry PEANUT-UI-QH9). Surface the in-progress
+                // state and a Done button that takes the user home.
+                <Button shadowSize="4" className="w-full" onClick={onDone}>
+                    {tCommon('done')}
+                </Button>
+            ) : error.showError && onAddBankAccountAgain ? (
                 <Button shadowSize="4" className="w-full" onClick={onAddBankAccountAgain}>
                     {t('withdrawToBank')}
                 </Button>
@@ -331,10 +346,16 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                     {tNav(fromSendFlow ? 'send' : 'withdraw')}
                 </Button>
             )}
-            {error.showError && (
-                <Callout priority="error">
-                    <CooldownErrorText message={error.errorMessage} />
+            {submittedTxHash ? (
+                <Callout priority="info" title={t('bank.transferProcessing')}>
+                    {confirmPendingCopy}
                 </Callout>
+            ) : (
+                error.showError && (
+                    <Callout priority="error">
+                        <CooldownErrorText message={error.errorMessage} />
+                    </Callout>
+                )
             )}
             {balanceErrorMessage && <Callout priority="error">{balanceErrorMessage}</Callout>}
         </div>

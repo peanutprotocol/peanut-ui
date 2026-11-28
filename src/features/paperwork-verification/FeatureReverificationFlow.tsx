@@ -22,7 +22,6 @@ import {
     safeReverificationReturnTo,
 } from '@/utils/kyc-reverification'
 import { LoadFailed, VerifyLoading } from './components/LoadScreens'
-import { ResidenceNotSupportedScreen } from './components/ResidenceNotSupportedScreen'
 import { ReviewScreen } from './components/StatusScreens'
 import { StepsScreen } from './components/StepsScreen'
 import { VerifyFooter, VerifyHeroLayout } from './components/VerifyLayout'
@@ -135,9 +134,7 @@ function OwnedReverificationFlow({
     const controls = useKycControl('reverify-invitation')
     const [loadVersion, setLoadVersion] = useState(0)
     const [entry, setEntry] = useState<FeatureReverificationEntry | null>()
-    const [resolution, setResolution] = useState<'pending' | 'refused' | 'blocked' | 'residence-not-supported' | null>(
-        null
-    )
+    const [resolution, setResolution] = useState<'pending' | 'refused' | 'blocked' | null>(null)
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [retryAt, setRetryAt] = useState(0)
@@ -169,10 +166,6 @@ function OwnedReverificationFlow({
             .then(() => (fence.current() ? findKycDocumentPlan('verify', controller.signal, feature) : null))
             .then(async (plan) => {
                 if (!fence.current()) return
-                if (plan?.unavailableReason === 'residence_not_supported') {
-                    setResolution('residence-not-supported')
-                    return
-                }
                 const next = plan?.entry
                 const saved = readResume(resumeKey)
                 if (next?.attemptId && !reconciling.current) {
@@ -219,11 +212,8 @@ function OwnedReverificationFlow({
                     setEntry(null)
                 }
             })
-            .catch((error: { status?: number; code?: string } | null) => {
-                if (!fence.current()) return
-                if (error?.status === 403 && error.code === 'residence_not_supported')
-                    setResolution('residence-not-supported')
-                else setEntry(null)
+            .catch(() => {
+                if (fence.current()) setEntry(null)
             })
         return () => controller.abort()
     }, [destination, feature, loadVersion, owner, resumeKey, storageKey])
@@ -293,9 +283,7 @@ function OwnedReverificationFlow({
                     clearStorage(storageKey)
                     clearStorage(resumeKey)
                     setError(result.error || null)
-                    if (status === 403 && code === 'residence_not_supported') {
-                        setResolution('residence-not-supported')
-                    } else if (
+                    if (
                         code === refusalCode ||
                         (code === 'reverification_finished' && result.outcome && result.outcome !== 'APPROVED')
                     ) {
@@ -321,7 +309,6 @@ function OwnedReverificationFlow({
     }
 
     const goHome = () => router.replace('/home')
-    if (resolution === 'residence-not-supported') return <ResidenceNotSupportedScreen onBack={onExit} />
     if (resolution === 'refused' || resolution === 'blocked')
         return (
             <ReviewScreen

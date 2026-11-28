@@ -1,7 +1,6 @@
 'use client'
 
-import { sendLinksApi, type SendLink } from '@/services/sendLinks'
-import { SendLinkStatus } from '@/constants/api-enums.generated'
+import { ESendLinkStatus, sendLinksApi, type SendLink } from '@/services/sendLinks'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 
@@ -24,9 +23,9 @@ export type ClaimPollFailure = { code: string | null; reason?: string }
 const isTerminal = (link: SendLink | undefined): boolean =>
     !!link &&
     (!!link.claim?.txHash ||
-        link.status === SendLinkStatus.CLAIMED ||
-        link.status === SendLinkStatus.FAILED ||
-        link.status === SendLinkStatus.CANCELLED)
+        link.status === ESendLinkStatus.CLAIMED ||
+        link.status === ESendLinkStatus.FAILED ||
+        link.status === ESendLinkStatus.CANCELLED)
 
 const toFailure = (link: SendLink): ClaimPollFailure => ({
     code: link.claimFailureCode ?? null,
@@ -90,13 +89,13 @@ export function useClaimSuccessPolling(
 
     useEffect(() => {
         if (!data || hasReportedResult.current) return
-        if (data.claim?.txHash || data.status === SendLinkStatus.CLAIMED) {
+        if (data.claim?.txHash || data.status === ESendLinkStatus.CLAIMED) {
             // CLAIMED without a projected txHash still settles as success: it is
             // the point the backend marks the claim done and notifies. Pass the
             // hash when it is already there, null when it has yet to project.
             hasReportedResult.current = true
             onClaimedRef.current(data.claim?.txHash ?? null)
-        } else if (data.status === SendLinkStatus.FAILED || data.status === SendLinkStatus.CANCELLED) {
+        } else if (data.status === ESendLinkStatus.FAILED || data.status === ESendLinkStatus.CANCELLED) {
             // CANCELLED (sender withdrew mid-claim) has no distinct treatment
             // in the failure UI — it flows through onFailed like FAILED so the
             // view settles instead of holding "processing" forever.

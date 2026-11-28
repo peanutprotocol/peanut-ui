@@ -68,15 +68,6 @@ export function deriveQrPayView(inputs: QrPayViewInputs): QrPayView {
         return 'KYC_GATE'
     }
 
-    // An active payment submission keeps its processing screen, and an in-flight
-    // or completed payment always keeps its screen: maintenance, rate expiry,
-    // or background refetches must never hide a payment that already moved money.
-    if (inputs.loadingState === 'Paying') return 'LOADING'
-
-    if (inputs.hasUnsettledPayment) return 'STATUS'
-
-    if (inputs.isSuccess && inputs.hasProcessor) return 'SUCCESS'
-
     if (inputs.isProviderDisabled) return 'MAINTENANCE'
 
     if (inputs.errorInitiatingPayment) return 'INIT_ERROR'
@@ -89,11 +80,15 @@ export function deriveQrPayView(inputs: QrPayViewInputs): QrPayView {
 
     // An open-amount QR has no currency until its live rate arrives. Surface
     // recovery before that missing currency sends the page to its loader.
-    if (inputs.rateUnavailable && inputs.isLoadingPaymentData) {
+    if (inputs.rateUnavailable && inputs.isLoadingPaymentData && inputs.loadingState !== 'Paying') {
         return 'RATE_UNAVAILABLE'
     }
 
-    if (inputs.isLoadingPaymentData) return 'LOADING'
+    if (inputs.isLoadingPaymentData || inputs.loadingState === 'Paying') return 'LOADING'
+
+    if (inputs.hasUnsettledPayment) return 'STATUS'
+
+    if (inputs.isSuccess && inputs.hasProcessor) return 'SUCCESS'
 
     return 'FORM'
 }

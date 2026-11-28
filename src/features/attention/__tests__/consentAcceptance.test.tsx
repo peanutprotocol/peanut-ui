@@ -64,8 +64,9 @@ jest.mock('@/utils/general.utils', () => ({
         mockGenerateInviteCodeLink(username, source, origin),
 }))
 
-jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({}) }))
-jest.mock('@/hooks/useVerification', () => ({ useVerification: () => ({ identityVerified: true }) }))
+jest.mock('@/hooks/useIdentityVerification', () => ({
+    useIdentityVerification: () => ({ isVerified: true }),
+}))
 
 const mockRequestPermission = jest.fn()
 const mockAfterPermissionAttempt = jest.fn()

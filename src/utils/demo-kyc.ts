@@ -73,7 +73,7 @@ export function kycFeatures(user: IUserProfile | null): { features: FeatureRepor
     return { features: user?.capabilities?.features }
 }
 
-export function kycPlan(user: IUserProfile | null): Required<Omit<KycDocumentPlan, 'entry' | 'unavailableReason'>> {
+export function kycPlan(user: IUserProfile | null): Required<Omit<KycDocumentPlan, 'entry'>> {
     const report = user?.capabilities?.features
     return {
         available: false,

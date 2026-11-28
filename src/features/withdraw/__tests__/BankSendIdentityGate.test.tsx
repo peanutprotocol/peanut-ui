@@ -35,8 +35,6 @@ jest.mock('@/context/authContext', () => ({
 }))
 let mockIdentity: Partial<UseIdentityVerificationResult>
 jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => mockIdentity }))
-let mockIdentityVerified = false
-jest.mock('@/hooks/useVerification', () => ({ useVerification: () => ({ identityVerified: mockIdentityVerified }) }))
 const mockStart = jest.fn()
 const mockRestart = jest.fn()
 const mockUseKycFlow = jest.fn()
@@ -120,8 +118,7 @@ const tree = () => (
     </IntlWrapper>
 )
 function setIdentity(status: NonNullable<UseIdentityVerificationResult['status']>) {
-    mockIdentity = { status, identity: { status } }
-    mockIdentityVerified = status === 'verified'
+    mockIdentity = { status, identity: { status }, isVerified: status === 'verified' }
 }
 
 beforeEach(() => {

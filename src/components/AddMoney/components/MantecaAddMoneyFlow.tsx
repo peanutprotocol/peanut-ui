@@ -20,7 +20,8 @@ import { mantecaApi } from '@/services/manteca'
 import { parseUnits } from 'viem'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { useVerification } from '@/hooks/useVerification'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { isVerifiedForCountry } from '@/utils/regions.utils'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
@@ -132,7 +133,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     // signal directly (Sumsub-cleared the human) instead of the old
     // rail-approval proxy. Same fix-pattern as Profile/ProfileEdit.
     const { rails, nextActions, isLoading: areCapabilitiesLoading } = useCapabilities()
-    const { identityVerified: isUserIdentityVerified, canUse } = useVerification()
+    const { isVerified: isUserIdentityVerified } = useIdentityVerification()
     const mantecaRejection = useMemo(
         () =>
             deriveProviderRejection(
@@ -159,7 +160,9 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     // Dismissing the gate must not re-open it on the next render — same
     // one-shot prompt contract as QrPayKycGateView's kycPromptDismissed.
     const [kycGateDismissed, setKycGateDismissed] = useState(false)
-    const isUserMantecaKycApprovedForCountry = selectedCountry ? canUse('deposit', selectedCountry.id) : false
+    const isUserMantecaKycApprovedForCountry = selectedCountry
+        ? isVerifiedForCountry(rails, selectedCountry.id, 'deposit')
+        : false
     const openDeposit = useOpenMantecaDeposit(
         selectedCountry?.currency,
         !!residenceGatedCountry && step === 'inputAmount' && isUserMantecaKycApprovedForCountry

@@ -65,6 +65,7 @@ jest.mock('../useCardFlow', () => {
         }),
     }
 })
+jest.mock('@/services/consent', () => ({ cardConsentDocuments: jest.fn(() => []) }))
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockUser, fetchUser: jest.fn(), isFetchingUser: false }),
     useOptionalAuth: () => ({ user: mockUser }),

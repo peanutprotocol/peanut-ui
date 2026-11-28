@@ -10,6 +10,7 @@ import {
     savePaperworkVerificationFeatures,
     type FeatureIntentsResult,
 } from '@/app/actions/kyc-paperwork-verification'
+import { isKycFlowHandedBack } from '@/app/actions/kyc-flow-hand-back'
 import { getKycDocumentPlan } from '@/app/actions/kyc-workflow'
 import type {
     PaperworkQuestionsFeature,
@@ -163,8 +164,7 @@ export function AddFeatureQuestions({
                 )
                 setState({ kind: 'asking', screens, at: 0, residence: questions.residence })
             } catch (error) {
-                const failure = error as { status?: number; code?: string } | null
-                if (failure?.status === 409 && failure.code === 'existing_verification') return onBackRef.current()
+                if (isKycFlowHandedBack(error)) return onBackRef.current()
                 track(ANALYTICS_EVENTS.KYC_PV_LOAD_FAILED)
                 setState({ kind: 'failed' })
             }

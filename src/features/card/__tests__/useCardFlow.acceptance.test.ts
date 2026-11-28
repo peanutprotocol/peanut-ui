@@ -63,6 +63,9 @@ jest.mock('@/services/card', () => ({
 jest.mock('@/services/rain', () => ({
     rainApi: { applyForCard: jest.fn(), getCardApplyReadiness: jest.fn() },
 }))
+jest.mock('@/services/consent', () => ({
+    cardConsentDocuments: jest.fn(() => []),
+}))
 jest.mock('@/context/authContext', () => ({
     useOptionalAuth: () => null,
     useAuth: () => ({

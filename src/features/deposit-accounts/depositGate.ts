@@ -1,8 +1,6 @@
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { gateSupportCase, getGateReasonCode, type GateState } from '@/utils/capability-gate'
-import type { FeatureReport } from '@/types/capabilities'
-import { DEPOSIT_RAILS } from './rails'
-import type { DepositCorridor, UnavailableCause, ClaimableCorridor } from './types'
+import type { UnavailableCause, ClaimableCorridor } from './types'
 
 /**
  * What the corridor list does with the app's capability gate.
@@ -240,24 +238,4 @@ export function applyDepositPreviewGate(gate: GateState, cause: UnavailableCause
     if (cause === 'setup-pending' || cause === 'review-pending' || cause === 'review-action') return { kind: 'pending' }
     if (cause === 'review-closed') return { kind: 'blocked-rejection', userMessage: null }
     return gate
-}
-
-/**
- * Narrow a `ready` corridor gate using the API's feature report for that
- * corridor's currency. Keeps `PIX_BR` route gating separate so callers that
- * intentionally read raw `capabilities.features` (e.g. add-money readiness)
- * never inherit `withPixRoute` overrides.
- */
-export function narrowDepositGateByFeatureReport(
-    gate: GateState,
-    corridor: DepositCorridor,
-    features: FeatureReport | undefined
-): GateState {
-    if (gate.kind !== 'ready') return gate
-    const rail = DEPOSIT_RAILS[corridor]
-    const report = features?.[rail.provider === 'manteca' ? 'local' : 'bank']?.accounts[rail.currency]
-    if (!report || report.state === 'on') return gate
-    if (report.state === 'pending' || report.state === 'setting_up') return { kind: 'pending' }
-    if (report.state === 'refused') return { kind: 'blocked-rejection', userMessage: null }
-    return { kind: 'needs-enrollment' }
 }

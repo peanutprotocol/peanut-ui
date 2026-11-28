@@ -44,6 +44,7 @@ jest.mock('@/services/card', () => ({ cardApi: { getInfo: jest.fn() } }))
 jest.mock('@/services/rain', () => ({
     rainApi: { applyForCard: jest.fn(), getCardApplyReadiness: jest.fn() },
 }))
+jest.mock('@/services/consent', () => ({ cardConsentDocuments: jest.fn(() => []) }))
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
         user: useSyncExternalStore(

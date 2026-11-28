@@ -291,10 +291,9 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
                 errorMessage: '',
             })
 
-            try {
-                // inside the try, so `finally` releases the loading state set above
-                if (!isPeanutWallet && recipient.address === '') return
+            if (!isPeanutWallet && recipient.address === '') return
 
+            try {
                 setLoadingState('Executing transaction')
 
                 let recipientAddress: string | undefined

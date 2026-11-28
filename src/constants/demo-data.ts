@@ -171,12 +171,12 @@ const DEMO_CAPABILITIES: UserCapabilities = {
             state: 'on',
             accounts: {
                 USD: { state: 'on' },
-                EUR: { state: 'ready', action: 'enroll' },
-                GBP: { state: 'ready', action: 'enroll' },
-                MXN: { state: 'ready', action: 'enroll' },
+                EUR: { state: 'ready' },
+                GBP: { state: 'ready' },
+                MXN: { state: 'ready' },
             },
         },
-        card: { state: 'ready', action: 'enroll' },
+        card: { state: 'ready' },
     },
 }
 

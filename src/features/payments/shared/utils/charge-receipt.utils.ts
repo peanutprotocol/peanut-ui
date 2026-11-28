@@ -6,7 +6,6 @@ import {
     type TransactionDetails,
 } from '@/components/TransactionDetails/transactionTransformer'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
-import { TransactionIntentStatus } from '@/constants/api-enums.generated'
 import { type HistoryEntry } from '@/utils/history.utils'
 
 /**
@@ -125,14 +124,8 @@ export async function readChargeUntilFinal<T extends { status?: string | null; s
  * payer who sent too little lands here too. The success screen then claims
  * no amount.
  */
-const CHARGE_BOOKED_OR_ENDED_STATUSES: ReadonlySet<string> = new Set([
-    TransactionIntentStatus.COMPLETED,
-    TransactionIntentStatus.FAILED,
-    TransactionIntentStatus.CANCELLED,
-])
-
 export function isChargeAwaitingBooking(charge: { status?: string | null } | null | undefined): boolean {
-    return !CHARGE_BOOKED_OR_ENDED_STATUSES.has(charge?.status ?? '')
+    return !['COMPLETED', 'FAILED', 'CANCELLED'].includes(charge?.status ?? '')
 }
 
 /**

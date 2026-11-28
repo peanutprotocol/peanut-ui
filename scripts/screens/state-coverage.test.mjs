@@ -32,6 +32,10 @@ const expectedStates = [
         id: '90-f-withdraw-review-processing',
         requiredContext: ['insufficientBalance', 'processing'],
     },
+    {
+        id: '91-f-withdraw-review-spent',
+        requiredContext: ['insufficientBalance', 'spent'],
+    },
 ]
 
 test('state catalogue exposes the required distinct stable scenario IDs', () => {

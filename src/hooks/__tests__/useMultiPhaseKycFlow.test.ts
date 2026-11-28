@@ -2,8 +2,8 @@ import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
 jest.mock('@/app/actions/kyc-workflow', () => ({
-    getKycDocumentPlan: jest.fn(async () => ({ available: false, flow: null, routes: [] })),
-    findKycDocumentPlan: jest.fn(async () => ({ available: false, flow: null, routes: [] })),
+    getKycDocumentPlan: jest.fn(async () => ({ available: false, routes: [] })),
+    findKycDocumentPlan: jest.fn(async () => ({ available: false, routes: [] })),
     getKycDocumentStatus: jest.fn(),
     resumeKycDocumentAttempt: jest.fn(),
     findKycReplacementPlan: jest.fn(async () => null),

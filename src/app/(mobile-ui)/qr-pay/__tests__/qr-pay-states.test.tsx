@@ -633,6 +633,7 @@ function capabilitiesForGate(state: GateState, opts: GateOptions = {}) {
                       ),
         },
         isLoading: state === 'loading',
+        isKycApproved: payEnabled,
         canDo: (_op: string, o?: { provider?: string }) =>
             payEnabled && (o?.provider === undefined || o.provider === 'manteca'),
         railsForProvider: (provider: string) => rails.filter((r) => r.provider === provider),
@@ -2578,38 +2579,31 @@ describe('GROUP 5: Error States', () => {
     ])(
         '%s fails fast with copy that names the real cause',
         async (code, copy) => {
-            jest.useFakeTimers({ doNotFake: ['queueMicrotask', 'nextTick'] })
-            try {
-                mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error(code))
+            mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error(code))
 
-                renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+            renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
 
-                await waitFor(() => {
-                    expect(screen.getByText(copy)).toBeInTheDocument()
-                })
+            await waitFor(() => {
+                expect(screen.getByText(copy)).toBeInTheDocument()
+            })
 
-                /*
-                 * Past the 3s backoff, not just to the copy. The copy comes from the
-                 * classifier's code table while the retry gate is a separate call, so
-                 * asserting the call count inside waitFor's 1s cap proved nothing: only
-                 * one call had been made at that instant whether or not the code was
-                 * treated as deterministic. Drop a code from the table and this now
-                 * fails — with three extra POSTs and three orphaned Manteca locks.
-                 */
-                await act(async () => {
-                    await jest.advanceTimersByTimeAsync(4_000)
-                })
-                expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
-                expect(screen.queryByText(/still fetching details/i)).not.toBeInTheDocument()
-                /*
-                 * None of these is an outage. A capped user told "MercadoPago is having
-                 * issues" has nothing to act on — product/providers/fiat/README.md
-                 * records one sitting blocked for three days behind exactly that.
-                 */
-                expect(screen.queryByText(/currently experiencing issues/i)).not.toBeInTheDocument()
-            } finally {
-                jest.useRealTimers()
-            }
+            /*
+             * Past the 3s backoff, not just to the copy. The copy comes from the
+             * classifier's code table while the retry gate is a separate call, so
+             * asserting the call count inside waitFor's 1s cap proved nothing: only
+             * one call had been made at that instant whether or not the code was
+             * treated as deterministic. Drop a code from the table and this now
+             * fails — with three extra POSTs and three orphaned Manteca locks.
+             */
+            await new Promise((resolve) => setTimeout(resolve, 4_000))
+            expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+            expect(screen.queryByText(/still fetching details/i)).not.toBeInTheDocument()
+            /*
+             * None of these is an outage. A capped user told "MercadoPago is having
+             * issues" has nothing to act on — product/providers/fiat/README.md
+             * records one sitting blocked for three days behind exactly that.
+             */
+            expect(screen.queryByText(/currently experiencing issues/i)).not.toBeInTheDocument()
         },
         20_000
     )
@@ -2814,26 +2808,19 @@ describe('GROUP 5: Error States', () => {
      * cannot help them.
      */
     it('a refused idempotency key tells the user to scan again, not to contact support', async () => {
-        jest.useFakeTimers({ doNotFake: ['queueMicrotask', 'nextTick'] })
-        try {
-            mockMantecaApi.initiateQrPayment.mockRejectedValue(
-                Object.assign(new Error('key reused'), { name: 'ApiError', status: 409, code: 'QR_INIT_KEY_MISMATCH' })
-            )
+        mockMantecaApi.initiateQrPayment.mockRejectedValue(
+            Object.assign(new Error('key reused'), { name: 'ApiError', status: 409, code: 'QR_INIT_KEY_MISMATCH' })
+        )
 
-            renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
 
-            const message = await screen.findByText(/scan the QR code again/i)
-            expect(message).toBeInTheDocument()
-            expect(screen.queryByText(/contact support/i)).not.toBeInTheDocument()
+        const message = await screen.findByText(/scan the QR code again/i)
+        expect(message).toBeInTheDocument()
+        expect(screen.queryByText(/contact support/i)).not.toBeInTheDocument()
 
-            // Deterministic: one POST, not four.
-            await act(async () => {
-                await jest.advanceTimersByTimeAsync(4_000)
-            })
-            expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
-        } finally {
-            jest.useRealTimers()
-        }
+        // Deterministic: one POST, not four.
+        await new Promise((resolve) => setTimeout(resolve, 4_000))
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
     }, 20_000)
 
     /*
@@ -2893,35 +2880,28 @@ describe('GROUP 5: Error States', () => {
     // The KYC rejection's stable discriminant is its `code`; its `error` is a
     // plain sentence the backend can reword at any time.
     it('routes the KYC rejection on its wire code, and does not retry it', async () => {
-        jest.useFakeTimers({ doNotFake: ['queueMicrotask', 'nextTick'] })
-        try {
-            mockMantecaApi.initiateQrPayment.mockRejectedValue(
-                Object.assign(new Error('some reworded backend sentence'), {
-                    name: 'ApiError',
-                    status: 400,
-                    code: 'MANTECA_KYC_REQUIRED',
-                })
-            )
-
-            renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
-
-            await waitFor(() => {
-                expect(screen.getByText(/verifying your identity/i)).toBeInTheDocument()
+        mockMantecaApi.initiateQrPayment.mockRejectedValue(
+            Object.assign(new Error('some reworded backend sentence'), {
+                name: 'ApiError',
+                status: 400,
+                code: 'MANTECA_KYC_REQUIRED',
             })
+        )
 
-            /*
-             * Past the 3s backoff, not just to the copy. The result effect reads the
-             * wire code, so the KYC message appeared on attempt one either way — an
-             * assertion made before the first retry could fire passed while three
-             * more POSTs were still scheduled against a deterministic rejection.
-             */
-            await act(async () => {
-                await jest.advanceTimersByTimeAsync(4_000)
-            })
-            expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
-        } finally {
-            jest.useRealTimers()
-        }
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        await waitFor(() => {
+            expect(screen.getByText(/verifying your identity/i)).toBeInTheDocument()
+        })
+
+        /*
+         * Past the 3s backoff, not just to the copy. The result effect reads the
+         * wire code, so the KYC message appeared on attempt one either way — an
+         * assertion made before the first retry could fire passed while three
+         * more POSTs were still scheduled against a deterministic rejection.
+         */
+        await new Promise((resolve) => setTimeout(resolve, 4_000))
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
     }, 20_000)
 
     // TASK-23747: the capabilities said the user could pay, the API refused the

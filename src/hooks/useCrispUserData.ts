@@ -225,8 +225,6 @@ function buildCrispUserData(input: CrispUserDataInput): CrispUserData {
             identityStatus: verification?.identityStatus,
             hasFailureReason: Boolean(verification?.failureReason),
             emailOnFile: verification?.emailOnFile,
-            // An application, held card or not: support's card-holder segment (Hugo, 2026-11-21: kept as before
-            // the served card state; any change is a support-workflow decision, TASK-25239).
             hasCard: Boolean(rainOverview?.status?.hasApplication),
             balanceKnown,
             isZeroBalance: displaySpendable === 0n,

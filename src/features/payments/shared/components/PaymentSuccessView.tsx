@@ -183,7 +183,6 @@ const PaymentSuccessView = ({
         }).displayName
     }, [recipient, parsedPaymentData, chargeDetails])
 
-    const hasAmount = Boolean(currencyAmount || usdAmount || amount != null || chargeDetails?.tokenAmount != null)
     const amountValue = useMemo(() => {
         return amount ?? chargeDetails?.tokenAmount ?? '0'
     }, [amount, chargeDetails])
@@ -410,7 +409,7 @@ const PaymentSuccessView = ({
                                     recipientName
                                 ))}
                         </h1>
-                        {hasAmount && <h2 className="text-heading-s">{displayAmount}</h2>}
+                        <h2 className="text-heading-s">{displayAmount}</h2>
                         {secondaryAmount && <p className="text-body-s text-foreground-secondary">{secondaryAmount}</p>}
                         {message && (
                             <p className="text-body-s text-foreground-secondary">

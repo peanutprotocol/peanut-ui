@@ -19,6 +19,8 @@ const WHOLE_REGISTRY = [
 ]
 // The one sanctioned load: a dynamic import(), which webpack splits into its own chunk.
 const LOADER = 'src/utils/chain-registry.ts'
+// Dead file: nothing imports it (asserted below), so its namespace import ships nowhere.
+const DEAD = 'src/constants/chains.consts.ts'
 
 function sourceFiles(dir: string): string[] {
     const files: string[] = []
@@ -42,6 +44,7 @@ const files = sourceFiles(SRC).map((file) => ({
 describe('viem chain registry stays lazy', () => {
     it('no source file imports the whole registry statically', () => {
         const offenders = files
+            .filter(({ file }) => file !== DEAD)
             .filter(({ text }) => REGISTRY.test(text))
             .filter(({ text }) => WHOLE_REGISTRY.some((pattern) => pattern.test(text)))
             .map(({ file }) => file)
@@ -51,5 +54,10 @@ describe('viem chain registry stays lazy', () => {
     it('the loader reaches the registry only through a dynamic import', () => {
         const loader = files.find(({ file }) => file === LOADER)
         expect(loader?.text).toMatch(/import\(\s*['"]viem\/chains['"]\s*\)/)
+    })
+
+    it('the dead chains.consts module stays unimported', () => {
+        const importers = files.filter(({ text }) => /['"]@\/constants\/chains\.consts['"]/.test(text))
+        expect(importers.map(({ file }) => file)).toEqual([])
     })
 })

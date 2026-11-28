@@ -27,7 +27,7 @@ export type KycDocumentPlan = Omit<
             | 'temporaryProtection'
             | 'needs'
         >
-    > & { unavailableReason?: 'residence_not_supported' }
+    >
 export type KycFeatures = KycDocumentPlan['features']
 /** Smart Paperwork Verification's stored `flow` value; the API keeps it on existing attempts. */
 export const PAPERWORK_VERIFICATION_FLOW = 'verify-once' satisfies NonNullable<KycDocumentPlan['flow']>

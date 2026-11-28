@@ -1,10 +1,12 @@
 import React from 'react'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
+import { countryData } from '@/components/AddMoney/consts'
 import AddMoneyBankDetails from '../AddMoneyBankDetails'
 
 let mockPathCountry: string | undefined
 let mockQueryCountry: string | null
+let mockRequestCountry: (typeof countryData)[number] | undefined
 const mockQuote = jest.fn((_options: unknown) => ({ netRate: 1.1, isLoading: false }))
 const mockShare = jest.fn()
 const EUR_INSTRUCTIONS = { amount: '40', iban: 'DE001234', bic: 'TEST', depositMessage: 'TEST123' }
@@ -20,6 +22,13 @@ jest.mock('nuqs', () => ({
 }))
 jest.mock('@/context/OnrampFlowContext', () => ({
     useOnrampFlow: () => ({ onrampData: { depositInstructions: mockInstructions } }),
+}))
+jest.mock('@/context/RequestFulfillmentFlowContext', () => ({
+    useRequestFulfillmentFlow: () => ({
+        selectedCountry: mockRequestCountry,
+        onrampData: { depositInstructions: mockInstructions },
+    }),
+    RequestFulfillmentBankFlowStep: {},
 }))
 jest.mock('@/hooks/useOnrampQuote', () => ({ useOnrampQuote: (...args: unknown[]) => mockQuote(args[0]) }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
@@ -45,6 +54,7 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockPathCountry = undefined
     mockQueryCountry = null
+    mockRequestCountry = undefined
     mockInstructions = EUR_INSTRUCTIONS
 })
 
@@ -71,6 +81,13 @@ it('keeps the web path country ahead of query state', () => {
 it('keeps USD for the US fallback', () => {
     renderWithIntl(<AddMoneyBankDetails onBack={jest.fn()} />)
     expect(screen.getByText('$40')).toBeInTheDocument()
+})
+
+it('uses the request country instead of add-money URL state', () => {
+    mockRequestCountry = countryData.find((country) => country.path === 'germany')
+    mockQueryCountry = 'us'
+    renderWithIntl(<AddMoneyBankDetails flow="request-fulfillment" />)
+    expect(screen.getByText('€40')).toBeInTheDocument()
 })
 
 // TASK-23924: the native app once lost the country on this screen, so a UK

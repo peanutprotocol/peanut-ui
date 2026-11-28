@@ -9,7 +9,7 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
  * ── Guessed names / seams (align the implementation or adjust here) ──────
  * - The ZeroDev SDK owns the register/options and register/verify requests,
  *   so the header rides in toWebAuthnKey's `passkeyServerHeaders`, next to
- *   the existing x-signup-analytics-state.
+ *   the existing x-accepted-legal and x-signup-analytics-state.
  * - The token is the same device token the reservation calls send: 32 random
  *   bytes in base64url (43 chars), kept in localStorage.
  * ─────────────────────────────────────────────────────────────────────────
@@ -85,6 +85,7 @@ jest.mock('@/services/badge-campaigns', () => ({
     isConfirmedBadgeCampaignClaim: jest.fn(),
     isUnavailableBadgeCampaignClaim: jest.fn(),
 }))
+jest.mock('@/services/consent', () => ({ signupConsentDocuments: () => [] }))
 jest.mock('@/utils/auth.utils', () => ({ clearAuthState: jest.fn() }))
 jest.mock('@/utils/walletCredential.utils', () => ({
     isStaleKeyError: () => false,
@@ -134,15 +135,14 @@ beforeEach(() => {
 })
 
 describe('passkey registration and the username hold', () => {
-    it('sends the device hold token on the registration requests, beside the existing headers, and no legal versions', async () => {
+    it('sends the device hold token on the registration requests, beside the existing headers', async () => {
         const { result } = renderHook(() => useZeroDev())
         await act(async () => result.current.handleRegister('kimchi'))
 
         const headers = registrationHeaders(0)
         expect(headers['x-username-hold']).toMatch(HOLD_TOKEN)
         expect(headers['x-signup-analytics-state']).toBe('enabled')
-        // The API ledgers its own published terms + privacy versions (TASK-25073).
-        expect(headers['x-accepted-legal']).toBeUndefined()
+        expect(headers['x-accepted-legal']).toBeDefined()
     })
 
     it('clears a successful registration token and never reports it', async () => {

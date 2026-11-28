@@ -21,14 +21,14 @@ import { API_ERROR_CODES, ApiError } from './api-error'
 import { kycClientHeaders } from '@/utils/kyc-client-headers'
 import type { FeatureReverificationConflict } from '@/app/actions/types/kyc-reverification.types'
 import { featureReverificationConflict } from '@/utils/kyc-reverification'
+import type { AcceptedLegalDocument } from '@/services/consent'
 import type { paths } from '@/types/api.generated'
-import type { RailStatus, RainCardStatus } from '@/constants/api-enums.generated'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface RainCardApplicationStatus {
     hasApplication: boolean
-    railStatus?: RailStatus
+    railStatus?: string
     applicationStatus?: string
     rainUserId?: string
     /** Collateral proxy address. */
@@ -122,7 +122,7 @@ export interface RainCardSummary {
     last4: string
     expiryMonth: number
     expiryYear: number
-    status: RainCardStatus
+    status: string
     network: string
     issuedAt: string
     /** Whether the user has granted the one-time session-key permission
@@ -160,11 +160,6 @@ export interface RainCardOverview {
      */
     balanceUnavailable?: boolean
     cards: RainCardSummary[]
-    /**
-     * The /card state the API decides (peanut-api-ts `rain/card-state.ts`). Read it through
-     * `servedCardState`. Optional only while an API before peanut-api-ts#2238 can answer.
-     */
-    cardState?: paths['/rain/cards']['get']['responses'][200]['content']['application/json']['cardState']
 }
 
 /**
@@ -963,6 +958,10 @@ export const rainApi = {
         opts: {
             termsAccepted?: boolean
             confirmedResidenceCountry?: string
+            /** Consent-ledger echo: the legal documents the agreement screen
+             *  actually displayed (slug + version + hash), so the backend
+             *  records what the user was shown. Only sent with acceptance. */
+            acceptedDocuments?: AcceptedLegalDocument[]
             /** Legacy re-issue only: the card permission signed right before the
              *  application, for a user whose collateral contracts already exist. */
             serializedApproval?: string
@@ -971,6 +970,9 @@ export const rainApi = {
         const body: Record<string, unknown> = { termsAccepted: opts.termsAccepted === true }
         if (opts.confirmedResidenceCountry) body.confirmedResidenceCountry = opts.confirmedResidenceCountry
         if (opts.serializedApproval) body.serializedApproval = opts.serializedApproval
+        if (opts.termsAccepted === true && opts.acceptedDocuments?.length) {
+            body.acceptedDocuments = opts.acceptedDocuments
+        }
         try {
             return await rainRequest<ApplyForCardResponse>(
                 {

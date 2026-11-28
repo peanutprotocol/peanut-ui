@@ -29,8 +29,7 @@ let mockUserId = 'owner-A'
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { user: { userId: mockUserId, username: mockUserId } } }),
 }))
-const mockPush = jest.fn()
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush, replace: jest.fn() }) }))
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn(), replace: jest.fn() }) }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
@@ -38,7 +37,7 @@ const mockPlan = jest.mocked(findKycDocumentPlan)
 const mockStatus = jest.mocked(getKycDocumentStatus)
 const mockResume = jest.mocked(resumeKycDocumentAttempt)
 const mockInitiate = jest.mocked(initiateSumsubKyc)
-const legacyPlan = { available: false, flow: null, routes: [] }
+const legacyPlan = { available: false, routes: [] }
 const started = (token: string) => ({ data: { token, applicantId: 'app-reconcile', status: 'NOT_STARTED' as const } })
 function deferred<T>() {
     let resolve!: (value: T) => void
@@ -54,7 +53,6 @@ const advance = async (milliseconds: number) => {
 beforeEach(() => {
     jest.useFakeTimers()
     mockUserId = 'owner-A'
-    mockPush.mockReset()
     mockPlan.mockReset().mockResolvedValue(legacyPlan as never)
     mockStatus.mockReset().mockResolvedValue('NOT_STARTED')
     mockResume.mockReset()
@@ -428,34 +426,5 @@ it('a delayed background plan cannot initiate over an in-flight user start', asy
     })
     expect(mockInitiate).toHaveBeenCalledTimes(1)
     await advance(90_001)
-    expect(mockInitiate).toHaveBeenCalledTimes(1)
-})
-
-it('an old account’s delayed legacy plan cannot start verification for the new account', async () => {
-    const oldPlan = deferred<Awaited<ReturnType<typeof findKycDocumentPlan>>>()
-    mockPlan.mockReturnValueOnce(oldPlan.promise).mockResolvedValue(null)
-    const view = renderHook(() => useSumsubKycFlow({ regionIntent: 'EU' }))
-    await act(async () => {})
-    mockUserId = 'owner-B'
-    view.rerender()
-    await act(async () => oldPlan.resolve(legacyPlan as never))
-    expect(mockPlan.mock.calls[0][1]?.aborted).toBe(true)
-    expect(mockInitiate).not.toHaveBeenCalled()
-})
-
-it('reconciliation follows a terminal residence plan after a lost start response', async () => {
-    mockPlan.mockResolvedValueOnce(legacyPlan as never).mockResolvedValue({
-        ...legacyPlan,
-        unavailableReason: 'residence_not_supported',
-    } as never)
-    mockInitiate.mockReturnValue(new Promise(() => {}))
-    const { result } = renderHook(() => useSumsubKycFlow({}))
-    await act(async () => {
-        void result.current.handleInitiateKyc('EU')
-    })
-    await advance(30_001)
-    expect(mockPush).toHaveBeenCalledWith('/verify?reason=residence_not_supported')
-    expect(result.current.showWrapper).toBe(false)
-    expect(mockResume).not.toHaveBeenCalled()
     expect(mockInitiate).toHaveBeenCalledTimes(1)
 })

@@ -91,6 +91,7 @@ jest.mock('@/features/payments/flows/qr-pay/useQrPayKycGate', () => {
             shouldBlockPay: false,
             qrKycUserMessage: null,
             qrKycActionKey: null,
+            isKycApproved: true,
             sumsubFlow: {},
         }),
     }

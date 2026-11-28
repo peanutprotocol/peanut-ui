@@ -341,12 +341,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                     amount,
                     userId: userForOfframp.userId,
                     sendLinkPubKey: pubKey,
-                    // The pubKey is public on chain; the link key's signature is
-                    // what proves this user holds the link (same message as the guest claim).
-                    sendLinkSignature: await signWithLinkKey(
-                        claimLinkData.link,
-                        guestBankClaimMessage(pubKey, externalAccountId)
-                    ),
                     source,
                     destination,
                     features: { allowAnyFromAddress: true },

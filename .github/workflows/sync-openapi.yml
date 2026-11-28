@@ -45,7 +45,7 @@ jobs:
               id: check
               run: |
                   echo "base=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-                  if git diff --quiet src/types/ src/constants/api-enums.generated.ts; then
+                  if git diff --quiet src/types/; then
                     echo "changed=false" >> "$GITHUB_OUTPUT"
                   else
                     echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -55,11 +55,9 @@ jobs:
               uses: actions/upload-artifact@v4
               with:
                   name: openapi-types
-                  # Uploaded relative to src/ (the files' common parent); the commit step reads them there.
                   path: |
                       src/types/api.openapi.json
                       src/types/api.generated.ts
-                      src/constants/api-enums.generated.ts
                   retention-days: 1
 
     # Holds the chip-peanut-bot token and runs no code from `dev`: only this file and the runner's own
@@ -105,7 +103,7 @@ jobs:
                   gh api "repos/$REPO/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$BASE" > /dev/null
                   BRANCH="$BRANCH" node -e '
                     const fs = require("fs")
-                    const paths = ["src/types/api.openapi.json", "src/types/api.generated.ts", "src/constants/api-enums.generated.ts"]
+                    const paths = ["src/types/api.openapi.json", "src/types/api.generated.ts"]
                     const input = {
                       branch: { repositoryNameWithOwner: process.env.REPO, branchName: process.env.BRANCH },
                       expectedHeadOid: process.env.BASE,
@@ -116,7 +114,7 @@ jobs:
                       fileChanges: {
                         additions: paths.map((path) => ({
                           path,
-                          contents: fs.readFileSync(`${process.env.FILES}/${path.replace(/^src\//, "")}`).toString("base64"),
+                          contents: fs.readFileSync(`${process.env.FILES}/${path.split("/").pop()}`).toString("base64"),
                         })),
                       },
                     }

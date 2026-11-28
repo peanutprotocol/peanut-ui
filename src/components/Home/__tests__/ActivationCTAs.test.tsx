@@ -148,7 +148,7 @@ jest.mock('@/features/payments/flows/qr-pay/useQrIdentityCheck', () => ({
     useQrIdentityCheck: () => ({ start: mockStartQrCheck, modals: null }),
 }))
 
-let mockPaperworkVerification: () => Promise<string | null> = () => Promise.resolve(null)
+let mockPaperworkVerification: () => Promise<boolean> = () => Promise.resolve(false)
 jest.mock('@/features/paperwork-verification/usePaperworkVerificationStart', () => ({
     usePaperworkVerificationStart: () => mockPaperworkVerification,
 }))
@@ -187,7 +187,7 @@ beforeEach(() => {
     mockIdentityReason = undefined
     mockRejectLabels = undefined
     mockShowWrapper = false
-    mockPaperworkVerification = () => Promise.resolve(null)
+    mockPaperworkVerification = () => Promise.resolve(false)
 })
 
 describe('Bridge postal correction', () => {
@@ -232,7 +232,7 @@ describe('ActivationCTAs — the Verify row starts the ID check in place', () =>
     })
 
     it('a Smart Paperwork Verification user goes straight to the question screens', async () => {
-        mockPaperworkVerification = () => Promise.resolve('/verify')
+        mockPaperworkVerification = () => Promise.resolve(true)
         render(<ActivationCTAs onboarding={NEW_USER} />)
         fireEvent.click(screen.getByText('start-identity-check'))
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/verify'))
@@ -242,13 +242,13 @@ describe('ActivationCTAs — the Verify row starts the ID check in place', () =>
     })
 
     it('a tap before the plan loads waits for it instead of opening the start modal', async () => {
-        let answer: (value: string | null) => void = () => {}
-        mockPaperworkVerification = () => new Promise<string | null>((resolve) => (answer = resolve))
+        let answer: (value: boolean) => void = () => {}
+        mockPaperworkVerification = () => new Promise<boolean>((resolve) => (answer = resolve))
         render(<ActivationCTAs onboarding={NEW_USER} />)
         fireEvent.click(screen.getByText('start-identity-check'))
         fireEvent.click(screen.getByText('start-identity-check'))
         expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
-        await act(async () => answer('/verify'))
+        await act(async () => answer(true))
         expect(mockPush).toHaveBeenCalledTimes(1)
         expect(mockPush).toHaveBeenCalledWith('/verify')
         expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
@@ -265,7 +265,7 @@ describe('ActivationCTAs — the Verify row starts the ID check in place', () =>
     })
 
     it('a Smart Paperwork Verification user goes to the questions even where bank rails are closed', async () => {
-        mockPaperworkVerification = () => Promise.resolve('/verify')
+        mockPaperworkVerification = () => Promise.resolve(true)
         for (const restrictions of [
             { banking: true, card: false },
             { banking: true, card: true },

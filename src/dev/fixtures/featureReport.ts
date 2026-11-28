@@ -42,10 +42,7 @@ export function withFeatureReport(
 
 const VERIFY_ACTION = 'verify'
 const ACTIVATE_ACTION = 'activate'
-const ENROLL_ACTION = 'enroll'
 const IDENTITY_ACTION = 'identity'
-/** Bridge rails closed because Sumsub's final rejection ended the approval (api `IDENTITY_APPROVAL_ENDED_CODE`). */
-const IDENTITY_APPROVAL_ENDED_CODE = 'identity_approval_ended'
 
 const BANK_ACCOUNT_PRODUCTS: Readonly<Record<string, string>> = {
     USD: 'bridge.usd',
@@ -167,7 +164,7 @@ export function featureReport(input: FeatureReportInput): FeatureReport {
         feature: 'local',
         rails: mantecaBank.filter((rail) => Object.values(LOCAL_ACCOUNT_COUNTRIES).includes(rail.country)),
         op: 'deposit',
-        refusal: featureRefusal(input, 'local') ?? everyAccountRefusal(localAccounts, input.residence),
+        refusal: featureRefusal(input, 'local') ?? everyAccountRefusal(Object.values(localAccounts)),
     })
 
     return {
@@ -221,7 +218,7 @@ function entryFor(
         feature: KycIntent
         rails: RailCapability[]
         op?: RailOperation
-        refusal: { reason: string; message?: string; action?: string } | null
+        refusal: { reason: string; message?: string } | null
     }
 ): FeatureReportEntry {
     // A pool QR rail granted before a jurisdictional refusal of the ID is never revoked; the refusal still stands.
@@ -242,11 +239,7 @@ function entryFor(
         return { state: 'on', ...(advisory ? { action: advisory.key } : {}) }
     }
     // A rail that works for another operation says nothing here: a pool QR rail is no Manteca account.
-    // A rail closed only because the approval ended says nothing of its own: the identity's refusal answers.
-    const candidates = verdicts.filter(
-        ({ rail, verdict }) =>
-            verdict.status !== 'enabled' && !(identity && rail.reason?.code === IDENTITY_APPROVAL_ENDED_CODE)
-    )
+    const candidates = verdicts.filter(({ verdict }) => verdict.status !== 'enabled')
 
     for (const { rail, verdict } of candidates) {
         const supportCase =
@@ -263,7 +256,7 @@ function entryFor(
             }
     }
 
-    if (scope.refusal) return refusedEntry(scope.refusal, actions)
+    if (scope.refusal) return refusedEntry(scope.refusal.reason, scope.refusal.message, actions)
 
     const fromRails = railsEntry(candidates, actions, input)
     // A rail held back for the missing approval reads as setting up; the address step is what moves it.
@@ -274,7 +267,7 @@ function entryFor(
     if (identity) return identity
     return {
         state: 'ready',
-        action: input.activatesOnFirstUse && scope.feature !== 'qr' ? ACTIVATE_ACTION : ENROLL_ACTION,
+        ...(input.activatesOnFirstUse && scope.feature !== 'qr' ? { action: ACTIVATE_ACTION } : {}),
     }
 }
 
@@ -359,15 +352,15 @@ function verdictOf(rail: RailCapability): Candidate['verdict'] {
 }
 
 function refusedEntry(
-    { reason, message, action }: { reason: string; message?: string; action?: string },
+    reason: string,
+    message: string | undefined,
     actions: Map<string, NextAction>
 ): FeatureReportEntry {
     // A document whose issuing country a provider refuses is fixed by verifying with another one.
     const restart = [...actions.values()].find(
         (action) => action.kind === 'restart-identity' && action.refused?.some((refusal) => refusal.reason === reason)
     )
-    const step = action ?? restart?.key
-    return { state: 'refused', reason, ...messageOf(message), ...(step ? { action: step } : {}) }
+    return { state: 'refused', reason, ...messageOf(message), ...(restart ? { action: restart.key } : {}) }
 }
 
 const FEATURE_PROVIDER: Record<KycIntent, 'bridge' | 'manteca' | 'rain'> = {
@@ -461,17 +454,10 @@ function railActions(rail: RailCapability, actions: Map<string, NextAction>): Ne
 }
 
 /** A feature whose every account is refused is refused, for the first account's reason. */
-/** Every account refused: the reason and step of the residence's own account (ARS in Argentina), else the first. */
-function everyAccountRefusal(
-    accounts: Record<string, FeatureReportEntry>,
-    residence: string | null
-): { reason: string; message?: string; action?: string } | null {
-    const entries = Object.entries(accounts)
-    if (!entries.every(([, account]) => account.state === 'refused')) return null
-    const own = entries.find(([currency]) => LOCAL_ACCOUNT_COUNTRIES[currency] === residence)?.[1]
-    const answer = own?.reason ? own : entries.map(([, account]) => account).find((account) => account.reason)
-    if (!answer?.reason) return null
-    return { reason: answer.reason, ...messageOf(answer.message), ...(answer.action ? { action: answer.action } : {}) }
+function everyAccountRefusal(accounts: FeatureReportEntry[]): { reason: string; message?: string } | null {
+    const first = accounts.find((account) => account.reason)
+    if (!first?.reason || !accounts.every((account) => account.state === 'refused')) return null
+    return { reason: first.reason, ...messageOf(first.message) }
 }
 
 function reasonOf(rail: RailCapability, verdict: Candidate['verdict']): Pick<FeatureReportEntry, 'reason' | 'message'> {
@@ -514,15 +500,8 @@ export function withFixtureFeatureReport(
     override: Partial<IUserProfile> | null | undefined,
     paperwork?: { products?: { product: string; available: boolean; reason?: string }[] }
 ): IUserProfile | null {
-    if (!user?.capabilities) return user
-    const explicit = override?.capabilities?.features
-    if (explicit) {
-        return {
-            ...user,
-            capabilities: { ...user.capabilities, features: withEntries(user.capabilities.features, explicit) },
-        }
-    }
     // The baseline's report describes the demo rails, not this fixture's.
+    if (!user?.capabilities || override?.capabilities?.features !== undefined) return user
     return {
         ...user,
         capabilities: {
@@ -541,26 +520,6 @@ export function withFixtureFeatureReport(
             }),
         },
     }
-}
-
-/**
- * A fixture names only the features and accounts it is about. Each entry it
- * names replaces the demo's whole, so the demo's steps do not leak into it;
- * the ones it does not name stay the demo's, so the report stays complete.
- */
-function withEntries(merged: FeatureReport | undefined, explicit: Partial<FeatureReport>): FeatureReport {
-    const features: Record<string, FeatureReportEntry & { accounts?: Record<string, FeatureReportEntry> }> = {
-        ...merged,
-    }
-    for (const [feature, entry] of Object.entries(explicit) as [string, (typeof features)[string] | undefined][]) {
-        if (!entry) continue
-        const accounts = features[feature]?.accounts || entry.accounts
-        features[feature] = {
-            ...entry,
-            ...(accounts ? { accounts: { ...features[feature]?.accounts, ...entry.accounts } } : {}),
-        }
-    }
-    return features as unknown as FeatureReport
 }
 
 /** Older fixtures used the ISO-2 string before residence became an object. */

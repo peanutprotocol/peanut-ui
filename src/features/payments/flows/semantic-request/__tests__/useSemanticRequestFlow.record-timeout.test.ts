@@ -195,8 +195,6 @@ function expectNoReplayOrGenericFailure() {
 beforeEach(() => {
     jest.useFakeTimers()
     jest.clearAllMocks()
-    // a pending-send marker left by an earlier case belongs to another device
-    window.localStorage.clear()
     ctx.charge = { ...originalCharge, chainId: '42161', requestLink: { ...originalCharge.requestLink } }
     ctx.currentView = 'CONFIRM'
     ctx.amount = '10'
@@ -258,26 +256,24 @@ it('keeps exhausted pending read-back in confirming without replay or generic fa
     expectNoReplayOrGenericFailure()
 })
 
-it.each(['FAILED', 'CANCELLED'])('keeps a mined payment confirming when the charge reads %s', async (status) => {
-    // The transfer is mined: a closed charge cannot book it, and paying the
-    // request again would pay twice (ChargeSendFlow.tla, trace D).
+it.each(['FAILED', 'CANCELLED'])('allows generic failure only after authoritative %s', async (status) => {
     mockFetchCharge.mockResolvedValue(booked(status))
     const { done } = await startPayment()
     await finishPayment(done, 0)
     expect(mockFetchCharge).toHaveBeenCalledWith('charge-1')
-    expect(ctx.setCurrentView).toHaveBeenLastCalledWith('STATUS')
+    expect(ctx.setError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
     expect(ctx.setIsSuccess).not.toHaveBeenCalledWith(true)
-    expectNoReplayOrGenericFailure()
+    expect(mockRecordPayment).toHaveBeenCalledTimes(1)
+    expect(mockSendMoney.mock.calls.length + mockSendTransactions.mock.calls.length).toBe(1)
 })
 
-it('reconciles a no-response record-payment timeout instead of offering Pay again', async () => {
+it('keeps a no-response record-payment timeout on its existing failure path without read-back', async () => {
     mockRecordPayment.mockRejectedValue(connectionTimeout())
     const { done } = await startPayment()
-    await finishPayment(done)
-    expect(mockFetchCharge).toHaveBeenCalledWith('charge-1')
-    expect(unknownSetter).toHaveBeenLastCalledWith(true)
-    expect(ctx.setCurrentView).toHaveBeenLastCalledWith('STATUS')
-    expectNoReplayOrGenericFailure()
+    await finishPayment(done, 0)
+    expect(mockFetchCharge).not.toHaveBeenCalled()
+    expect(unknownSetter).not.toHaveBeenCalledWith(true)
+    expect(ctx.setError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
 })
 
 it('does not reconcile a charge-creation response timeout before spending', async () => {
@@ -361,7 +357,6 @@ it('reconciles recording uncertainty through same-chain handlePayment without an
     expect(mockSendMoney).toHaveBeenCalledWith(originalCharge.requestLink.recipientAddress, '10', {
         kind: 'REQUEST_PAY',
         chargeId: 'charge-1',
-        onBroadcast: expect.any(Function),
     })
     expect(mockRecordPayment).toHaveBeenCalledTimes(1)
     expect(mockFetchCharge).toHaveBeenCalledWith('charge-1')

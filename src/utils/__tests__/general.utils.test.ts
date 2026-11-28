@@ -833,22 +833,6 @@ describe('General Utilities', () => {
         })
     })
 
-    describe('saveToLocalStorage', () => {
-        it('logs the key but never the stored value', () => {
-            // a send link carries its password in the fragment: a bearer secret
-            const link = 'https://peanut.me/claim?c=42161&v=v4.3&i=7#p=s3cr3tPassw0rd'
-            const log = jest.spyOn(console, 'log').mockImplementation(() => {})
-            try {
-                expect(saveToLocalStorage('claim-link-slot::42161:v4.3:7', link)).toBe(true)
-                const logged = JSON.stringify(log.mock.calls)
-                expect(logged).toContain('claim-link-slot::42161:v4.3:7')
-                expect(logged).not.toContain('s3cr3tPassw0rd')
-            } finally {
-                log.mockRestore()
-            }
-        })
-    })
-
     describe('getInitialsFromName', () => {
         it('takes the first letter of the first two words, or two letters of one word', () => {
             expect(getInitialsFromName('ana maria lopez')).toBe('AM')

@@ -80,14 +80,12 @@ jest.mock('@/hooks/useCapabilities', () => ({
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ openSupportWithMessage: jest.fn() }),
 }))
-jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({}) }))
-jest.mock('@/hooks/useVerification', () => ({
-    useVerification: () => ({ identityVerified: true, canUse: () => true }),
-}))
+jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({ isVerified: true }) }))
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({ useMultiPhaseKycFlow: () => ({ isLoading: false, error: null }) }))
 jest.mock('@/features/limits/hooks/useLimitsValidation', () => ({
     useLimitsValidation: () => ({ currency: 'ARS' }),
 }))
+jest.mock('@/utils/regions.utils', () => ({ isVerifiedForCountry: () => true }))
 // The API report is for this residence.
 let mockResidence = 'AR'
 jest.mock('@/utils/provider-rejection.utils', () => ({ deriveProviderRejection: () => ({ state: 'none' }) }))

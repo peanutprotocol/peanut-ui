@@ -13,7 +13,7 @@ import { useEffect, useState } from 'react'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { LOCALE_LABELS } from '@/i18n/app/config'
 import { useAppLocale } from '@/i18n/app/locale-context'
-import { useVerification } from '@/hooks/useVerification'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
@@ -50,9 +50,11 @@ export const Profile = () => {
     }, [avatarPickerOpen])
     const router = useRouter()
     const onBack = useSafeBack('/home')
-    // The Profile badge shows identity verification (documents), not rail approval:
-    // a Bridge or Manteca rail does not flip it.
-    const { identityVerified } = useVerification()
+    // Profile "verified" reflects identity verification only (the human was ID-verified) — NOT
+    // rail approval. Switched from `useCapabilities().isKycApproved` (any enabled rail, including
+    // Rain) to the provider-blind identityVerification projection, which today mirrors Sumsub
+    // applicant state. Bridge/Manteca rail approval does NOT flip this badge.
+    const { isVerified: isUserSumsubKycApproved } = useIdentityVerification()
     const { showCardSurface: showCardMenuItem, cardHref } = useCardSurfaceAccess()
     const t = useAppTranslations('profile')
     const { locale } = useAppLocale()
@@ -100,7 +102,7 @@ export const Profile = () => {
                 <ProfileHeader
                     name={displayName}
                     username={username}
-                    isVerified={identityVerified}
+                    isVerified={isUserSumsubKycApproved}
                     onChangeAvatar={() => setAvatarPickerOpen(true)}
                 />
                 {avatarPickerMounted && <AvatarPicker open={avatarPickerOpen} onOpenChange={setAvatarPickerOpen} />}
@@ -113,7 +115,7 @@ export const Profile = () => {
                             // same chip treatment as the card row's "New!" — a
                             // pulsing dot was a second attention language on
                             // one screen.
-                            badge={identityVerified ? undefined : t('menu.unlockBadge')}
+                            badge={isUserSumsubKycApproved ? undefined : t('menu.unlockBadge')}
                         />
                         {showCardMenuItem && (
                             <ProfileMenuItem icon="credit-card" label={t('menu.peanutCard')} href={cardHref} />

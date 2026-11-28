@@ -18,8 +18,9 @@ import { parseUnits, type Address, type Hash } from 'viem'
 import { useSemanticRequestFlowContext } from './SemanticRequestFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
 import { readChargeUntilFinal } from '@/features/payments/shared/utils/charge-receipt.utils'
-import { usePendingChargeSend } from '@/features/payments/shared/hooks/usePendingChargeSend'
-import { chargeOrderState, type PendingChargeSend } from '@/features/payments/shared/utils/pending-charge-send'
+import { MutationResponseTimeoutError } from '@/utils/connection-timeout-error'
+import { usePaymentStatusRecovery } from '@/features/payments/shared/hooks/usePaymentStatusRecovery'
+import { type TRequestChargeResponse } from '@/services/services.types'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
 import { isQuoteNearExpiry } from '@/services/rhino-bridge'
@@ -80,6 +81,15 @@ export function useSemanticRequestFlow() {
     const queryClient = useQueryClient()
     const { createCharge, fetchCharge, isCreating: isCreatingCharge, isFetching: isFetchingCharge } = useChargeManager()
     const { recordPayment, isRecording } = usePaymentRecorder()
+    const recoverPaymentStatus = usePaymentStatusRecovery({
+        fetchCharge,
+        setCharge,
+        setIsSuccess,
+        setIsPaymentStatusUnknown,
+        setCurrentView,
+        setError,
+        failureMessage: t('errors.externalPaymentNotConfirmed'),
+    })
     const {
         transactions: routeTransactions,
         estimatedGasCostUsd: calculatedGasCost,
@@ -108,40 +118,6 @@ export function useSemanticRequestFlow() {
     // use token selector context for ui integration
     const { selectedChainID, selectedTokenAddress, selectedTokenData, setSelectedChainID, setSelectedTokenAddress } =
         useContext(tokenSelectorContext)
-
-    const readCharge = useCallback(
-        async ({ chargeId }: PendingChargeSend) => {
-            const found = await fetchCharge(chargeId)
-            return { state: chargeOrderState(found.status), show: () => setCharge(found) }
-        },
-        [fetchCharge, setCharge]
-    )
-    const recordFoundPayment = useCallback(
-        async ({ chargeId }: PendingChargeSend, txHash: string) => {
-            const payment = await recordPayment({
-                chargeId,
-                chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                txHash,
-                tokenAddress: PEANUT_WALLET_TOKEN as Address,
-                payerAddress: walletAddress as Address,
-                sourceChainId: selectedChainID || undefined,
-                sourceTokenAddress: selectedTokenAddress || undefined,
-            })
-            return () => setPayment(payment)
-        },
-        [recordPayment, walletAddress, selectedChainID, selectedTokenAddress, setPayment]
-    )
-    const pendingSend = usePendingChargeSend({
-        intent: recipient ? `request:${recipient.resolvedAddress.toLowerCase()}` : null,
-        walletAddress: walletAddress as Address | undefined,
-        readOrder: readCharge,
-        recordPayment: recordFoundPayment,
-        canResume: currentView === 'INITIAL' || currentView === 'CONFIRM',
-        setIsSuccess,
-        setIsPaymentStatusUnknown,
-        setCurrentView,
-        setError,
-    })
 
     const isLoggedIn = !!user?.user?.userId
 
@@ -279,13 +255,11 @@ export function useSemanticRequestFlow() {
                 setError({ showError: true, errorMessage: t('errors.logInToContinue') })
                 return { success: false }
             }
-            // a payment to this recipient may still land, or a tap in this tick started one:
-            // paying stays off until it is final
-            if (!pendingSend.claim()) return { success: false }
 
             setIsLoading(true)
             clearError()
 
+            let recordingCharge: TRequestChargeResponse | null = null
             try {
                 // step 1: use existing charge if available (from url), otherwise create new one
                 let chargeResult = charge // use existing charge if loaded from chargeIdFromUrl
@@ -347,7 +321,6 @@ export function useSemanticRequestFlow() {
                 // if cross-chain or different token → go to confirm view
                 if (isSameChainSameToken) {
                     // direct payment - same as old flow when isPeanutWallet && same token/chain
-                    pendingSend.begin(chargeResult.uuid)
                     const txResult = await sendMoney(recipient.resolvedAddress, amountToSend, {
                         kind: 'REQUEST_PAY',
                         // Lets the backend settle the charge directly when the spend
@@ -355,18 +328,16 @@ export function useSemanticRequestFlow() {
                         // can't verify a collateral-contract tx). recordPayment below
                         // is then routed through the same trusted-completion path.
                         chargeId: chargeResult.uuid,
-                        onBroadcast: pendingSend.onBroadcast,
                     })
                     // For the collateral-only strategy useSpendBundle returns only
                     // `txHash` (Rain coordinator submits the on-chain tx). Fall
                     // back to it so card-collateral users don't get an
                     // undefined hash here.
-                    const { hash, source: txHashSource } = resolveSettledTxHash(txResult, 'semantic-request')
-                    if (txHashSource !== 'userOpHash') pendingSend.markSent(hash)
-                    else pendingSend.markPostSend()
+                    const { hash } = resolveSettledTxHash(txResult, 'semantic-request')
                     setTxHash(hash)
 
                     // record payment
+                    recordingCharge = chargeResult
                     const paymentResult = await recordPayment({
                         chargeId: chargeResult.uuid,
                         chainId: PEANUT_WALLET_CHAIN.id.toString(),
@@ -375,7 +346,6 @@ export function useSemanticRequestFlow() {
                         payerAddress: walletAddress as Address,
                     })
 
-                    pendingSend.clear()
                     setPayment(paymentResult)
                     setIsSuccess(true)
                     setCurrentView('STATUS')
@@ -397,14 +367,11 @@ export function useSemanticRequestFlow() {
                 setIsLoading(false)
                 return { success: true }
             } catch (err) {
-                // After the send left the wallet, any failure may hide money
-                // that moved: recovery answers it, and paying stays off meanwhile.
-                if (pendingSend.mayHaveSent(err)) {
-                    const outcome = await pendingSend.recover()
+                if (err instanceof MutationResponseTimeoutError && recordingCharge) {
+                    const outcome = await recoverPaymentStatus(recordingCharge.uuid)
                     setIsLoading(false)
                     return { success: outcome === 'completed' }
                 }
-                pendingSend.clear()
 
                 // Card re-approval dismissed, or the screen left, before
                 // anything was prepared or signed — control flow, not a failed
@@ -417,8 +384,6 @@ export function useSemanticRequestFlow() {
                 setError({ showError: true, errorMessage })
                 setIsLoading(false)
                 return { success: false }
-            } finally {
-                pendingSend.release()
             }
         },
         [
@@ -434,7 +399,7 @@ export function useSemanticRequestFlow() {
             validateUsernameRecipient,
             createCharge,
             sendMoney,
-            pendingSend,
+            recoverPaymentStatus,
             recordPayment,
             queryClient,
             updateUrlWithChargeId,
@@ -546,12 +511,9 @@ export function useSemanticRequestFlow() {
         t,
     ])
 
-    const isPendingSendRef = useRef(pendingSend.isPending)
-    isPendingSendRef.current = pendingSend.isPending
-
     // call prepareRoute when entering confirm view and charge is ready
     useEffect(() => {
-        if (currentView === 'CONFIRM' && charge && !isPendingSendRef.current) {
+        if (currentView === 'CONFIRM' && charge) {
             prepareRoute()
         }
     }, [currentView, charge, prepareRoute])
@@ -573,23 +535,19 @@ export function useSemanticRequestFlow() {
             await prepareRoute()
             return
         }
-        // a payment to this recipient may still land, or a tap in this tick started one:
-        // paying stays off until it is final
-        if (!pendingSend.claim()) return
 
         setIsLoading(true)
         clearError()
 
+        let recordingPayment = false
         try {
             let hash: Hash
-            let txHashSource: 'receipt' | 'txHash' | 'userOpHash'
 
             // check if charge is for same chain and same token (usdc on arbitrum)
             const isChargeSameChainToken =
                 charge.chainId === PEANUT_WALLET_CHAIN.id.toString() &&
                 areEvmAddressesEqual(charge.tokenAddress, PEANUT_WALLET_TOKEN)
 
-            pendingSend.begin(charge.uuid)
             if (isChargeSameChainToken) {
                 // direct payment for same-chain same-token (e.g. direct requests)
                 const txResult = await sendMoney(charge.requestLink.recipientAddress as Address, charge.tokenAmount, {
@@ -599,13 +557,10 @@ export function useSemanticRequestFlow() {
                     // collateral; recordPayment below is routed through the same
                     // trusted-completion path.
                     chargeId: charge.uuid,
-                    onBroadcast: pendingSend.onBroadcast,
                 })
                 // collateral-only routes return `txHash` only — see
                 // sibling site at line ~293 for the same fallback.
-                const settled = resolveSettledTxHash(txResult, 'semantic-request-pay')
-                hash = settled.hash
-                txHashSource = settled.source
+                hash = resolveSettledTxHash(txResult, 'semantic-request-pay').hash
             } else if (needsRoute && routeTransactions && routeTransactions.length > 0) {
                 // cross-chain or token swap payment via Rhino SDA. Pass
                 // `requiredUsdcAmount = payAmount` (principal + Rhino fee on SDA
@@ -629,19 +584,14 @@ export function useSemanticRequestFlow() {
                               chainId: PEANUT_WALLET_CHAIN.id.toString(),
                               requiredUsdcAmount,
                               kind: 'REQUEST_PAY',
-                              onBroadcast: pendingSend.onBroadcast,
                           }
                         : undefined
                 )
-                const settled = resolveSettledTxHash(txResult, 'semantic-request-fulfill')
-                hash = settled.hash
-                txHashSource = settled.source
+                hash = resolveSettledTxHash(txResult, 'semantic-request-fulfill').hash
             } else {
                 throw new Error('route not ready for cross-chain payment')
             }
 
-            if (txHashSource !== 'userOpHash') pendingSend.markSent(hash)
-            else pendingSend.markPostSend()
             setTxHash(hash)
 
             // record payment to backend
@@ -649,6 +599,7 @@ export function useSemanticRequestFlow() {
             // for charge completion — this recordPayment writes the optimistic row
             // so UI + history update immediately. Cross-chain
             // path uses the SDA-address + bridgeId correlation in the backend.
+            recordingPayment = true
             const paymentResult = await recordPayment({
                 chargeId: charge.uuid,
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),
@@ -660,7 +611,6 @@ export function useSemanticRequestFlow() {
                 sourceTokenSymbol: charge.tokenSymbol,
             })
 
-            pendingSend.clear()
             setPayment(paymentResult)
             setIsSuccess(true)
             setCurrentView('STATUS')
@@ -674,13 +624,10 @@ export function useSemanticRequestFlow() {
             })
             queryClient.invalidateQueries({ queryKey: ['balance'] })
         } catch (err) {
-            // After the send left the wallet, any failure may hide money that
-            // moved: recovery answers it, and paying stays off meanwhile.
-            if (pendingSend.mayHaveSent(err)) {
-                await pendingSend.recover()
+            if (err instanceof MutationResponseTimeoutError && recordingPayment) {
+                await recoverPaymentStatus(charge.uuid)
                 return
             }
-            pendingSend.clear()
 
             // Card re-approval dismissed, or the screen left, before anything
             // was prepared or signed — control flow, not a failed payment.
@@ -689,7 +636,6 @@ export function useSemanticRequestFlow() {
             const errorMessage = toFriendlyError(err)
             setError({ showError: true, errorMessage })
         } finally {
-            pendingSend.release()
             setIsLoading(false)
         }
     }, [
@@ -706,7 +652,7 @@ export function useSemanticRequestFlow() {
         selectedTokenAddress,
         sendMoney,
         sendTransactions,
-        pendingSend,
+        recoverPaymentStatus,
         recordPayment,
         queryClient,
         setTxHash,
@@ -784,14 +730,7 @@ export function useSemanticRequestFlow() {
         payment,
         txHash,
         error,
-        // a pending payment keeps paying busy until recovery says it is final
-        isLoading:
-            isLoading ||
-            isCreatingCharge ||
-            isFetchingCharge ||
-            isRecording ||
-            isCalculatingRoute ||
-            pendingSend.isPending,
+        isLoading: isLoading || isCreatingCharge || isFetchingCharge || isRecording || isCalculatingRoute,
         isSuccess,
         isFetchingCharge,
         isPaymentStatusUnknown,

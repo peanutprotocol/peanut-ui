@@ -138,6 +138,14 @@ const mockSendLinksApi = {
 }
 const mockGetParamsFromLink = jest.fn()
 jest.mock('@/services/sendLinks', () => ({
+    ESendLinkStatus: {
+        creating: 'creating',
+        completed: 'completed',
+        CLAIMING: 'CLAIMING',
+        CLAIMED: 'CLAIMED',
+        CANCELLED: 'CANCELLED',
+        FAILED: 'FAILED',
+    },
     sendLinksApi: mockSendLinksApi,
     getParamsFromLink: (...args: any[]) => mockGetParamsFromLink(...args),
     resolveClaimLink: (link: string) => link,

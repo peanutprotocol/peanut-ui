@@ -191,8 +191,6 @@ function expectNoReplayOrGenericFailure() {
 beforeEach(() => {
     jest.useFakeTimers()
     jest.clearAllMocks()
-    // a pending-send marker left by an earlier case belongs to another device
-    window.localStorage.clear()
     ctx.charge = { ...originalCharge, chainId: '42161' }
     ctx.amount = '10'
     ctx.usdAmount = '10'
@@ -243,30 +241,24 @@ it('keeps exhausted pending read-back on STATUS without success, failure, or rep
     expectNoReplayOrGenericFailure()
 })
 
-it.each(['FAILED', 'CANCELLED'])(
-    'keeps a mined send on STATUS when the charge reads %s, never offering Send again',
-    async (status) => {
-        // The money left the wallet in a mined transfer: a closed charge cannot
-        // book it, and a retry would pay twice (ChargeSendFlow.tla, trace D).
-        mockGetCharge.mockResolvedValue(booked(status))
-        const { done } = await startPayment()
-        await finishPayment(done, 0)
-        expect(mockRecordPayment).toHaveBeenCalledTimes(1)
-        expect(mockGetCharge).toHaveBeenCalledWith('charge-1')
-        expect(ctx.setCurrentView).toHaveBeenLastCalledWith('STATUS')
-        expect(ctx.setIsSuccess).not.toHaveBeenCalledWith(true)
-        expectNoReplayOrGenericFailure()
-    }
-)
+it.each(['FAILED', 'CANCELLED'])('allows generic failure only after authoritative %s', async (status) => {
+    mockGetCharge.mockResolvedValue(booked(status))
+    const { done } = await startPayment()
+    await finishPayment(done, 0)
+    expect(mockRecordPayment).toHaveBeenCalledTimes(1)
+    expect(mockGetCharge).toHaveBeenCalledWith('charge-1')
+    expect(ctx.setError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+    expect(ctx.setIsSuccess).not.toHaveBeenCalledWith(true)
+    expect(mockSendMoney).toHaveBeenCalledTimes(1)
+})
 
-it('reconciles a no-response recording timeout instead of offering Send again', async () => {
+it('keeps no-response recording timeout as generic failure without reconciliation', async () => {
     mockRecordPayment.mockRejectedValue(timeoutError(false))
     const { done } = await startPayment()
-    await finishPayment(done)
-    expect(mockGetCharge).toHaveBeenCalledWith('charge-1')
-    expect(ctx.setCurrentView).toHaveBeenLastCalledWith('STATUS')
-    expect(ctx.setError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
-    expect(mockSendMoney).toHaveBeenCalledTimes(1)
+    await finishPayment(done, 0)
+    expect(mockRecordPayment).toHaveBeenCalledTimes(1)
+    expect(mockGetCharge).not.toHaveBeenCalled()
+    expect(ctx.setError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
 })
 
 it('never reconciles charge creation uncertainty before spending', async () => {

@@ -19,8 +19,7 @@ type Session = {
 }
 export type IdentityStartOutcome =
     | { kind: 'busy' }
-    | { kind: 'existing-verification' }
-    | { kind: 'residence-not-supported' }
+    | { kind: 'handed-back' }
     | { kind: 'opened'; attemptId: string }
     | { kind: 'document-required'; message?: string }
     | { kind: 'document-not-allowed'; message?: string }
@@ -38,14 +37,9 @@ const preselected = (sdkConfig: KycAttemptSession['sdkConfig'] | undefined) =>
  * the same pick.
  */
 export function usePaperworkVerificationIdentity({
-    onExistingVerification,
-    onResidenceNotSupported,
+    onHandedBack,
     candidateAttemptId,
-}: {
-    onExistingVerification?: () => void
-    onResidenceNotSupported?: () => void
-    candidateAttemptId?: string
-} = {}) {
+}: { onHandedBack?: () => void; candidateAttemptId?: string } = {}) {
     const userId = useOptionalAuth()?.user?.user.userId
     const [session, setSession] = useState<Session | null>(null)
     const [busy, setBusy] = useState(false)
@@ -108,11 +102,10 @@ export function usePaperworkVerificationIdentity({
             : startPaperworkVerificationIdentity(current.attemptId, current.document))
         if (sessionRef.current !== current || current.beforeDispatch?.() === false)
             throw new Error('Verification session closed')
-        if (result.kind === 'existing-verification' || result.kind === 'residence-not-supported') {
+        if (result.kind === 'handed-back') {
             sessionRef.current = null
             setSession(null)
-            if (result.kind === 'existing-verification') onExistingVerification?.()
-            else onResidenceNotSupported?.()
+            onHandedBack?.()
         }
         if (result.kind === 'document-required' || result.kind === 'document-not-allowed') {
             sessionRef.current = null
@@ -130,7 +123,7 @@ export function usePaperworkVerificationIdentity({
         attemptIdRef.current = result.session.attemptId
         setSession(sessionRef.current)
         return result.session.token
-    }, [candidateAttemptId, onExistingVerification, onResidenceNotSupported])
+    }, [candidateAttemptId, onHandedBack])
 
     const close = useCallback(() => {
         generation.current += 1

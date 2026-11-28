@@ -4,7 +4,6 @@ import {
     cardNeedsSetup,
     hasPostSignupRedirect,
     outdatedConsentVersions,
-    outdatedConsentDocuments,
     type JourneyInputs,
 } from '../journeyState'
 import type { RainCardOverview } from '@/services/rain'
@@ -114,23 +113,6 @@ describe('outdatedConsentVersions', () => {
                 documents: [doc('terms'), doc('privacy', false), doc('unknown-doc')],
             })
         ).toEqual(['2026-10-01'])
-    })
-
-    test('every document the API versions is shown at the version the API sends, with no bundled copy to match', () => {
-        const slugs = [
-            'terms',
-            'privacy',
-            'card-terms-us',
-            'card-terms-international',
-            'card-esign',
-            'card-privacy',
-            'card-prohibited-activities',
-        ]
-        // the card terms content says 2026-10-14; the API serves what Rain records
-        const documents = slugs.map((slug) => ({ ...doc(slug), currentVersion: '2026-07-14' }))
-        expect(outdatedConsentDocuments({ needsReConsent: true, documents })).toEqual(
-            slugs.map((slug) => ({ slug, currentVersion: '2026-07-14' }))
-        )
     })
 })
 

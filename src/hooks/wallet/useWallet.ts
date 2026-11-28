@@ -19,7 +19,7 @@ import {
     isRainBalanceKnown,
     formatUsdcBalance,
 } from '@/utils/balance.utils'
-import { useSpendBundle, type SpendBundleInput } from './useSpendBundle'
+import { useSpendBundle } from './useSpendBundle'
 import type { SpendStrategy } from './spendPreflight'
 import type { RainCollateralKind } from '@/services/rain'
 import { isDemoMode } from '@/utils/demo'
@@ -51,8 +51,6 @@ type SendTransactionsOptions = {
      *  `requiredUsdcAmount` is set (i.e. the bundle may touch Rain collateral). */
     kind?: RainCollateralKind
     onStrategyDecided?: (strategy: Exclude<SpendStrategy, 'insufficient'>) => void
-    /** See SpendBundleInput.onBroadcast. Only on the requiredUsdcAmount path. */
-    onBroadcast?: SpendBundleInput['onBroadcast']
 }
 
 export const useWallet = () => {
@@ -110,12 +108,7 @@ export const useWallet = () => {
         async (
             toAddress: Address,
             amountInUsd: string,
-            options?: {
-                kind?: RainCollateralKind
-                chargeId?: string
-                fundsIntentId?: string
-                onBroadcast?: SpendBundleInput['onBroadcast']
-            }
+            options?: { kind?: RainCollateralKind; chargeId?: string; fundsIntentId?: string }
         ) => {
             const result = await sendMoneyMutation.mutateAsync({
                 toAddress,
@@ -123,7 +116,6 @@ export const useWallet = () => {
                 kind: options?.kind,
                 chargeId: options?.chargeId,
                 fundsIntentId: options?.fundsIntentId,
-                onBroadcast: options?.onBroadcast,
             })
             // `strategy` lets same-chain callers distinguish "funds left the smart
             // account" (smart-only) from "funds left Rain collateral" (collateral-
@@ -173,7 +165,6 @@ export const useWallet = () => {
                     rainSpendingPower,
                     kind: options.kind ?? 'OTHER',
                     onStrategyDecided: options.onStrategyDecided,
-                    onBroadcast: options.onBroadcast,
                 })
                 // `subsequentCalls` is non-empty here (we just passed `params`), so
                 // the collateral-only branch inside useSpendBundle is never taken:
