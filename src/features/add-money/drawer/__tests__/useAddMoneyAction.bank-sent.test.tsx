@@ -16,7 +16,7 @@ jest.mock('../AddMoneyDrawer', () => ({
     },
 }))
 
-type Props = { targetUsd: number; spendableUsd: number; step: string }
+type Props = { targetUsd: number; spendableUsd: number; step: string; urlState: Record<string, string | undefined> }
 let result: ReturnType<typeof useAddMoneyAction>
 function Place(props: Props) {
     result = useAddMoneyAction({ place: 'send', ...props })
