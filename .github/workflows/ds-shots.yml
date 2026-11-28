@@ -79,7 +79,7 @@ jobs:
                     - side: head
                       sha: ${{ needs.prepare.outputs.head }}
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
               with:
                   ref: ${{ matrix.sha }}
                   submodules: true
@@ -233,7 +233,7 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 10
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
               with:
                   ref: ${{ needs.prepare.outputs.head }}
                   persist-credentials: false
