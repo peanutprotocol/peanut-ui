@@ -385,7 +385,8 @@ export function usePendingChargeSend({
     const isLocal = !!key && (claiming.has(key) || sending.has(key) || recovering.has(key))
     const isPending = marker !== null && (isLocal || !isAbandonedClaim(marker))
 
-    // Keep proactive stuck helpers off-screen while any send/withdraw charge is in flight or recovering.
+    // Observational only (does not affect ChargeSendFlow.tla transitions): keep proactive stuck helpers
+    // off-screen while any send/withdraw charge is in flight or recovering.
     useEffect(() => {
         const busy = isPending || isRecovering
         setStuckFlowBusy(busy, 'pending-charge-send')
