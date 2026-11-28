@@ -40,6 +40,9 @@ const NOINDEX_ROUTE_PREFIXES = Object.freeze([
     '/card-recovery',
     '/recover-wallet',
     '/fix-card-signature',
+    // Creator invite links. The page sets meta robots, but a /go redirect
+    // has no HTML to carry it, so the header covers every response.
+    '/go',
 ])
 
 // Personalized images can include usernames and payment amounts. Keep only
