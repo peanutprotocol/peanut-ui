@@ -2437,6 +2437,8 @@
             "youreAdding": "Adding",
             "sendOnlyOwnAccountTitle": "Send only from an account in your name",
             "transferExpiredDescription": "This deposit order expired. Already sent money? Contact support.",
+            "orderFailedDescription": "This deposit order did not go through. Already sent money? Contact support.",
+            "supportOrderPrefill": "Peso deposit order {orderId} ended. I may have sent money.",
             "sendTo": "Send to",
             "validFor": "Valid for",
             "rateFeesArrival": "Rate, fees and arrival",

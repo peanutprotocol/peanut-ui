@@ -578,7 +578,10 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                 onBack={onBack}
                 onDone={leaveToOrigin}
                 onSent={leaveToOrigin}
-                onContactSupport={() => setIsSupportModalOpen(true)}
+                // the order id lets support find a late transfer to reconcile by hand
+                onContactSupport={() =>
+                    openSupportWithMessage(t('manteca.supportOrderPrefill', { orderId: depositDetails.id }))
+                }
             />
         )
     }

@@ -144,19 +144,22 @@ const MantecaDepositShareDetails = ({
             </PageStack>
         )
 
-    if (arsStatus === 'expired')
+    // an order that ended unpaid (expired) or did not go through (failed, cancelled, refunded):
+    // its CVU no longer works, so the only ways on are support and a new order
+    if (arsStatus === 'expired' || arsStatus === 'failed') {
+        const expired = arsStatus === 'expired'
         return (
-            <div className="flex h-full w-full flex-col gap-8">
+            <PageStack>
                 <NavHeader title={t('title')} onPrev={onBack} />
-                <div className="my-auto flex flex-col gap-6">
+                <PageStack.Center>
                     <Card className="flex flex-col items-center gap-4 p-6 text-center">
-                        <IconBubble icon="clock" size="l" color="yellow" />
+                        <IconBubble icon={expired ? 'clock' : 'alert'} size="l" color={expired ? 'yellow' : 'red'} />
                         <div className="flex flex-col gap-1">
                             <p className="text-heading-s text-foreground-primary">
                                 {currencySymbol} {formatAmountNumber(depositAmount, 2, 2, locale)}
                             </p>
                             <p className="text-body-s text-foreground-secondary">
-                                {t('manteca.transferExpiredDescription')}
+                                {t(expired ? 'manteca.transferExpiredDescription' : 'manteca.orderFailedDescription')}
                             </p>
                         </div>
                         {onContactSupport && (
@@ -168,9 +171,10 @@ const MantecaDepositShareDetails = ({
                             {t('manteca.startNewDeposit')}
                         </Button>
                     )}
-                </div>
-            </div>
+                </PageStack.Center>
+            </PageStack>
         )
+    }
 
     // The pesos reached Manteca: the bank details would invite a second transfer, and back would offer the amount again.
     if (arsStatus === 'processing')

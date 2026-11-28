@@ -145,3 +145,33 @@ it('"I\'ve sent the transfer" hands control back to the flow', () => {
     fireEvent.click(screen.getByRole('button', { name: "I've sent the transfer" }))
     expect(onSent).toHaveBeenCalledTimes(1)
 })
+
+// the poll maps FAILED, REFUNDED and a CANCELLED that was not an unpaid expiry to 'failed':
+// that order's CVU is dead, so nothing may invite a transfer to it
+it('a failed order shows the ended card, never the dead CVU, Share or "I\'ve sent the transfer"', () => {
+    const onStartOver = jest.fn()
+    const onContactSupport = jest.fn()
+    renderWithIntl(
+        <MantecaDepositShareDetails
+            depositDetails={order}
+            arsStatus="failed"
+            onBack={jest.fn()}
+            onDone={jest.fn()}
+            onSent={jest.fn()}
+            onStartOver={onStartOver}
+            onContactSupport={onContactSupport}
+        />
+    )
+    expect(
+        screen.getByText('This deposit order did not go through. Already sent money? Contact support.')
+    ).toBeInTheDocument()
+    expect(screen.getByText('ARS 10,000')).toBeInTheDocument()
+    expect(screen.queryByText('0000003100 … 0001')).not.toBeInTheDocument()
+    expect(screen.queryByText('Share details')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: "I've sent the transfer" })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
+    expect(onContactSupport).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Start a new deposit' }))
+    expect(onStartOver).toHaveBeenCalledTimes(1)
+})

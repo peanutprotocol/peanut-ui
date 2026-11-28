@@ -2437,6 +2437,8 @@
             "youreAdding": "Adicionando",
             "sendOnlyOwnAccountTitle": "Envie somente de uma conta no seu nome",
             "transferExpiredDescription": "Esta ordem de depósito expirou. Já enviou o dinheiro? Fale com o suporte.",
+            "orderFailedDescription": "Esta ordem de depósito não foi concluída. Já enviou o dinheiro? Fale com o suporte.",
+            "supportOrderPrefill": "A ordem de depósito em pesos {orderId} terminou. Posso ter enviado dinheiro.",
             "sendTo": "Enviar para",
             "validFor": "Válido por",
             "rateFeesArrival": "Câmbio, taxas e prazo",
