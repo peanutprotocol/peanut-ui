@@ -58,6 +58,7 @@ import { isTerminalRailRejection } from '@/utils/capability-gate'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { type RailCapability } from '@/types/capabilities'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { VERIFIED_PAGE_PATH } from '@/features/add-money/verified/verifiedRows'
 import { RESIDENCE_CHANGE_HREF } from '@/features/paperwork-verification/paperworkVerification.utils'
 import {
     BANK_ROW_COUNTRIES,
@@ -361,6 +362,8 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     const flow = useMultiPhaseKycFlow({
         regionIntent: activeRegionIntent,
         onKycSuccess: handleFinalKycSuccess,
+        // Settings › Payments is a self-started check: it ends on the verified page
+        onIdentityVerified: () => router.push(VERIFIED_PAGE_PATH),
         onManualClose: () => {
             setSelectedRegion(null)
             setSelectedRowKey(null)

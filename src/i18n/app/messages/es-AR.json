@@ -1381,7 +1381,10 @@
             "bankAccountFailed": "No se pudo procesar la cuenta bancaria. Intentalo de nuevo o contactá a soporte.",
             "bankAccountSettingUp": "Tu cuenta bancaria aún se está configurando. Intentalo de nuevo en un momento."
         },
-        "bankNotAvailableNote": "Las transferencias bancarias no están disponibles en tu país. Todavía podés ingresar y retirar cripto."
+        "bankNotAvailableNote": "Las transferencias bancarias no están disponibles en tu país. Todavía podés ingresar y retirar cripto.",
+        "verified": {
+            "sub": "{variant, select, bankReady {{count, plural, one {Tu cuenta en {accounts} está abierta.} other {Tus cuentas en {accounts} están abiertas.}} Agregá dinero.} other {Agregá dinero para empezar a pagar con Peanut.}}"
+        }
     },
     "withdraw": {
         "reviewUpdatedQuote": "Revisá la cotización actualizada para continuar.",

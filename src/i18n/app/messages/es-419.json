@@ -2530,7 +2530,19 @@
         },
         "pixMaintenanceBadge": "Mantenimiento",
         "addCryptoTitle": "Agregar cripto",
-        "bankNotAvailableNote": "Las transferencias bancarias no están disponibles en tu país. Todavía puedes ingresar y retirar cripto."
+        "bankNotAvailableNote": "Las transferencias bancarias no están disponibles en tu país. Todavía puedes ingresar y retirar cripto.",
+        "verified": {
+            "title": "Identidad verificada",
+            "titleBankReady": "Cuenta bancaria lista",
+            "sub": "{variant, select, bankReady {{count, plural, one {Tu cuenta en {accounts} está abierta.} other {Tus cuentas en {accounts} están abiertas.}} Agrega dinero.} other {Agrega dinero para empezar a pagar con Peanut.}}",
+            "underReview": "En revisión por {provider}, te avisaremos",
+            "notApproved": "No aprobado por {provider}",
+            "actionTerms": "términos de {provider} para {currencies}",
+            "actionTermsGeneric": "términos de {provider}",
+            "actionAddress": "comprobante de domicilio",
+            "cryptoWorksNow": "Desde billeteras o exchanges, funciona ya",
+            "actionNeeded": "Acción requerida"
+        }
     },
     "withdraw": {
         "reviewUpdatedQuote": "Revisa la cotización actualizada para continuar.",

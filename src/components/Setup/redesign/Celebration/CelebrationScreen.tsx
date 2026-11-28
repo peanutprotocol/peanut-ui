@@ -2,9 +2,9 @@
 
 import { useTranslations } from 'next-intl'
 import Loading from '@/components/Global/Loading'
-import { Icon } from '@/components/Global/Icons/Icon'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
+import { NameChip } from '@/components/Setup/redesign/shell/NameChip'
 import { SetupScreen } from '@/components/Setup/redesign/shell/SetupScreen'
 import { useRemindLater } from '@/components/Setup/redesign/VerifyStart/useRemindLater'
 import { useAuth } from '@/context/authContext'
@@ -105,19 +105,7 @@ export function CelebrationScreen({ quiet = false }: { quiet?: boolean }) {
                         <h1 className="text-heading-l text-balance signup-sm:text-heading-s">
                             {t(claim ? 'claimTitle' : 'title')}
                         </h1>
-                        {username && (
-                            <span
-                                className={`text-label-l ${twMerge(
-                                    'shadow-2 mt-2 inline-flex h-7 -rotate-3 items-center gap-1 rounded-sm border border-border-default bg-background-default px-2',
-                                    !claim && 'mt-4'
-                                )}`}
-                            >
-                                <span className="flex size-5 items-center justify-center rounded-full bg-background-icon-bubble-green text-foreground-inverse">
-                                    <Icon name="check" size={14} strokeWidth={3} />
-                                </span>
-                                {`@${username}`}
-                            </span>
-                        )}
+                        {username && <NameChip username={username} className={claim ? 'mt-2' : 'mt-4'} />}
                         <p
                             // ds text tokens stay outside twMerge: it reads them as colours and drops the size. Mock .sub: 16/26, 14/20 small
                             className={`text-body-m leading-[1.625rem] text-foreground-primary signup-sm:text-body-s signup-sm:leading-5 ${twMerge('mt-2.5 signup-sm:mt-2', !claim && 'mt-4')}`}
