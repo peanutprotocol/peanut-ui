@@ -346,8 +346,7 @@
             "shareRequestLinkDescription": "Request an amount with a shareable link",
             "shareBankDetails": "Share bank details",
             "shareBankDetailsDescription": "Get paid in EUR, USD and more with bank details.",
-            "lastUsed": "Last used",
-            "otherWays": "Other ways"
+            "lastUsed": "Last used"
         },
         "postVerification": {
             "title": "Verification complete!",
@@ -2366,7 +2365,7 @@
         "methods": {
             "moreWays": "More ways to add money",
             "pixDetails": "Scan or copy code",
-            "arsDetails": "From your Mercado Pago or bank account",
+            "arsDetails": "Mercado Pago or your bank",
             "cryptoDetails": "From wallets or exchanges",
             "openAccount": "Open a bank account",
             "crypto": "Crypto",
