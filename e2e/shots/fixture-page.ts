@@ -85,6 +85,17 @@ export async function blockExternal(page: Page, fixture = ''): Promise<void> {
     })
 }
 
+/** A fixture's session draft (`Fixture.sessionStorage`), written before the app reads it. */
+export function seedSessionStorage(values: Record<string, string>): void {
+    for (const [key, value] of Object.entries(values)) window.sessionStorage.setItem(key, value)
+}
+
+/**
+ * The fixture strip is fixed over the bottom of the screen: hidden before any click, it cannot
+ * take a tap meant for a button under it.
+ */
+export const HIDE_FIXTURE_BANNER_CSS = '[data-fixture-banner] { display: none !important; }'
+
 export function seenOnceModals(geoCountry = 'DE'): void {
     window.sessionStorage.setItem('showNoMoreJailModal', 'true')
     window.localStorage.setItem('peanut_demo_activation_celebrated_at', '2026-01-01T00:00:00.000Z')

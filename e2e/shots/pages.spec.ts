@@ -29,7 +29,8 @@ const FROZEN_NOW = new Date('2026-08-15T12:00:00.000Z')
 
 import { PAGE_CAPTURES as CAPTURES } from '../../src/dev/screens/pages'
 import { freezeDate } from '../../scripts/screens/freeze-date.mjs'
-import { blockExternal, waitForLottie } from './fixture-page'
+import { FIXTURES } from '../../src/dev/fixtures/registry'
+import { HIDE_FIXTURE_BANNER_CSS, blockExternal, seedSessionStorage, waitForLottie } from './fixture-page'
 
 function seenOnceModals(): void {
     window.sessionStorage.setItem('showNoMoreJailModal', 'true')
@@ -46,11 +47,14 @@ test.describe.configure({ mode: 'parallel' })
 
 for (const capture of CAPTURES) {
     test(capture.id, async ({ page }, testInfo) => {
-        await blockExternal(page, capture.fixture ?? FIXTURE)
+        const fixture = capture.fixture ?? FIXTURE
+        await blockExternal(page, fixture)
         await page.addInitScript(freezeDate, FROZEN_NOW.getTime())
         await page.addInitScript(seenOnceModals)
+        // a form the app keeps in session storage (the Pix key) is seeded, never in the URL
+        const session = FIXTURES[fixture]?.sessionStorage
+        if (session) await page.addInitScript(seedSessionStorage, session)
 
-        const fixture = capture.fixture ?? FIXTURE
         const entryRoute = capture.entryRoute ?? capture.route
         const separator = entryRoute.includes('?') ? '&' : '?'
         await page.goto(`${entryRoute}${separator}__fixture=${fixture}`, { waitUntil: 'domcontentloaded' })
@@ -60,6 +64,7 @@ for (const capture of CAPTURES) {
                 message: 'fixture mode never engaged — is this a NEXT_PUBLIC_VERCEL_ENV=preview build?',
             })
             .toBe(fixture)
+        await page.addStyleTag({ content: HIDE_FIXTURE_BANNER_CSS })
 
         await page.waitForTimeout(900)
         await page

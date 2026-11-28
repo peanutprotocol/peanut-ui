@@ -17,7 +17,7 @@ import { join } from 'node:path'
 import { FIXTURE_STORAGE_KEY } from '../../src/dev/fixtures/active'
 import { SURFACE_META } from '../../src/dev/surfaces/list'
 import { freezeDate } from '../../scripts/screens/freeze-date.mjs'
-import { waitForLottie } from './fixture-page'
+import { HIDE_FIXTURE_BANNER_CSS, waitForLottie } from './fixture-page'
 
 const OUT_DIR = process.env.SURFACES_OUT ?? 'e2e/__shots__/surfaces'
 
@@ -55,8 +55,6 @@ const FREEZE_CSS = `
     caret-color: transparent !important;
     scroll-behavior: auto !important;
 }
-/* the harness's own fixture banner is chrome, not the surface */
-a[href*="__fixture=off"] { display: none !important; }
 `
 
 // The mascot spinner and the grey skeleton rows are what the app shows while it
@@ -88,6 +86,8 @@ for (const [id, surface] of Object.entries(SURFACE_META)) {
                 message: 'fixture mode never engaged — is this a NEXT_PUBLIC_VERCEL_ENV=preview build?',
             })
             .toBe(surface.shotFixture ?? FIXTURE)
+        // the harness's own fixture banner is chrome, not the surface, and it covers the bottom button
+        await page.addStyleTag({ content: HIDE_FIXTURE_BANNER_CSS })
 
         // A redirecting surface would otherwise be photographed under the
         // wrong id and filename.

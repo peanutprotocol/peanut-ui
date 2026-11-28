@@ -14,7 +14,7 @@ import { join } from 'node:path'
 import { FIXTURE_PARAM, FIXTURE_STORAGE_KEY, fixtureHref } from '../../src/dev/fixtures/active'
 import { FIXTURES } from '../../src/dev/fixtures/registry'
 import { freezeDate } from '../../scripts/screens/freeze-date.mjs'
-import { waitForLottie } from './fixture-page'
+import { seedSessionStorage, waitForLottie } from './fixture-page'
 
 const OUT_DIR = process.env.SHOTS_OUT ?? 'e2e/__shots__/current'
 
@@ -153,6 +153,8 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
         }
         await page.addInitScript(freezeDate, FROZEN_NOW.getTime())
         await page.addInitScript(seedFixtureSession, fixture.geoCountry ?? 'DE')
+        // a form the app keeps in session storage (the Pix key) is seeded, never in the URL
+        if (fixture.sessionStorage) await page.addInitScript(seedSessionStorage, fixture.sessionStorage)
 
         await page.goto(fixtureHref(fixture.route, name), { waitUntil: 'domcontentloaded' })
         // Before the wait, not after: a loading fixture never reaches settle,

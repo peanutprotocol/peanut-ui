@@ -6017,6 +6017,8 @@ export const FIXTURES: Record<string, Fixture> = {
     'profile-exchange-rate': {
         route: '/profile/exchange-rate',
         about: 'Rates & fees page — live bilateral converter and ARS drill-downs.',
+        // demo-api answers both with an outage, which a merged override would keep
+        completeResponses: ['GET /fx/rates', 'GET /fx/reference'],
         responses: {
             'GET /fx/rates': {
                 base: 'USD',
