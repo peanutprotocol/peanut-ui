@@ -31,7 +31,6 @@ import { paperworkVerificationFeaturePath } from '@/features/paperwork-verificat
 import { findKycDocumentPlan } from '@/app/actions/kyc-workflow'
 import type { PaperworkVerificationFeature } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { currentReverificationDestination, featureReverificationPath } from '@/utils/kyc-reverification'
-import { isIdentityVerified } from '@/utils/verification'
 
 interface ActivationCTAsProps {
     onboarding: OnboardingState
@@ -129,7 +128,7 @@ export default function ActivationCTAs({
 
     const openFeatureQuestions = async (feature: PaperworkVerificationFeature) => {
         let href = paperworkVerificationFeaturePath(feature)
-        if (isIdentityVerified(user?.identityVerification) && !user?.identityVerification?.oneShot) {
+        if (user?.identityVerification?.status === 'verified' && !user.identityVerification.oneShot) {
             featureProbe.current?.abort()
             const probe = new AbortController()
             featureProbe.current = probe

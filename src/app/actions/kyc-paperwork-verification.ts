@@ -15,6 +15,7 @@ import type {
     PaperworkVerificationQuestions,
     PaperworkVerificationStepId,
 } from './types/kyc-paperwork-verification.types'
+import { KycFlowHandedBackError } from './kyc-flow-hand-back'
 
 const featureQuery = (feature?: PaperworkQuestionsFeature, attemptId?: string) => {
     const query = new URLSearchParams()
@@ -58,10 +59,14 @@ const codeOf = (body: { code?: unknown; error?: unknown } | null): string | null
 const userMessageOf = (body: { userMessage?: unknown } | null): { message?: string } =>
     typeof body?.userMessage === 'string' && body.userMessage.trim() ? { message: body.userMessage } : {}
 
-export async function skipProofOfAddress(): Promise<'skipped' | 'failed'> {
+const handedBack = (response: Response, body: { code?: unknown; error?: unknown } | null) =>
+    response.status === 409 && codeOf(body) === 'existing_verification'
+
+export async function skipProofOfAddress(): Promise<'skipped' | 'handed_back' | 'failed'> {
     try {
         const response = await call('/users/kyc/proof-of-address/skip', 'poa_skip', { method: 'POST', body: '{}' })
-        return response.ok ? 'skipped' : 'failed'
+        if (response.ok) return 'skipped'
+        return handedBack(response, await json(response)) ? 'handed_back' : 'failed'
     } catch {
         return 'failed'
     }
@@ -128,10 +133,8 @@ export async function getKycQuestions(
         )
         if (!response.ok) {
             const body = await json(response)
-            throw Object.assign(new Error('KYC questions unavailable'), {
-                code: codeOf(body),
-                status: response.status,
-            })
+            if (handedBack(response, body)) throw new KycFlowHandedBackError()
+            throw new Error('KYC questions unavailable')
         }
         let body: unknown
         let parsed = true
@@ -211,8 +214,7 @@ export async function saveKycAnswers(
 
 export type PaperworkVerificationTokenResult =
     | { kind: 'session'; session: KycAttemptSession }
-    | { kind: 'existing-verification' }
-    | { kind: 'residence-not-supported' }
+    | { kind: 'handed-back' }
     | { kind: 'document-required'; message?: string }
     /** the picked document is not one the attempt offers */
     | { kind: 'document-not-allowed'; message?: string }
@@ -238,10 +240,9 @@ export async function startPaperworkVerificationIdentity(
     }
     const body = await json(response)
     const message = userMessageOf(body)
-    const code = codeOf(body)
-    if (response.status === 403 && code === 'residence_not_supported') return { kind: 'residence-not-supported' }
+    if (handedBack(response, body)) return { kind: 'handed-back' }
     if (response.status === 409) {
-        if (code === 'existing_verification') return { kind: 'existing-verification' }
+        const code = codeOf(body)
         if (code === 'questions_missing') return { kind: 'questions-missing', step: body.step ?? null, ...message }
         if (code === 'document_required') return { kind: 'document-required', ...message }
         if (code === 'document_not_allowed') return { kind: 'document-not-allowed', ...message }

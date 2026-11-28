@@ -2,7 +2,7 @@ import { getUserById } from '@/app/actions/users'
 import { useAuth } from '@/context/authContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useEffect, useState } from 'react'
-import { useVerification } from './useVerification'
+import { useCapabilities } from './useCapabilities'
 
 export enum BankClaimType {
     GuestBankClaim = 'guest-bank-claim',
@@ -32,13 +32,15 @@ export function useDetermineBankClaimType(senderUserId: string): {
     const [claimType, setClaimType] = useState<BankClaimType>(BankClaimType.ReceiverKycNeeded)
     const [senderCanReceiveBankOfframp, setSenderCanReceiveBankOfframp] = useState<boolean | null>(null)
     const { setSenderDetails } = useClaimBankFlow()
-    // The receiver is the current user: an enabled rail means they can take the bank claim.
-    const { hasAnyEnabledRail } = useVerification()
+    // MIGRATION-REVIEW: was useKycStatus().isUserKycApproved (any provider approved).
+    // The receiver is the CURRENT user, so this reads the capability model directly:
+    // isKycApproved = any enabled rail — the established proxy for "identity cleared".
+    const { isKycApproved } = useCapabilities()
 
     useEffect(() => {
         const determineBankClaimType = async () => {
             // check if receiver (logged in user) exists and is KYC approved
-            const receiverKycApproved = hasAnyEnabledRail
+            const receiverKycApproved = isKycApproved
 
             if (receiverKycApproved) {
                 // condition 1: Receiver is KYC approved → UserBankClaim
@@ -92,7 +94,7 @@ export function useDetermineBankClaimType(senderUserId: string): {
         }
 
         determineBankClaimType()
-    }, [user, senderUserId, setSenderDetails, hasAnyEnabledRail])
+    }, [user, senderUserId, setSenderDetails, isKycApproved])
 
     return { claimType, setClaimType, senderCanReceiveBankOfframp }
 }

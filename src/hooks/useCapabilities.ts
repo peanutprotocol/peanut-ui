@@ -13,7 +13,9 @@ import {
 } from '@/types/capabilities'
 import { capabilityStateForProfile, deriveGate, type GateScope, type GateState } from '@/utils/capability-gate'
 import type { RailChannel } from '@/types/capabilities'
+import { isDemoMode } from '@/utils/demo'
 import { useCallback, useMemo } from 'react'
+import { useHydrationSnapshot } from '@/utils/native-platform'
 
 /**
  * Single selector over the backend-computed capability model. ALL KYC/rail
@@ -76,6 +78,8 @@ export interface UseCapabilitiesResult {
     /** The restriction (if any) whose `affectedRailIds` includes this rail. */
     restrictionForRail: (railId: RailId | string) => CapabilityRestriction | undefined
 
+    /** Convenience: user can transact on at least one rail. Replaces useUnifiedKycStatus.isKycApproved. */
+    isKycApproved: boolean
     /** Convenience: at least one rail is mid-flight (pending or requires-info), none yet enabled-only. */
     isKycInProgress: boolean
 
@@ -101,12 +105,13 @@ export interface UseCapabilitiesResult {
 }
 
 export function useCapabilities(): UseCapabilitiesResult {
+    const demoMode = useHydrationSnapshot(isDemoMode, () => false)
     const { user, isFetchingUser } = useAuth()
 
     const capabilities = user?.capabilities ?? EMPTY_CAPABILITIES
     const { rails, nextActions, restrictions } = capabilities
     // The gate's "identity verified" precondition reads the second read-model
-    // directly (NOT useVerification().hasAnyEnabledRail — that's any-rail-enabled
+    // directly (NOT the rail-level isKycApproved — that's any-rail-enabled
     // which falsely flips for card-only or pool-tier users, the CodeRabbit
     // semantic finding folded in alongside Profile/ProfileEdit). It is read in
     // `capabilityStateForProfile`, which `gateFor` below resolves through.
@@ -179,6 +184,9 @@ export function useCapabilities(): UseCapabilitiesResult {
         [restrictions]
     )
 
+    // demo mode: present as verified so KYC walls don't block the walkthrough.
+    const isKycApproved = useMemo(() => demoMode || rails.some((rail) => rail.status === 'enabled'), [demoMode, rails])
+
     const isKycInProgress = useMemo(
         () => rails.some((rail) => rail.status === 'pending' || rail.status === 'requires-info'),
         [rails]
@@ -239,6 +247,7 @@ export function useCapabilities(): UseCapabilitiesResult {
         getNextAction,
         nextActionsForRail,
         restrictionForRail,
+        isKycApproved,
         isKycInProgress,
         gateFor,
         bankRails,

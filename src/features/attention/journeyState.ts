@@ -19,7 +19,6 @@ import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { useArrivalPrompt } from '@/features/home/useArrivalPrompt'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
-import { useVerification } from '@/hooks/useVerification'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useProviderRejection } from '@/hooks/useProviderRejection'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
@@ -46,7 +45,7 @@ import { showVerifyCTA } from '@/utils/home-carousel.utils'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { POST_SIGNUP_ACTIONS } from '@/components/Global/PostSignupActionManager/post-signup-action.consts'
 import { consentApi, type ConsentStatusResponse } from '@/services/consent'
-import { legalPolicyForSlug } from '@/constants/legal-policies'
+import { LEGAL_DOCUMENT_VERSIONS } from '@/constants/legal-versions.generated'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { isSameRoute } from '@/constants/routes'
 import { selectHomeTasks } from '@/utils/bridge-tasks.utils'
@@ -134,14 +133,16 @@ export function cardOfferFacts(input: {
 
 export type OutdatedDocument = { slug: string; currentVersion: string }
 
-/** The documents that need acceptance and that this client can link to, at the API's current version. */
+/** The documents that need acceptance and that this client can display. */
 export function outdatedConsentDocuments(status: ConsentStatusResponse | undefined): OutdatedDocument[] | undefined {
     if (!status) return undefined
     if (!status.needsReConsent) return []
     // the wire shape is trusted nowhere else in render: a malformed response reads as nothing to accept
     if (!Array.isArray(status.documents)) return []
     return status.documents
-        .filter((d) => !!d && d.needsAcceptance === true && typeof d.slug === 'string' && !!legalPolicyForSlug(d.slug))
+        .filter(
+            (d) => !!d && d.needsAcceptance === true && typeof d.slug === 'string' && d.slug in LEGAL_DOCUMENT_VERSIONS
+        )
         .map((d) => ({ slug: d.slug, currentVersion: String(d.currentVersion) }))
 }
 
@@ -330,8 +331,7 @@ export function useJourneyState(): JourneyState {
     const pathname = usePathname()
     const isHomeRoute = isSameRoute(pathname, '/home')
     const onHome = isHomeRoute || isSameRoute(pathname, '/dev/attention')
-    const { status, needsAction, isTerminalFailure, isRegionRestricted } = useIdentityVerification()
-    const { identityVerified: isVerified } = useVerification()
+    const { status, isVerified, needsAction, isTerminalFailure, isRegionRestricted } = useIdentityVerification()
     const { onboarding, isActivated, isLoading: onboardingLoading } = useActivationStatus()
     const { blockedCard } = useProviderRejection(onboarding)
     const { capabilities, nextActions, rails, channelOf, isLoading: capabilitiesLoading } = useCapabilities()

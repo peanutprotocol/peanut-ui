@@ -52,9 +52,9 @@ export function isConfirmedRevert(failure: unknown): boolean {
     const { message, error, code } = failure as { message?: unknown; error?: unknown; code?: unknown }
     const detail = typeof message === 'string' ? message : error
     return (
-        code === API_ERROR_CODES.USER_OP_REVERTED ||
-        error === API_ERROR_CODES.USER_OP_REVERTED ||
-        (typeof detail === 'string' && detail.startsWith(`${API_ERROR_CODES.USER_OP_REVERTED}:`))
+        code === 'USER_OP_REVERTED' ||
+        error === 'USER_OP_REVERTED' ||
+        (typeof detail === 'string' && detail.startsWith('USER_OP_REVERTED:'))
     )
 }
 

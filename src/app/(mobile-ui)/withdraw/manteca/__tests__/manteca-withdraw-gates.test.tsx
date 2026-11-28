@@ -308,6 +308,9 @@ jest.mock('@/context/ModalsContext', () => ({
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({ rails: [], nextActions: undefined, capabilities: { routes: [] } }),
 }))
+jest.mock('@/hooks/useIdentityVerification', () => ({
+    useIdentityVerification: () => ({ isVerified: true }),
+}))
 let mockMantecaRejection: unknown = { state: 'none', userMessage: null }
 jest.mock('@/utils/provider-rejection.utils', () => ({
     deriveProviderRejection: () => mockMantecaRejection,
@@ -374,9 +377,9 @@ jest.mock('@/hooks/useLimits', () => ({
     useLimits: () => ({ mantecaLimits: null, refetch: jest.fn() }),
 }))
 let mockVerifiedForCountry = true
-jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({}) }))
-jest.mock('@/hooks/useVerification', () => ({
-    useVerification: () => ({ identityVerified: true, canUse: () => mockVerifiedForCountry }),
+jest.mock('@/utils/regions.utils', () => ({
+    ...jest.requireActual('@/utils/regions.utils'),
+    isVerifiedForCountry: () => mockVerifiedForCountry,
 }))
 jest.mock('@/hooks/useCurrency', () => ({
     useCurrency: () => ({

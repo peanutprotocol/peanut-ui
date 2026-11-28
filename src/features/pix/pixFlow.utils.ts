@@ -1,5 +1,4 @@
 import { parseUnits } from 'viem'
-import { TransactionIntentStatus } from '@/constants/api-enums.generated'
 import { isPixEmvcoQr, normalizePixInput, validatePixKey } from '@/utils/withdraw.utils'
 import type { PixDeposit, PixWithdrawDisplay } from '@/services/pix'
 import { API_ERROR_CODES } from '@/services/api-error'
@@ -8,10 +7,7 @@ import type { HistoryEntry } from '@/utils/history.utils'
 export type PixDepositPhase = 'pending' | 'processing' | 'completed' | 'returned' | 'expired'
 
 // Intent statuses after which the Pix went back to the payer.
-const RETURNED_STATUSES: ReadonlySet<string> = new Set([
-    TransactionIntentStatus.FAILED,
-    TransactionIntentStatus.REFUNDED,
-])
+const RETURNED_STATUSES = ['FAILED', 'REFUNDED']
 
 /**
  * The deposit screen's phase from GET /pix/deposit/:intentId. A deposit
@@ -23,9 +19,9 @@ const RETURNED_STATUSES: ReadonlySet<string> = new Set([
  */
 export function pixDepositPhase(status: PixDeposit | undefined): PixDepositPhase {
     if (!status) return 'pending'
-    if (status.status === TransactionIntentStatus.COMPLETED) return 'completed'
-    if (status.status === TransactionIntentStatus.CANCELLED) return 'expired'
-    if (RETURNED_STATUSES.has(status.status)) return 'returned'
+    if (status.status === 'COMPLETED') return 'completed'
+    if (status.status === 'CANCELLED') return 'expired'
+    if (RETURNED_STATUSES.includes(status.status)) return 'returned'
     if (status.pixReceived) return 'processing'
     // unpaid, and the API no longer sends the code: it lapsed before the poller cancelled it
     return status.codePayable ? 'pending' : 'expired'
@@ -185,28 +181,23 @@ export function quoteMovedAgainstUser(
 export type PixWithdrawOutcomeKind = 'on-its-way' | 'unconfirmed' | 'arrived' | 'refunded' | 'not-sent' | 'stuck'
 
 /** How the API ends a withdrawal whose deposit never left the wallet. */
-const ENDED_UNFUNDED: ReadonlySet<string> = new Set([
-    TransactionIntentStatus.FAILED,
-    TransactionIntentStatus.CANCELLED,
-    'EXPIRED',
-])
+const ENDED_UNFUNDED = ['FAILED', 'CANCELLED', 'EXPIRED']
 
 export function pixWithdrawOutcome(
     phase: 'funded' | 'unconfirmed' | 'unsigned',
     entry: Pick<HistoryEntry, 'status' | 'extraData'> | undefined
 ): PixWithdrawOutcomeKind {
-    if (entry?.status === TransactionIntentStatus.COMPLETED) return 'arrived'
-    if (entry?.status === TransactionIntentStatus.REFUNDED) return 'refunded'
-    if (entry?.status && entry.status !== TransactionIntentStatus.PENDING) {
-        if (phase !== 'funded' && ENDED_UNFUNDED.has(entry.status)) return 'not-sent'
+    if (entry?.status === 'COMPLETED') return 'arrived'
+    if (entry?.status === 'REFUNDED') return 'refunded'
+    if (entry?.status && entry.status !== 'PENDING') {
+        if (phase !== 'funded' && ENDED_UNFUNDED.includes(entry.status)) return 'not-sent'
         // a funded deposit whose withdrawal ended with no recovery, or an end this build does not
         // know: support sorts it out, and the screen never reads as progress
         return 'stuck'
     }
     // the API saw the funding (reported, or found on chain): the provider pays next
-    if (entry?.extraData?.intentStatus === TransactionIntentStatus.PROCESSING) return 'on-its-way'
-    if (phase === 'unsigned' && entry?.extraData?.intentStatus === TransactionIntentStatus.AWAITING_USER_ACTION)
-        return 'not-sent'
+    if (entry?.extraData?.intentStatus === 'PROCESSING') return 'on-its-way'
+    if (phase === 'unsigned' && entry?.extraData?.intentStatus === 'AWAITING_USER_ACTION') return 'not-sent'
     return phase === 'funded' ? 'on-its-way' : 'unconfirmed'
 }
 

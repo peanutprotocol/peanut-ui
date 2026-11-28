@@ -375,7 +375,10 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
             } catch (err) {
                 // A superseded quote's failure is not the user's problem — the
                 // newer one owns the screen, including whether it errored.
-                live(setError)(toFriendlyError(err))
+                // A payer cannot switch to Arbitrum — the request fixed the destination.
+                live(setError)(
+                    toFriendlyError(err, { crossChainSurface: context === 'pay-request' ? 'payment' : 'withdraw' })
+                )
                 live(setIsFeeEstimationError)(true)
                 captureException(err)
             } finally {

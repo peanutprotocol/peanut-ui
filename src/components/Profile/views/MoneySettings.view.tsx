@@ -49,7 +49,6 @@ import { accountEntry, entryChip, entryAction, UNKNOWN_REPORT } from '@/features
 import { residenceAddressEntry } from '@/features/kyc-features/residenceAddressEntry'
 import { LocalResidenceAddressGate } from '@/features/kyc-features/LocalResidenceAddressGate'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
-import { useVerification } from '@/hooks/useVerification'
 import { useKycDegraded } from '@/hooks/useKycDegraded'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
@@ -119,18 +118,25 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     const [addressCurrency, setAddressCurrency] = useState<'ARS' | 'BRL' | null>(null)
     // the pay:PIX_BR route, not the app, says whether Pix payments and sends serve this residence
     const pixResidenceBlocked = usePixPayBlock() === 'residence'
-    const { capabilities, rails, nextActionsForRail, nextActions, isLoading: isLoadingCapabilities } = useCapabilities()
+    const {
+        capabilities,
+        rails,
+        isKycApproved,
+        nextActionsForRail,
+        nextActions,
+        isLoading: isLoadingCapabilities,
+    } = useCapabilities()
     const {
         identity,
         isProcessing: isIdentityInReview,
         isRegionRestricted,
         isTerminalFailure: isIdentityFinallyRejected,
     } = useIdentityVerification()
-    const { hasAnyEnabledRail } = useVerification()
     const isKycDegraded = useKycDegraded()
     const { mantecaLimits, bridgeLimits, aveniaLimits } = useLimits()
     const { openSupportWithMessage, setIsSupportModalOpen } = useModalsContext()
 
+    const isSumsubApproved = isKycApproved
     const depositAccountsEnabled = useDepositAccountsEnabled()
     const depositAccounts = useDepositAccounts({ enabled: depositAccountsEnabled })
     const accountCorridors = virtualAccountRows(depositAccounts, depositAccountsEnabled, isIdentityFinallyRejected)
@@ -322,13 +328,13 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     const restartCopy = isDocumentRestart
         ? { title: tKyc('initiate.titleIdentityDocumentMissing'), cta: tKyc('initiate.ctaUnlockNow') }
         : { title: tRegions('providerRejection.restartTitle'), cta: tRegions('providerRejection.restartTitle') }
-    // A provider rejection needs an enabled rail, but the missing-document
+    // A provider rejection needs an approved user, but the missing-document
     // restart does not wait for an enabled rail: without one, the unlock path
     // calls the start route, which answers "already approved" for this user.
     const hasProviderRejectionForRegion =
         !!selectedRegion &&
         clickedRegionProvider !== null &&
-        (hasAnyEnabledRail || isDocumentRestart) &&
+        (isSumsubApproved || isDocumentRestart) &&
         providerRejectionForRegion.state !== 'happy'
     const modalVariant =
         baseModalVariant && hasProviderRejectionForRegion && !arsProvisioning

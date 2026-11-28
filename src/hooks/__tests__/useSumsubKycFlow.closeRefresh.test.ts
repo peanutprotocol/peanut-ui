@@ -12,7 +12,7 @@ import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { initiateSumsubKyc, startKycAction, startResidenceChangeVerification } from '@/app/actions/sumsub'
 
 jest.mock('@/app/actions/kyc-workflow', () => {
-    const getKycDocumentPlan = jest.fn(async () => ({ available: false, flow: null, routes: [] }))
+    const getKycDocumentPlan = jest.fn(async () => ({ available: false, routes: [] }))
     return {
         getKycDocumentStatus: jest.fn(async () => 'IN_REVIEW'),
         refreshKycIdentityStatus: jest.fn(async () => undefined),
@@ -66,7 +66,7 @@ describe('SDK close identity recovery', () => {
         jest.clearAllMocks()
         mockUserId = 'owner-A'
         mockDemo = false
-        jest.mocked(getKycDocumentPlan).mockResolvedValue({ available: false, flow: null, routes: [] } as never)
+        jest.mocked(getKycDocumentPlan).mockResolvedValue({ available: false, routes: [] } as never)
         mockIdentityRefresh.mockResolvedValue(undefined)
         mockInitiate.mockResolvedValue({ data: { token: 'initial', applicantId: 'app', status: 'NOT_STARTED' } })
     })
@@ -165,7 +165,7 @@ describe('SDK close identity recovery', () => {
 })
 
 describe('K1 scoped close synchronization and K2 drawer handoff', () => {
-    const legacyPlan = { available: false, flow: null, routes: [] }
+    const legacyPlan = { available: false, routes: [] }
     const session = {
         attemptId: 'attempt-1',
         token: 'document-token',

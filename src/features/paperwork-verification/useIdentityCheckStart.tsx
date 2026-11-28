@@ -38,9 +38,6 @@ export function useIdentityCheckStart(
 } {
     const router = useRouter()
     const { user } = useAuth()
-    const owner = user?.user.userId
-    const currentOwner = useRef(owner)
-    currentOwner.current = owner
     const { openSupportWithMessage } = useModalsContext()
     const qrIdentityCheck = useQrIdentityCheck()
     // The start modal is the one the bank and deposit gates use: its outage, region and residence checks run here too.
@@ -54,12 +51,10 @@ export function useIdentityCheckStart(
         if (startingRef.current) return
         startingRef.current = true
         try {
-            const path = await opensPaperworkVerification()
-            if (currentOwner.current !== owner) return
-            if (path) {
-                if (path === '/verify') markVerifySource(source)
-                if (replace) router.replace(path)
-                else router.push(path)
+            if (await opensPaperworkVerification()) {
+                markVerifySource(source)
+                if (replace) router.replace('/verify')
+                else router.push('/verify')
             }
             // The legacy start is bank-shaped. Where bank rails are closed the
             // card is the door, and where the card is closed too, QR pay is

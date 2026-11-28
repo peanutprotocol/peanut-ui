@@ -30,7 +30,7 @@ jest.mock('@/utils/sentry.utils', () => ({
         const path = new URL(url).pathname
         const result =
             path === '/users/kyc/plan'
-                ? { status: 200, body: { available: false, flow: null, routes: [] } }
+                ? { status: 200, body: { available: false, routes: [] } }
                 : await mockRequest({
                       method: options.method ?? 'GET',
                       url: path,

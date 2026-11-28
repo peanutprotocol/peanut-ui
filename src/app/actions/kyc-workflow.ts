@@ -124,9 +124,6 @@ export async function getKycDocumentPlan(
     if (
         typeof plan.available !== 'boolean' ||
         !Array.isArray(plan.routes) ||
-        (plan.flow !== null && plan.flow !== PAPERWORK_VERIFICATION_FLOW && !plan.unavailableReason) ||
-        (plan.unavailableReason !== undefined &&
-            (plan.available || plan.unavailableReason !== 'residence_not_supported')) ||
         (plan.entry != null && !isFeatureReverificationEntry(plan.entry))
     )
         throw contractError('/users/kyc/plan', 'GET', 200, 'invalid_plan')
@@ -164,7 +161,9 @@ export class KycPlanUnavailableError extends Error {
  * production build an API in another contract (reported, never silent). A
  * test build throws instead, so a wrong API pairing can't hide.
  *
- * Neither a null result nor a failed read authorizes legacy initiation.
+ * A read that keeps failing THROWS instead. Guessing today's flow there starts
+ * a legacy applicant for a Smart Paperwork Verification user, and that applicant
+ * shuts them out of the new flow for good.
  */
 export async function findKycDocumentPlan(
     source?: KycPlanReadSource,
@@ -184,7 +183,6 @@ export async function findKycDocumentPlan(
                 throw new KycPlanUnavailableError(attempt, status)
             }
             if (status === 404) return null
-            if (status === 403 && code === 'residence_not_supported') throw error
             if (attempt > KYC_PLAN_RETRY_DELAYS_MS.length) {
                 posthog.capture(ANALYTICS_EVENTS.KYC_PV_PLAN_FAILED, {
                     attempts: attempt,

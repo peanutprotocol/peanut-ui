@@ -1,7 +1,7 @@
 'use client'
 
 import { useAuth } from '@/context/authContext'
-import { applyDepositPreviewGate, narrowDepositGateByFeatureReport } from '@/features/deposit-accounts/depositGate'
+import { applyDepositPreviewGate } from '@/features/deposit-accounts/depositGate'
 import {
     hasCompleteDepositInstructions,
     DEPOSIT_RAIL_ORDER,
@@ -31,9 +31,15 @@ function useDepositGates(causeFor: (railId: string) => UnavailableCause | undefi
     const { user } = useAuth()
     const { gateFor, capabilities } = useCapabilities()
     const accountGates = corridorRecord<GateState>((corridor) => {
+        const rail = DEPOSIT_RAILS[corridor]
         const railId = railIdFor(corridor)
         const gate = applyDepositPreviewGate(gateFor('deposit', { railId }), causeFor(railId))
-        return narrowDepositGateByFeatureReport(gate, corridor, capabilities.features)
+        if (gate.kind !== 'ready') return gate
+        const report = capabilities.features?.[rail.provider === 'manteca' ? 'local' : 'bank']?.accounts[rail.currency]
+        if (!report || report.state === 'on') return gate
+        if (report.state === 'pending' || report.state === 'setting_up') return { kind: 'pending' }
+        if (report.state === 'refused') return { kind: 'blocked-rejection', userMessage: null }
+        return { kind: 'needs-enrollment' }
     })
     const topUpGates = corridorRecord<GateState>((corridor) => {
         const gate = accountGates[corridor]

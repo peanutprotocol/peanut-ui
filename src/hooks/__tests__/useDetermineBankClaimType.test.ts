@@ -8,7 +8,7 @@ const mockSetSenderDetails = jest.fn()
 jest.mock('@/context/ClaimBankFlowContext', () => ({
     useClaimBankFlow: () => ({ setSenderDetails: mockSetSenderDetails }),
 }))
-jest.mock('../useVerification', () => ({ useVerification: () => ({ hasAnyEnabledRail: false }) }))
+jest.mock('../useCapabilities', () => ({ useCapabilities: () => ({ isKycApproved: false }) }))
 
 // TASK-22936: the guest bank claim runs only while the API reports its server
 // switch on. Off, a guest gets the sign-up path to claim to a bank.

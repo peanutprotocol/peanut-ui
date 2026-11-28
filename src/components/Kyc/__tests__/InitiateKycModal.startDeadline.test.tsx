@@ -14,7 +14,7 @@ jest.mock('@/context/authContext', () => {
     return { useAuth: auth, useOptionalAuth: auth }
 })
 jest.mock('@/app/actions/kyc-workflow', () => ({
-    findKycDocumentPlan: jest.fn(async () => ({ available: false, flow: null, routes: [] })),
+    findKycDocumentPlan: jest.fn(async () => null),
     findKycReplacementPlan: jest.fn(async () => null),
     resumeKycDocumentAttempt: jest.fn(),
 }))

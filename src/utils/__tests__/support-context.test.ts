@@ -104,7 +104,7 @@ describe('buildCardSummary', () => {
     it('reports application state, collateral and issued cards', () => {
         const withCard = overview({
             cards: [{ last4: '1234', status: 'active' }],
-        } as unknown as Partial<RainCardOverview>)
+        } as Partial<RainCardOverview>)
         expect(buildCardSummary(withCard)).toBe(
             'application:approved · rail:ENABLED · limit $500 · due $0 · ··1234:active'
         )

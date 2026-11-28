@@ -25,6 +25,7 @@ jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { user: { userId: 'u1' } }, fetchUser: jest.fn() }),
 }))
 let mockNextActions: NextAction[] = []
+let mockIsKycApproved = true
 let mockQrEntry: FeatureReportEntry = { state: 'action_required', action: 'verify' }
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
@@ -41,6 +42,7 @@ jest.mock('@/hooks/useCapabilities', () => ({
         },
         railsForProvider: () => [],
         nextActions: mockNextActions,
+        isKycApproved: mockIsKycApproved,
         isLoading: false,
     }),
 }))
@@ -51,6 +53,7 @@ jest.mock('@/hooks/useIdentityVerification', () => ({
 beforeEach(() => {
     jest.clearAllMocks()
     mockNextActions = []
+    mockIsKycApproved = true
     mockQrEntry = { state: 'action_required', action: 'verify' }
     mockFlow.showWrapper = false
     mockFlow.isModalOpen = false

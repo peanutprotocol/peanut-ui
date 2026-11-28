@@ -129,13 +129,11 @@ jest.mock('@/hooks/useCapabilities', () => ({
     },
 }))
 let mockIsIdentityVerified = true
-let mockIsVerifiedForCountry = true
-jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({}) }))
-jest.mock('@/hooks/useVerification', () => ({
-    useVerification: () => ({ identityVerified: mockIsIdentityVerified, canUse: () => mockIsVerifiedForCountry }),
+jest.mock('@/hooks/useIdentityVerification', () => ({
+    useIdentityVerification: () => ({ isVerified: mockIsIdentityVerified }),
 }))
-// regions.utils reads AddMoney/consts at load, which this test mocks
-jest.mock('@/utils/regions.utils', () => ({}))
+let mockIsVerifiedForCountry = true
+jest.mock('@/utils/regions.utils', () => ({ isVerifiedForCountry: () => mockIsVerifiedForCountry }))
 let mockRejection: Record<string, unknown> = { state: 'happy' }
 jest.mock('@/utils/provider-rejection.utils', () => ({ deriveProviderRejection: () => mockRejection }))
 const mockKycFlow = {

@@ -5,7 +5,8 @@ import { apiFetch, serverFetch } from '@/utils/api-fetch'
 import { apiErrorFromResponse } from '@/services/api-error'
 import { sendLinkReadProof } from '@/utils/send-link-proof.utils'
 
-export type { SendLink } from '@/services/services.types'
+export { ESendLinkStatus } from '@/services/services.types'
+export type { SendLinkStatus, SendLink } from '@/services/services.types'
 export { getParamsFromLink } from '@/utils/peanut-link.utils'
 
 export type ClaimLinkData = SendLink & { link: string; password: string }

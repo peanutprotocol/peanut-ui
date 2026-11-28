@@ -79,7 +79,6 @@ test.each(['address', 'userId'])(
         expect(mockSendMoney).toHaveBeenCalledWith(ctx.recipient.address, '10', {
             kind: 'REQUEST_PAY',
             chargeId: 'charge-1',
-            onBroadcast: expect.any(Function),
         })
         expect(mockRecordPayment).toHaveBeenCalledWith(
             expect.objectContaining({ chargeId: 'charge-1', txHash: '0xhash', payerAddress: wallet })
@@ -95,11 +94,7 @@ test('a peer contribution still creates, sends and records', async () => {
         expect(await result.current.executeContribution()).toEqual({ success: true })
     })
     expect(mockCreateCharge).toHaveBeenCalledTimes(1)
-    expect(mockSendMoney).toHaveBeenCalledWith(peer, '10', {
-        kind: 'REQUEST_PAY',
-        chargeId: 'charge-1',
-        onBroadcast: expect.any(Function),
-    })
+    expect(mockSendMoney).toHaveBeenCalledWith(peer, '10', { kind: 'REQUEST_PAY', chargeId: 'charge-1' })
     expect(mockRecordPayment).toHaveBeenCalledTimes(1)
 })
 

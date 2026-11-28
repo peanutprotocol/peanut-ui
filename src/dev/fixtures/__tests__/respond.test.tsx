@@ -301,26 +301,6 @@ describe('fixtureRespond capability report', () => {
         expect(body.capabilities.features?.bank).toEqual(explicitReport.bank)
     })
 
-    // The i18n-overflow gate on ui#4198: a report naming one feature replaced the
-    // whole demo report, and every screen reading another feature crashed.
-    it.each(['feature-activation-local-on', 'feature-activation-bank-ready'])(
-        '%s keeps the features it does not name and its own entries whole',
-        async (name) => {
-            activateFixture(name)
-            const body = (await (await fixtureRespond('/users/me')).json()) as { capabilities: UserCapabilities }
-            const features = body.capabilities.features!
-            const named = name.includes('-local-') ? 'local' : 'bank'
-            const other = named === 'local' ? 'bank' : 'local'
-            expect(features[other]).toEqual(DEMO_USER.capabilities!.features![other])
-            expect(features.qr).toEqual(DEMO_USER.capabilities!.features!.qr)
-            expect(features.card).toEqual(DEMO_USER.capabilities!.features!.card)
-            const account = named === 'local' ? 'ARS' : 'EUR'
-            expect(features[named].accounts[account]).toEqual(
-                name.endsWith('-on') ? { state: 'on' } : { state: 'ready', action: 'activate' }
-            )
-        }
-    )
-
     it('feeds the active profile accounts fixture into the bank rows and keeps USD after answered-open filtering', async () => {
         expect(DEV_TOOLS_ENABLED).toBe(true)
         expect(FIXTURES['profile-accounts'].route).toBe('/profile/accounts')

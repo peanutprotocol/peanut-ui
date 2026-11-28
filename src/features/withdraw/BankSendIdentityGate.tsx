@@ -15,12 +15,10 @@ import { KycRegionRestricted } from '@/components/Kyc/states/KycRegionRestricted
 import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
-import { useVerification } from '@/hooks/useVerification'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { useKycControl } from '@/features/paperwork-verification/analytics'
-import { isIdentityVerified } from '@/utils/verification'
 
 // Six sequential reads with a capped backoff. A websocket approval can arrive
 // ahead of the profile read model; a failed read must not strand this gate.
@@ -39,9 +37,15 @@ function IdentityGate({ children }: { children: ReactNode }) {
     const control = useKycControl('kyc-status', 'kyc_status')
     const { user, logoutUser, fetchUser } = useAuth()
     const { setIsSupportModalOpen } = useModalsContext()
-    const { identity, status, isRegionRestricted, isTerminalFailure, isEmailCollision, needsDocumentRestart } =
-        useIdentityVerification()
-    const { identityVerified: isVerified } = useVerification()
+    const {
+        identity,
+        status,
+        isVerified,
+        isRegionRestricted,
+        isTerminalFailure,
+        isEmailCollision,
+        needsDocumentRestart,
+    } = useIdentityVerification()
     // No destination has been chosen yet: start the same identity check as
     // Home. Country/provider enrollment remains with the destination's gate.
     const flow = useMultiPhaseKycFlow({})
@@ -61,7 +65,7 @@ function IdentityGate({ children }: { children: ReactNode }) {
             try {
                 const profile = await fetchUser({ throwOnError: true })
                 if (cancelled) return
-                if (profile?.user.userId === userId && isIdentityVerified(profile.identityVerification)) return
+                if (profile?.user.userId === userId && profile.identityVerification?.status === 'verified') return
             } catch {
                 // The user query reports the read error. Keep the processing
                 // state and retry rather than treating a failed read as a verdict.

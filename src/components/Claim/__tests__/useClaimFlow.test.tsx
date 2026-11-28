@@ -53,9 +53,8 @@ jest.mock('use-haptic', () => ({
     useHaptic: () => ({ triggerHaptic: jest.fn() }),
 }))
 
-jest.mock('@/hooks/useVerification', () => ({ useVerification: () => ({ hasAnyEnabledRail: false }) }))
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ bankRails: () => [] }),
+    useCapabilities: () => ({ isKycApproved: false, bankRails: () => [] }),
 }))
 
 const mockSetFlowStep = jest.fn()
@@ -107,6 +106,14 @@ const mockSendLinksApi = {
 }
 const mockGetParamsFromLink = jest.fn()
 jest.mock('@/services/sendLinks', () => ({
+    ESendLinkStatus: {
+        creating: 'creating',
+        completed: 'completed',
+        CLAIMING: 'CLAIMING',
+        CLAIMED: 'CLAIMED',
+        CANCELLED: 'CANCELLED',
+        FAILED: 'FAILED',
+    },
     sendLinksApi: mockSendLinksApi,
     getParamsFromLink: (...args: any[]) => mockGetParamsFromLink(...args),
     resolveClaimLink: (link: string) => link,

@@ -9,7 +9,6 @@ import { PAPERWORK_VERIFICATION_FLOW, type KycDocumentPlan } from '@/app/actions
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useKycDegraded } from '@/hooks/useKycDegraded'
 import { useOptionalAuth } from '@/context/authContext'
-import { identityStartRefusalPath } from './paperworkVerificationEntry'
 
 export const PAPERWORK_VERIFICATION_PLAN_QUERY_KEY = ['kyc-plan', 'paperwork-verification'] as const
 export const PAPERWORK_VERIFICATION_QUESTIONS_QUERY_KEY = ['kyc-questions', 'paperwork-verification'] as const
@@ -19,7 +18,7 @@ const PLAN_STALE_MS = 30_000
 const QUESTIONS_GC_MS = 10 * 60_000
 
 const opensFlow = (plan: KycDocumentPlan | null | undefined) =>
-    plan?.flow === PAPERWORK_VERIFICATION_FLOW && !plan.unavailableReason && !plan.needs?.length
+    plan?.flow === PAPERWORK_VERIFICATION_FLOW && !plan.needs?.length
 
 /** Loads what /verify opens on, so it shows its first screen without a wait. */
 export function prefetchPaperworkVerification(queryClient: QueryClient, userId?: string) {
@@ -43,9 +42,11 @@ export function prefetchPaperworkVerification(queryClient: QueryClient, userId?:
  * before the first read waits. The modal's own short-circuits (verification
  * outage, region-restricted ID) keep it in front.
  *
- * An unreadable plan opens verification recovery.
+ * A plan that cannot be read keeps the start modal: its start asks the API,
+ * which refuses a Smart Paperwork Verification user with
+ * paperwork_verification_required and the start then opens /verify.
  */
-export function usePaperworkVerificationStart(): () => Promise<string | null> {
+export function usePaperworkVerificationStart(): () => Promise<boolean> {
     const userId = useOptionalAuth()?.user?.user.userId
     const degraded = useKycDegraded()
     const { isRegionRestricted } = useIdentityVerification()
@@ -66,30 +67,23 @@ export function usePaperworkVerificationStart(): () => Promise<string | null> {
         router.prefetch('/verify')
     }, [flowAhead, queryClient, router, userId])
     return useCallback(async () => {
-        if (degraded || isRegionRestricted) return null
-        if (!userId) return '/verify'
+        if (!userId || degraded || isRegionRestricted) return false
         const key = [...PAPERWORK_VERIFICATION_PLAN_QUERY_KEY, userId]
-        const route = (plan: KycDocumentPlan | null) =>
-            identityStartRefusalPath(plan?.unavailableReason) ?? (plan?.flow === null ? null : '/verify')
-        const cached = queryClient.getQueryState<KycDocumentPlan | null>(key)
-        if (cached?.status === 'success' && cached.data?.flow !== null) {
+        const cached = queryClient.getQueryData<KycDocumentPlan | null>(key)
+        if (cached !== undefined) {
             void queryClient.invalidateQueries({ queryKey: key })
-            return route(cached.data ?? null)
-        }
-        if (cached?.status === 'error') {
-            void queryClient.invalidateQueries({ queryKey: key })
-            return identityStartRefusalPath((cached.error as { code?: string } | null)?.code) ?? '/verify'
+            return cached?.flow === PAPERWORK_VERIFICATION_FLOW
         }
         try {
             const fresh = await queryClient.fetchQuery({
                 queryKey: key,
                 queryFn: () => findKycDocumentPlan('home'),
-                staleTime: 0,
+                staleTime: PLAN_STALE_MS,
                 retry: false,
             })
-            return route(fresh)
-        } catch (error) {
-            return identityStartRefusalPath((error as { code?: string } | null)?.code) ?? '/verify'
+            return fresh?.flow === PAPERWORK_VERIFICATION_FLOW
+        } catch {
+            return false
         }
     }, [degraded, isRegionRestricted, queryClient, userId])
 }

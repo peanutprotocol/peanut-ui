@@ -147,13 +147,9 @@ describe('ResidenceChangeDrawer', () => {
     // country must therefore SWAP the pair, not overwrite the primary and
     // leave both slots holding the same country — that silently drops the
     // outgoing country from the intersection.
-    //
-    // `declared: null`: the compact /users/me omits `declared` when it equals
-    // the verified country (api residence-profile.ts), so the swap must use
-    // the verified country (peanut-api-ts verification/tla/ResidenceChange.tla).
     it('promoting the second document country swaps the pair instead of dropping one', async () => {
         storeSecondResidence('u1', 'FR')
-        const { onClose } = render({ declared: null, verified: 'ES' })
+        const { onClose } = render({ declared: 'ES', verified: 'ES' })
         fireEvent.click(screen.getByRole('combobox'))
         fireEvent.click(screen.getByText('France'))
         fireEvent.click(screen.getByText('Save'))
@@ -171,7 +167,7 @@ describe('ResidenceChangeDrawer', () => {
 
     it('moving to a country in neither slot leaves the second document alone', async () => {
         storeSecondResidence('u1', 'FR')
-        const { onClose } = render({ declared: null, verified: 'ES' })
+        const { onClose } = render({ declared: 'ES', verified: 'ES' })
         fireEvent.click(screen.getByRole('combobox'))
         fireEvent.click(screen.getByText('Germany'))
         fireEvent.click(screen.getByText('Save'))
@@ -184,7 +180,7 @@ describe('ResidenceChangeDrawer', () => {
     // exactly what let a reorder wipe the outgoing country. The durable value
     // comes from /users/me.
     it('swaps from the server value with no device mirror at all', async () => {
-        const { onClose } = render({ declared: null, verified: 'ES', declaredSecond: 'FR' })
+        const { onClose } = render({ declared: 'ES', verified: 'ES', declaredSecond: 'FR' })
         fireEvent.click(screen.getByRole('combobox'))
         fireEvent.click(screen.getByText('France'))
         fireEvent.click(screen.getByText('Save'))
@@ -198,7 +194,7 @@ describe('ResidenceChangeDrawer', () => {
 
     it('prefers the server value over a stale device mirror', async () => {
         storeSecondResidence('u1', 'DE')
-        const { onClose } = render({ declared: null, verified: 'ES', declaredSecond: 'FR' })
+        const { onClose } = render({ declared: 'ES', verified: 'ES', declaredSecond: 'FR' })
         fireEvent.click(screen.getByRole('combobox'))
         fireEvent.click(screen.getByText('France'))
         fireEvent.click(screen.getByText('Save'))
@@ -212,7 +208,7 @@ describe('ResidenceChangeDrawer', () => {
 
     it('a server answer of no second residence keeps a stale device mirror from reordering', async () => {
         storeSecondResidence('u1', 'FR')
-        const { onClose } = render({ declared: null, verified: 'ES', declaredSecond: null })
+        const { onClose } = render({ declared: 'ES', verified: 'ES', declaredSecond: null })
         fireEvent.click(screen.getByRole('combobox'))
         fireEvent.click(screen.getByText('France'))
         fireEvent.click(screen.getByText('Save'))

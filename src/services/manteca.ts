@@ -522,19 +522,10 @@ export const mantecaApi = {
             return { data: result }
         } catch (error) {
             console.error('Error calling manteca withdraw complete-with-signed-tx API:', error)
-            // Transport, timeout, abort, and non-JSON gateway error pages must
-            // reach the caller's catch: flattening them into { error } sends
-            // the page down its result.error branch, skipping both network
-            // triage (TASK-21956) and double-send recovery.
-            if (
-                isNetworkLayerFailure(error) ||
-                (error instanceof Error &&
-                    (error.name === 'MutationResponseTimeoutError' ||
-                        error.name === 'AbortError' ||
-                        error instanceof SyntaxError))
-            ) {
-                throw error
-            }
+            // Transport failures must reach the caller's catch: flattening them
+            // into { error } sends the page down its result.error branch, which
+            // returns before the network-triage capture ever runs (TASK-21956).
+            if (isNetworkLayerFailure(error)) throw error
             if (error instanceof Error) {
                 return { error: error.message }
             }

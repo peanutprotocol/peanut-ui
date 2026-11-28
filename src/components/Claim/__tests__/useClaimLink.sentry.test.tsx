@@ -35,7 +35,7 @@ jest.mock('@/utils/peanut-claim.utils', () => ({
 jest.mock('@/services/rhino-sda', () => ({
     provisionSdaTransfer: jest.fn(async () => ({ sdaAddress: '0x' + '22'.repeat(20) })),
 }))
-jest.mock('@/services/sendLinks', () => ({ sendLinksApi: {} }))
+jest.mock('@/services/sendLinks', () => ({ sendLinksApi: {}, ESendLinkStatus: { FAILED: 'FAILED' } }))
 
 import useClaimLink from '../useClaimLink'
 

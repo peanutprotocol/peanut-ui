@@ -1,7 +1,8 @@
 import { getUserById } from '@/app/actions/users'
 import { useAuth } from '@/context/authContext'
+import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { useEffect, useState } from 'react'
-import { useVerification } from './useVerification'
+import { useCapabilities } from './useCapabilities'
 
 export enum BankRequestType {
     GuestBankRequest = 'guest-bank-request',
@@ -21,12 +22,14 @@ export function useDetermineBankRequestType(requesterUserId: string): {
 } {
     const { user } = useAuth()
     const [requestType, setRequestType] = useState<BankRequestType>(BankRequestType.PayerKycNeeded)
-    // The payer is the current user: an enabled rail means they can pay by bank.
-    const { hasAnyEnabledRail } = useVerification()
+    const { setRequesterDetails } = useRequestFulfillmentFlow()
+    // MIGRATION-REVIEW: was useKycStatus().isUserKycApproved. The payer is the CURRENT
+    // user → capability isKycApproved (any enabled rail), same proxy used elsewhere.
+    const { isKycApproved } = useCapabilities()
 
     useEffect(() => {
         const determineBankRequestType = async () => {
-            const payerKycApproved = hasAnyEnabledRail
+            const payerKycApproved = isKycApproved
 
             if (payerKycApproved) {
                 setRequestType(BankRequestType.UserBankRequest)
@@ -50,6 +53,7 @@ export function useDetermineBankRequestType(requesterUserId: string): {
                 const requesterKycApproved = requesterDetails?.canReceiveBankOfframp ?? false
 
                 if (requesterKycApproved) {
+                    setRequesterDetails(requesterDetails)
                     setRequestType(BankRequestType.GuestBankRequest)
                 } else {
                     if (user?.user.userId) {
@@ -68,7 +72,7 @@ export function useDetermineBankRequestType(requesterUserId: string): {
         }
 
         determineBankRequestType()
-    }, [user, requesterUserId, hasAnyEnabledRail])
+    }, [user, requesterUserId, setRequesterDetails, isKycApproved])
 
     return { requestType, setRequestType }
 }

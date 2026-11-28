@@ -577,14 +577,20 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '89-f-withdraw-review-insufficient': {
         name: 'Withdrawal review — insufficient balance before confirmation',
         path: 'features/withdraw/views/ConfirmWithdrawView.tsx',
-        captureState: ['insufficientBalance=true', 'processing=false'],
+        captureState: ['insufficientBalance=true', 'processing=false', 'alreadySpent=false'],
         expectSelector: '[data-testid="withdraw-insufficient-balance"]',
     },
     '90-f-withdraw-review-processing': {
         expectsLoading: true,
         name: 'Withdrawal review — processing after balance refresh',
         path: 'features/withdraw/views/ConfirmWithdrawView.tsx',
-        captureState: ['insufficientBalance=true', 'processing=true'],
+        captureState: ['insufficientBalance=true', 'processing=true', 'alreadySpent=false'],
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '91-f-withdraw-review-spent': {
+        name: 'Withdrawal review — already spent after balance refresh',
+        path: 'features/withdraw/views/ConfirmWithdrawView.tsx',
+        captureState: ['insufficientBalance=true', 'processing=false', 'alreadySpent=true'],
         expectSelector: '[data-testid="app-page-surface-content"] button',
     },
     '92-f-deposit-account-closed': {

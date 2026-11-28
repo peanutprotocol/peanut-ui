@@ -57,7 +57,7 @@ jest.mock('@/features/payments/flows/qr-pay/useQrIdentityCheck', () => ({
     useQrIdentityCheck: () => ({ start: jest.fn(), modals: null }),
 }))
 jest.mock('@/features/paperwork-verification/usePaperworkVerificationStart', () => ({
-    usePaperworkVerificationStart: () => () => Promise.resolve(null),
+    usePaperworkVerificationStart: () => () => Promise.resolve(false),
 }))
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
 

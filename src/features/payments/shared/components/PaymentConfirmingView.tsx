@@ -19,20 +19,11 @@ import { useTranslations } from 'next-intl'
 
 interface PaymentConfirmingViewProps {
     headerTitle: string
-    /** A flow's own wording of the wait, in place of the generic one. */
-    title?: string
-    description?: string
     redirectTo?: string
     onComplete?: () => void
 }
 
-export function PaymentConfirmingView({
-    headerTitle,
-    title,
-    description,
-    redirectTo = '/home',
-    onComplete,
-}: PaymentConfirmingViewProps) {
+export function PaymentConfirmingView({ headerTitle, redirectTo = '/home', onComplete }: PaymentConfirmingViewProps) {
     const t = useTranslations('payment')
     const tCommon = useTranslations('common')
     const handleDone = useFlowExit(redirectTo, onComplete)
@@ -47,10 +38,10 @@ export function PaymentConfirmingView({
                         {/* the yellow clock is the wait, as on the processing drawers */}
                         <IconBubble icon="clock" size="s" color="yellow" />
                         <h1 className="text-center text-heading-card text-foreground-primary">
-                            {title ?? t('confirmingPayment.title')}
+                            {t('confirmingPayment.title')}
                         </h1>
                         <p className="text-center text-body-s text-foreground-secondary">
-                            {description ?? t('confirmingPayment.description')}
+                            {t('confirmingPayment.description')}
                         </p>
                     </div>
                 </Card>

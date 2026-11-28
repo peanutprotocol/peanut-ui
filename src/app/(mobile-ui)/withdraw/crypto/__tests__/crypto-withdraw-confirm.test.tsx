@@ -6,9 +6,8 @@
  * uuid into sendMoney (so the backend settles the charge server-side) and must
  * ALWAYS call recordPayment (mixed spends rely on it; collateral-only uses it
  * as the idempotent recovery net). A recordPayment failure after funds moved
- * must degrade to the success view on collateral-routed paths; on every other
- * path it goes to the shared recovery (usePendingChargeSend), never back to
- * Confirm.
+ * must degrade to the success view on collateral-routed paths, while
+ * smart-only keeps its historical hard-fail behavior.
  *
  * Strategy (same as withdraw-states.test.tsx): mock every hook/service at the
  * module level; assert on the context-setter mocks rather than re-rendering.
@@ -140,14 +139,6 @@ jest.mock('@/services/requests', () => ({
     requestsApi: { create: jest.fn() },
 }))
 
-// the double-send guard keys its pending marker by the user
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'u1' } } }) }))
-// where a signed user op stands on chain, as the recovery reads it
-const mockReadUserOpOutcome = jest.fn()
-jest.mock('@/utils/userop-outcome', () => ({
-    readUserOpOutcome: (...args: unknown[]) => mockReadUserOpOutcome(...args),
-}))
-
 // ---------- view mocks ----------
 
 jest.mock('@/features/withdraw/views/ConfirmWithdrawView', () => ({
@@ -159,6 +150,7 @@ jest.mock('@/features/withdraw/views/ConfirmWithdrawView', () => ({
         receiveAmount?: string | null
         showHighFeeWarning?: boolean
         belowMinimumMessage?: string | null
+        alreadySpent?: boolean
         isProcessing?: boolean
     }) => (
         <>
@@ -172,6 +164,7 @@ jest.mock('@/features/withdraw/views/ConfirmWithdrawView', () => ({
             <span data-testid="receive-amount">{String(props.receiveAmount)}</span>
             <span data-testid="high-fee-warning">{String(!!props.showHighFeeWarning)}</span>
             <span data-testid="below-minimum">{String(props.belowMinimumMessage)}</span>
+            <span data-testid="already-spent">{String(!!props.alreadySpent)}</span>
             <span data-testid="confirm-processing">{String(!!props.isProcessing)}</span>
         </>
     ),
@@ -442,7 +435,6 @@ import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 import { getSupportedChainsAndTokens } from '@/app/actions/supported-chains'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { apiFetch } from '@/utils/api-fetch'
-import { markSpendMayHaveBroadcast } from '@/hooks/wallet/spendBroadcast'
 
 const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRender>[1], 'wrapper'>) =>
     rtlRender(ui, { wrapper: IntlWrapper, ...options })
@@ -459,8 +451,6 @@ const confirm = async () => {
 beforeEach(() => {
     mockWithdrawFlow.showCompatibilityModal = false
     jest.clearAllMocks()
-    window.localStorage.clear()
-    mockReadUserOpOutcome.mockReset().mockResolvedValue('unknown')
     mockRecordPayment.mockResolvedValue(PAYMENT_RESULT)
     Object.assign(mockCrossChainTransfer, {
         isXChain: false,
@@ -1124,10 +1114,11 @@ describe('crypto withdraw confirm — charge completion', () => {
         expect(mockRecordPayment).toHaveBeenCalledWith(expect.objectContaining({ txHash: '0xuserop' }))
     })
 
-    it('a recordPayment failure after a cross-chain send goes to recovery, never to Retry (mixed funding included)', async () => {
+    it('keeps rethrowing recordPayment failures on cross-chain withdrawals (mixed funding included)', async () => {
         // isDiffToken-only on purpose: same-chain USDC→ETH historically got
         // silently downgraded to a plain transfer (see isCrossChainWithdrawal)
-        // — pin that token-boundary-only also routes through sendTransactions.
+        // — pin that token-boundary-only also routes through sendTransactions
+        // and keeps the strict rethrow.
         Object.assign(mockCrossChainTransfer, { isDiffToken: true })
         mockSendTransactions.mockResolvedValue({
             userOpHash: '0xuserop',
@@ -1135,23 +1126,17 @@ describe('crypto withdraw confirm — charge completion', () => {
             strategy: 'mixed',
             intentId: 'prep-intent-2',
         })
-        mockRecordPayment.mockRejectedValueOnce(new Error('record failed'))
-        jest.mocked(chargesApi.get).mockResolvedValue({ ...chargeDetails, status: 'PENDING' } as never)
+        mockRecordPayment.mockRejectedValue(new Error('record failed'))
 
         await confirm()
 
-        // the recovery records the same hash again: the charge is booked
-        await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('success'))
-        expect(mockSendTransactions).toHaveBeenCalledTimes(1)
+        await waitFor(() => expect(mockPosthogCapture).toHaveBeenCalledWith('withdraw_failed', expect.anything()))
         expect(mockSendMoney).not.toHaveBeenCalled()
-        expect(mockRecordPayment).toHaveBeenCalledTimes(2)
-        expect(mockRecordPayment).toHaveBeenLastCalledWith(expect.objectContaining({ txHash: '0xmined' }))
-        expect(mockSetPaymentDetails).toHaveBeenLastCalledWith(PAYMENT_RESULT)
-        expect(mockSetWithdrawError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
-        expect(mockPosthogCapture).not.toHaveBeenCalledWith('withdraw_failed', expect.anything())
+        expect(mockStepperGoTo).not.toHaveBeenCalledWith('success')
+        expect(mockSetWithdrawError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
     })
 
-    it('a recordPayment failure on the smart-only path goes to recovery, never to Retry', async () => {
+    it('keeps surfacing recordPayment failures on the smart-only path (its only completion trigger)', async () => {
         mockSendMoney.mockResolvedValue({
             txHash: undefined,
             userOpHash: '0xuserop',
@@ -1159,15 +1144,13 @@ describe('crypto withdraw confirm — charge completion', () => {
             strategy: 'smart-only',
             intentId: undefined,
         })
-        mockRecordPayment.mockRejectedValueOnce(new Error('record failed'))
-        jest.mocked(chargesApi.get).mockResolvedValue({ ...chargeDetails, status: 'PENDING' } as never)
+        mockRecordPayment.mockRejectedValue(new Error('record failed'))
 
         await confirm()
 
-        await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('success'))
-        expect(mockSendMoney).toHaveBeenCalledTimes(1)
-        expect(mockRecordPayment).toHaveBeenCalledTimes(2)
-        expect(mockSetWithdrawError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+        await waitFor(() => expect(mockPosthogCapture).toHaveBeenCalledWith('withdraw_failed', expect.anything()))
+        expect(mockStepperGoTo).not.toHaveBeenCalledWith('success')
+        expect(mockSetWithdrawError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
     })
 })
 
@@ -1202,96 +1185,67 @@ describe('crypto withdraw — card re-approval cancelled before the broadcast', 
     })
 })
 
-/**
- * Replays the ChargeSendFlow.tla counterexamples on the crypto withdrawal
- * (verification/tla/ChargeSendFlow.tla, Buggy cfgs). Each
- * trace ended, before the shared guard, with Confirm offered again while the
- * first transfer could still land.
- */
-describe('crypto withdraw — a lost answer is read back, never sent again (TASK-19581 double-spend)', () => {
-    const OP = { userOpHash: `0x${'ab'.repeat(32)}`, nonce: '7' }
-    const MARKER_KEY = `peanut:pendingChargeSend:u1:withdraw-crypto:42161:${RECIPIENT}`
-    const sendLosesItsAnswer = () =>
-        mockSendMoney.mockImplementation(
-            async (_to: string, _amount: string, opts: { onBroadcast?: (b: unknown) => void }) => {
-                opts.onBroadcast?.({ via: 'wallet', userOp: OP })
-                throw markSpendMayHaveBroadcast(new Error('bundler request timed out'))
-            }
-        )
-
-    it('a send that failed after its broadcast is found on chain, recorded, and never sent again', async () => {
-        sendLosesItsAnswer()
-        mockReadUserOpOutcome.mockResolvedValue({ executed: '0xfound' })
-        jest.mocked(chargesApi.get).mockResolvedValue({ ...chargeDetails, status: 'PENDING' } as never)
+describe('crypto withdraw retry — record-only replay (TASK-19581 double-spend)', () => {
+    // The prod incident: recordPayment times out AFTER the on-chain transfer
+    // broadcast; the user lands on Retry, and pre-fix Retry re-ran the whole
+    // flow — issuing a SECOND on-chain transfer for the same charge.
+    it('retry after a recordPayment failure never re-broadcasts — it replays only the record with the same hash', async () => {
+        mockSendMoney.mockResolvedValue({
+            txHash: undefined,
+            userOpHash: '0xuserop',
+            receipt: { transactionHash: '0xmined', status: 'success' },
+            strategy: 'smart-only',
+            intentId: undefined,
+        })
+        mockRecordPayment.mockRejectedValueOnce(new Error('Request timed out after 30000ms'))
 
         render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+        await waitFor(() => expect(mockPosthogCapture).toHaveBeenCalledWith('withdraw_failed', expect.anything()))
+        expect(mockSendMoney).toHaveBeenCalledTimes(1)
+
         fireEvent.click(screen.getByTestId('confirm-withdraw'))
         await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('success'))
 
-        expect(mockReadUserOpOutcome).toHaveBeenCalledWith(OP, USER_ADDRESS)
-        expect(mockRecordPayment).toHaveBeenCalledWith(expect.objectContaining({ txHash: '0xfound' }))
-        expect(mockSetTransactionHash).toHaveBeenCalledWith('0xfound')
-        expect(mockSetWithdrawError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
-        expect(mockPosthogCapture).not.toHaveBeenCalledWith('withdraw_failed', expect.anything())
-
-        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+        // The on-chain leg ran exactly once across both attempts.
         expect(mockSendMoney).toHaveBeenCalledTimes(1)
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+        // The record ran twice, both times with the ORIGINAL mined hash.
+        expect(mockRecordPayment).toHaveBeenCalledTimes(2)
+        expect(mockRecordPayment).toHaveBeenLastCalledWith(expect.objectContaining({ txHash: '0xmined' }))
     })
 
-    it('while the send may still land, Confirm stays off, also after Back and a new review', async () => {
-        jest.useFakeTimers()
-        try {
-            sendLosesItsAnswer()
-            jest.mocked(chargesApi.get).mockResolvedValue({ ...chargeDetails, status: 'PENDING' } as never)
-            const view = render(<WithdrawCryptoPage />)
-            fireEvent.click(screen.getByTestId('confirm-withdraw'))
-            await act(async () => {
-                await jest.advanceTimersByTimeAsync(0)
-            })
-            expect(screen.getByTestId('confirm-processing')).toHaveTextContent('true')
-
-            // the recovery window ends with the op still nowhere: the confirming screen, marker kept
-            await act(async () => {
-                await jest.advanceTimersByTimeAsync(65_000)
-            })
-            expect(mockStepperGoTo).toHaveBeenLastCalledWith('success')
-            expect(window.localStorage.getItem(MARKER_KEY)).not.toBeNull()
-
-            // Back to the amount and a new review for the same destination
-            fireEvent.click(screen.getByTestId('back-review'))
-            view.rerender(<WithdrawCryptoPage />)
-            expect(screen.getByTestId('confirm-processing')).toHaveTextContent('true')
-            fireEvent.click(screen.getByTestId('confirm-withdraw'))
-            await act(async () => {
-                await jest.advanceTimersByTimeAsync(0)
-            })
-            expect(mockSendMoney).toHaveBeenCalledTimes(1)
-            expect(mockSendTransactions).not.toHaveBeenCalled()
-            view.unmount()
-            await act(async () => {
-                await jest.advanceTimersByTimeAsync(5_000)
-            })
-        } finally {
-            jest.clearAllTimers()
-            jest.useRealTimers()
-        }
-    })
-
-    it('Confirm comes back once the chain proves nothing moved', async () => {
-        sendLosesItsAnswer()
-        mockReadUserOpOutcome.mockResolvedValue('reverted')
-        jest.mocked(chargesApi.get).mockResolvedValue({ ...chargeDetails, status: 'PENDING' } as never)
+    it('keeps the record-only retry available when the spend emptied the wallet', async () => {
+        // Full-balance withdrawal: the on-chain leg lands, the record fails,
+        // and the balance refresh then makes the original spend look
+        // unaffordable. The CTA gates must step aside or the only recovery
+        // from a stuck PENDING charge is greyed out.
+        mockSendMoney.mockResolvedValue({
+            txHash: undefined,
+            userOpHash: '0xuserop',
+            receipt: { transactionHash: '0xmined', status: 'success' },
+            strategy: 'smart-only',
+            intentId: undefined,
+        })
+        mockRecordPayment.mockRejectedValueOnce(new Error('Request timed out after 30000ms'))
 
         render(<WithdrawCryptoPage />)
         fireEvent.click(screen.getByTestId('confirm-withdraw'))
-        await waitFor(() =>
-            expect(mockSetPaymentError).toHaveBeenCalledWith(
-                'This payment did not go through, and no money left your wallet. You can try again.'
-            )
-        )
-        expect(mockStepperGoTo).toHaveBeenLastCalledWith('review')
-        expect(window.localStorage.getItem(MARKER_KEY)).toBeNull()
-        expect(screen.getByTestId('confirm-processing')).toHaveTextContent('false')
+        await waitFor(() => expect(mockPosthogCapture).toHaveBeenCalledWith('withdraw_failed', expect.anything()))
+
+        // the funds have left, so the view is told this charge is already spent
+        expect(screen.getByTestId('already-spent').textContent).toBe('true')
+
+        // and the wallet now reads empty against that same spend
+        mockWalletState.spendableBalance = 0n
+        mockIsAmountWithinBalance.mockImplementation(() => false)
+
+        // the replay still runs, with the original mined hash and no re-broadcast
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+        await waitFor(() => expect(mockRecordPayment).toHaveBeenCalledTimes(2))
+        expect(mockSendMoney).toHaveBeenCalledTimes(1)
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+        expect(mockRecordPayment).toHaveBeenLastCalledWith(expect.objectContaining({ txHash: '0xmined' }))
     })
 
     it('a failure BEFORE any tx identifier exists retries with a fresh broadcast (nothing was spent)', async () => {
@@ -1826,28 +1780,18 @@ describe('unpaid withdrawal draft cleanup', () => {
         mockWithdrawFlow.showCompatibilityModal = false
     })
 
-    it('broadcasts once for two Confirm clicks in one tick', async () => {
-        let failSend!: (error: Error) => void
-        mockSendMoney.mockImplementationOnce(
-            () =>
-                new Promise((_resolve, reject) => {
-                    failSend = reject
-                })
-        )
+    it('broadcasts once for two Confirm clicks while the first send is pending', async () => {
+        mockSendMoney.mockImplementationOnce(() => new Promise(() => {}))
         const view = render(<WithdrawCryptoPage />)
         selectDestinationAndReview()
         await waitFor(() => expect(chargesApi.get).toHaveBeenCalled())
         mockStepper.step = 'review'
         view.rerender(<WithdrawCryptoPage />)
-        act(() => {
-            fireEvent.click(screen.getByTestId('confirm-withdraw'))
-            fireEvent.click(screen.getByTestId('confirm-withdraw'))
-        })
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
         await waitFor(() => expect(mockSendMoney).toHaveBeenCalledTimes(1))
         view.unmount()
         expect(chargesApi.cancel).not.toHaveBeenCalled()
-        // ends the send this page started, so the next case starts clean
-        await act(async () => failSend(new Error('user rejected signature')))
     })
 
     it('never cancels after signing starts, including an ambiguous timeout', async () => {

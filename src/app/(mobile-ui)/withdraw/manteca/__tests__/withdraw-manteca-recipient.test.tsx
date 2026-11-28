@@ -53,9 +53,8 @@ jest.mock('@/hooks/useFriendlyError', () => ({
 jest.mock('@/hooks/wallet/usePendingTransactions', () => ({
     usePendingTransactions: () => ({ hasPendingTransactions: false }),
 }))
-jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({}) }))
-jest.mock('@/hooks/useVerification', () => ({
-    useVerification: () => ({ identityVerified: true, canUse: () => true }),
+jest.mock('@/hooks/useIdentityVerification', () => ({
+    useIdentityVerification: () => ({ isVerified: true }),
 }))
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({ rails: [], nextActions: [], capabilities: { routes: [] } }),
@@ -69,6 +68,7 @@ jest.mock('@/context/authContext', () => ({
 }))
 jest.mock('@/utils/regions.utils', () => ({
     ...jest.requireActual('@/utils/regions.utils'),
+    isVerifiedForCountry: () => true,
     deriveProviderRejection: () => null,
 }))
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({

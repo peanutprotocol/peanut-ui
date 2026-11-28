@@ -34,7 +34,7 @@ export const KycStatusItem = ({
 }) => {
     const { track } = useKycControl('kyc-status', 'kyc_status')
     const t = useTranslations('kyc')
-    const { identity, status, isTerminalFailure } = useIdentityVerification()
+    const { status } = useIdentityVerification()
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     // keep drawer component mounted when SDK flow is active (so SumsubKycModals persists
     // even after the drawer visually closes)
@@ -44,18 +44,8 @@ export const KycStatusItem = ({
         setIsDrawerOpen(false)
     }, [])
 
-    // Align with GettingStartedChecklist & KycStatusDrawer on the same Home screen:
-    // a FINAL action_required is Failed (support-only), while a retryable failed check
-    // is Action needed.
-    const displayStatus =
-        status === 'action_required' && isTerminalFailure
-            ? 'failed'
-            : status === 'failed' && identity.canRetry === true
-              ? 'action_required'
-              : status
-
     const subtitle = useMemo(() => {
-        switch (displayStatus) {
+        switch (status) {
             case 'processing':
                 return t('statusProcessing')
             case 'verified':
@@ -67,21 +57,14 @@ export const KycStatusItem = ({
             default:
                 return t('statusUnknown')
         }
-    }, [displayStatus, t])
+    }, [status, t])
 
     // not_started ⇒ hide the card entirely.
     if (status === 'not_started') {
         return null
     }
 
-    const pill =
-        displayStatus === 'verified'
-            ? 'completed'
-            : displayStatus === 'failed'
-              ? 'cancelled'
-              : displayStatus === 'processing'
-                ? 'processing'
-                : 'pending'
+    const pill = status === 'verified' ? 'completed' : status === 'failed' ? 'cancelled' : 'pending'
 
     return (
         <>

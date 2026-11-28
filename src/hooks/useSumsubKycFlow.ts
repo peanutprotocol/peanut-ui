@@ -37,7 +37,6 @@ import {
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { RESIDENCE_ADDRESS_ACTION_KEY } from '@/constants/kyc.consts'
 import { isDemoMode } from '@/utils/demo'
-import { API_ERROR_CODES } from '@/services/api-error'
 import { captureSessionFence } from '@/utils/session-fence'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import { pixFlowPath } from '@/features/pix/pixRoute.utils'
@@ -49,7 +48,6 @@ import {
 import type { FeatureReverificationEntry } from '@/app/actions/types/kyc-reverification.types'
 import {
     entryFeature,
-    identityStartRefusalPath,
     paperworkVerificationRoute,
     paperworkVerificationFeaturePath,
     paperworkVerificationDocumentPath,
@@ -423,7 +421,6 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             liveKycStatus !== prevStatus &&
             liveKycStatus !== 'APPROVED' &&
             liveKycStatus !== 'PENDING' &&
-            liveKycStatus !== 'IN_REVIEW' &&
             liveKycStatus !== 'REVERIFYING'
         ) {
             // close modal for any non-success terminal state (REJECTED, ACTION_REQUIRED, FAILED, etc.)
@@ -447,22 +444,18 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         if (userInitiatedRef.current) return
 
         const owner = actionOwnerRef.current
-        const controller = new AbortController()
-        const current = () => !controller.signal.aborted && owner === actionOwnerRef.current
+        let cancelled = false
         const fetchCurrentStatus = async () => {
             try {
-                // Only a legacy plan permits the legacy status sync.
-                const plan = await findKycDocumentPlan('status-sync', controller.signal)
-                if (plan?.flow !== null || plan.unavailableReason || plan.entry) return
-                if (!current() || initiatingRef.current || startRecoveryRef.current || userInitiatedRef.current) return
-                const response = await initiateSumsubKyc({ regionIntent }, undefined, controller.signal)
-                if (
-                    current() &&
-                    response.data?.status &&
-                    !response.entry &&
-                    !initiatingRef.current &&
-                    !showWrapperRef.current
-                ) {
+                // a status initiate would open a legacy applicant for a user Smart Paperwork Verification still has to ask
+                // (an unreadable plan throws, so the status initiate is skipped then too)
+                const plan = await findKycDocumentPlan('status-sync')
+                if (plan?.flow === PAPERWORK_VERIFICATION_FLOW || plan?.entry) return
+                if (cancelled || owner !== actionOwnerRef.current) return
+                if (initiatingRef.current || startRecoveryRef.current || userInitiatedRef.current) return
+                const response = await initiateSumsubKyc({ regionIntent })
+                if (cancelled || owner !== actionOwnerRef.current) return
+                if (response.data?.status && !response.entry && !initiatingRef.current && !showWrapperRef.current) {
                     setLiveKycStatus(response.data.status)
                 }
             } catch {
@@ -470,9 +463,11 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             }
         }
 
-        void fetchCurrentStatus()
-        return () => controller.abort()
-    }, [regionIntent, user?.user?.userId])
+        fetchCurrentStatus()
+        return () => {
+            cancelled = true
+        }
+    }, [regionIntent])
 
     // polling fallback for missed websocket events. while the verification
     // progress modal is open, re-check status on a time-escalating schedule
@@ -545,16 +540,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     }, [])
     const handleDocumentConflict = useCallback(
         async (error: unknown, knownPlan?: KycDocumentPlan | null) => {
-            const code = (error as { code?: string } | null)?.code
-            const refusalPath = identityStartRefusalPath(code)
-            if (refusalPath) {
-                userInitiatedRef.current = false
-                documentAttemptRef.current = null
-                setShowWrapper(false)
-                router.push(refusalPath)
-                return true
-            }
-            if (code !== 'document_required') return false
+            if ((error as { code?: string } | null)?.code !== 'document_required') return false
             const plan = knownPlan ?? (await findKycDocumentPlan().catch(() => null))
             if (plan?.flow !== PAPERWORK_VERIFICATION_FLOW) return false
             userInitiatedRef.current = false
@@ -575,7 +561,6 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             correctSession = false,
             corridor?: DepositCorridor,
             explicitEntry = true,
-            beforeRedirect?: () => Promise<void>,
             qrPool = false
         ) => {
             // targetCountry is only ever consumed by the BE as a Manteca geo
@@ -611,16 +596,6 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             const generation = ++startGeneration.current
             const timeoutError = new Error(t('errorInitiateFailed'))
             const isCurrent = () => generation === startGeneration.current && entryUserId === actionOwnerRef.current
-            const redirectTo = async (path: string) => {
-                if (!isCurrent()) return
-                await beforeRedirect?.()
-                if (!isCurrent()) return
-                userInitiatedRef.current = false
-                if (crossRegion) prevStatusRef.current = savedPrevStatus
-                setShowWrapper(false)
-                setIsVerificationProgressModalOpen(false)
-                router.push(path)
-            }
             const withinStage = async <T>(operation: (signal: AbortSignal) => Promise<T>): Promise<T> => {
                 if (!isCurrent()) throw timeoutError
                 const controller = new AbortController()
@@ -698,16 +673,18 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     response.code === 'feature_reverification_required' &&
                     response.entry
                 ) {
-                    await redirectTo(featureReverificationPath(response.entry, returnTo))
+                    if (crossRegion) prevStatusRef.current = savedPrevStatus
+                    openReverification(response.entry, returnTo)
                     return false
                 }
-                const refusalPath = identityStartRefusalPath(response.code)
-                if (refusalPath) {
-                    await redirectTo(refusalPath)
+                if (response.code === 'paperwork_verification_required') {
+                    userInitiatedRef.current = false
+                    if (crossRegion) prevStatusRef.current = savedPrevStatus
+                    router.push('/verify')
                     return false
                 }
 
-                if (!qrPool && !unscopedLatam && response.code === API_ERROR_CODES.PIX_PROVIDER_MOVED) {
+                if (!qrPool && !unscopedLatam && response.code === 'PIX_PROVIDER_MOVED') {
                     userInitiatedRef.current = false
                     if (crossRegion) prevStatusRef.current = savedPrevStatus
                     await followPixRoute()
@@ -788,6 +765,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     userInitiatedRef.current = false
                     setIsTerminalError(true)
                     setError(t('unsupportedRegionError'))
+                    setIsTerminalError(true)
                     return false
                 }
 
@@ -828,6 +806,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     userInitiatedRef.current = false
                     setIsTerminalError(true)
                     setError(t('railsUnavailableError'))
+                    setIsTerminalError(true)
                     return false
                 }
 
@@ -871,13 +850,6 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     return false
                 }
             }
-
-            const readStartPlan = () =>
-                withinStage((signal) =>
-                    planFeature
-                        ? findKycDocumentPlan('initiate', signal, planFeature)
-                        : findKycDocumentPlan('initiate', signal)
-                )
 
             let uncertain = false
             let recovered = false
@@ -938,27 +910,20 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     setError(t('errorInitiateFailed'))
                     return false
                 }
-                let planRefusal: string | null = null
                 try {
-                    plan = await readStartPlan()
-                    planRefusal = identityStartRefusalPath(plan?.unavailableReason)
-                } catch (error) {
-                    planRefusal = identityStartRefusalPath((error as { code?: string } | null)?.code)
+                    plan = await withinStage((signal) =>
+                        planFeature
+                            ? findKycDocumentPlan('initiate', signal, planFeature)
+                            : findKycDocumentPlan('initiate', signal)
+                    )
+                } catch {
+                    // Unknown plan is never permission to repeat initiation.
                 }
                 if (!isCurrent() || !acceptLate) return false
                 if (recovered) return recoveryResult
-                if (
-                    planRefusal ||
-                    (!unscopedLatam && plan?.entry) ||
-                    (plan?.flow === PAPERWORK_VERIFICATION_FLOW && !plan.activeAttemptId)
-                ) {
+                if (!unscopedLatam && plan?.entry) {
                     recovered = true
-                    await redirectTo(
-                        planRefusal ??
-                            (!unscopedLatam && plan?.entry
-                                ? featureReverificationPath(plan.entry, returnTo)
-                                : '/verify')
-                    )
+                    openReverification(plan.entry, returnTo)
                     return false
                 }
                 if (plan?.activeAttemptId) {
@@ -972,15 +937,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                         setError(null)
                         acceptDocumentSession(session)
                         return true
-                    } catch (error) {
-                        if (!isCurrent() || !acceptLate) return false
-                        if (recovered) return recoveryResult
-                        const path = identityStartRefusalPath((error as { code?: string } | null)?.code)
-                        if (path) {
-                            recovered = true
-                            await redirectTo(path)
-                            return false
-                        }
+                    } catch {
                         // Stay fenced if minting a token also fails or times out.
                     }
                 }
@@ -1037,32 +994,32 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             }
 
             try {
-                if (!correctSession) {
-                    let plan: KycDocumentPlan | null
-                    try {
-                        plan = await readStartPlan()
-                    } catch (error) {
-                        if (error === timeoutError) throw error
-                        if (!isCurrent()) return false
-                        await redirectTo(
-                            identityStartRefusalPath((error as { code?: string } | null)?.code) ?? '/verify'
-                        )
-                        return false
-                    }
+                if (!correctSession && !levelName) {
+                    // An unreadable plan starts today's flow: the API refuses that start with
+                    // paperwork_verification_required for a Smart Paperwork Verification user
+                    // (handled below), so a failed GET never blocks everyone else.
+                    const plan = await withinStage((signal) =>
+                        (planFeature
+                            ? findKycDocumentPlan('initiate', signal, planFeature)
+                            : findKycDocumentPlan('initiate', signal)
+                        ).catch(() => null)
+                    )
                     // Smart Paperwork Verification users answer Peanut's questions on /verify before any document.
                     const paperworkVerificationPath = await withinStage((signal) =>
                         paperworkVerificationRoute(
                             (qrPool || unscopedLatam) && plan?.entry ? { ...plan, entry: undefined } : plan,
-                            levelName || unscopedLatam ? null : feature,
+                            unscopedLatam ? null : feature,
                             user?.capabilities?.features,
                             signal
                         )
                     )
                     if (paperworkVerificationPath) {
-                        await redirectTo(paperworkVerificationPath)
+                        userInitiatedRef.current = false
+                        if (crossRegion) prevStatusRef.current = savedPrevStatus
+                        router.push(paperworkVerificationPath)
                         return false
                     }
-                    if (!qrPool && !levelName && plan?.activeAttemptId) {
+                    if (!qrPool && plan?.activeAttemptId) {
                         try {
                             acceptDocumentSession(
                                 await withinStage((signal) =>
@@ -1074,10 +1031,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                             if (error === timeoutError) throw error
                             userInitiatedRef.current = false
                             if (crossRegion) prevStatusRef.current = savedPrevStatus
-                            if (!isCurrent()) return false
-                            const path = identityStartRefusalPath((error as { code?: string } | null)?.code)
-                            if (path) await redirectTo(path)
-                            else if (!(await handleDocumentConflict(error, plan))) setError(t('errorInitiateFailed'))
+                            if (!(await handleDocumentConflict(error, plan))) setError(t('errorInitiateFailed'))
                         }
                         return false
                     }
@@ -1114,8 +1068,6 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                                     !isCurrent() ||
                                     (!lateResponse.data &&
                                         !lateResponse.entry &&
-                                        !identityStartRefusalPath(lateResponse.code) &&
-                                        lateResponse.code !== 'kyc_client_update_required' &&
                                         !(
                                             qrPool &&
                                             (lateResponse.code === QR_POOL_REFUSED ||
@@ -1170,24 +1122,15 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             handleDocumentConflict,
             user?.user?.userId,
             user?.capabilities?.features,
+            openReverification,
             fetchUser,
             qrBlock,
         ]
     )
 
     const handleUnlockQr = useCallback(
-        (explicitEntry = true, beforeRedirect?: () => Promise<void>) =>
-            handleInitiateKyc(
-                undefined,
-                undefined,
-                undefined,
-                undefined,
-                false,
-                undefined,
-                explicitEntry,
-                beforeRedirect,
-                true
-            ),
+        (explicitEntry = true) =>
+            handleInitiateKyc(undefined, undefined, undefined, undefined, false, undefined, explicitEntry, true),
         [handleInitiateKyc]
     )
 
@@ -1437,11 +1380,10 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         }
 
         if (response.error || !response.data?.token) {
-            const refusalPath = identityStartRefusalPath(response.code)
-            if (refusalPath) {
+            if (response.code === 'paperwork_verification_required') {
                 userInitiatedRef.current = false
                 setShowWrapper(false)
-                router.push(refusalPath)
+                router.push('/verify')
             }
             if (!qrPool && response.code === 'feature_selection_required') {
                 userInitiatedRef.current = false
@@ -1544,12 +1486,6 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 // route accepts because it already matches the canonical one.
                 const response = await restartIdentityVerification(overrideIntent, undefined, fence.current)
                 if (!fence.current()) return false
-                const refusalPath = identityStartRefusalPath(response.code)
-                if (refusalPath) {
-                    userInitiatedRef.current = false
-                    router.push(refusalPath)
-                    return false
-                }
                 if (response.error) {
                     userInitiatedRef.current = false
                     setError(actionErrorMessage(response))
@@ -1814,7 +1750,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                         return false
                     }
                 }
-                if (response.code === API_ERROR_CODES.PIX_PROVIDER_MOVED) {
+                if (response.code === 'PIX_PROVIDER_MOVED') {
                     userInitiatedRef.current = false
                     await followPixRoute()
                     return false

@@ -147,6 +147,16 @@ jest.mock('@/context/ModalsContext', () => ({
     }),
 }))
 
+jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
+    useMultiPhaseKycFlow: () => ({
+        isLoading: false,
+        error: null,
+        showWrapper: false,
+        handleInitiateKyc: jest.fn(),
+        handleSelfHealResubmit: jest.fn(),
+    }),
+}))
+
 const mockUseCurrency = jest.fn()
 jest.mock('@/hooks/useCurrency', () => ({
     useCurrency: (...args: any[]) => mockUseCurrency(...args),
@@ -205,6 +215,16 @@ const mockOnrampFlow = {
 }
 jest.mock('@/context/OnrampFlowContext', () => ({
     useOnrampFlow: () => mockOnrampFlow,
+}))
+
+// RequestFulfillmentFlowContext
+jest.mock('@/context/RequestFulfillmentFlowContext', () => ({
+    RequestFulfillmentBankFlowStep: { BankCountryList: 'BankCountryList' },
+    useRequestFulfillmentFlow: () => ({
+        setFlowStep: jest.fn(),
+        onrampData: null,
+        selectedCountry: null,
+    }),
 }))
 
 // Manteca API
@@ -664,6 +684,14 @@ jest.mock('@/features/payments/shared/components/PaymentSuccessView', () => ({
     ),
 }))
 
+// Hooks used by auto-truncated address
+jest.mock('@/hooks/useAutoTruncatedAddress', () => ({
+    useAutoTruncatedAddress: (address: string) => ({
+        containerRef: { current: null },
+        truncatedAddress: address ? address.slice(0, 8) + '...' + address.slice(-6) : '',
+    }),
+}))
+
 jest.mock('@/hooks/useTransactionHistory', () => ({
     EHistoryUserRole: { RECIPIENT: 'RECIPIENT' },
 }))
@@ -776,6 +804,7 @@ type Gate =
 function setGate(kind: Gate) {
     let rails: any[] = []
     let nextActions: any[] = []
+    let isKycApproved = false
     let gateState: any = { kind: 'loading' }
 
     switch (kind) {
@@ -790,6 +819,7 @@ function setGate(kind: Gate) {
                     status: 'enabled',
                 },
             ]
+            isKycApproved = true
             gateState = { kind: 'ready' }
             break
         case 'accept-tos':
@@ -849,6 +879,7 @@ function setGate(kind: Gate) {
                     status: 'enabled',
                 },
             ]
+            isKycApproved = true
             gateState = { kind: 'needs-enrollment' }
             break
         case 'needs-identity':
@@ -858,6 +889,7 @@ function setGate(kind: Gate) {
         // the rail is provisioning: nothing for the user to do but wait
         case 'pending':
             rails = []
+            isKycApproved = true
             gateState = { kind: 'pending' }
             break
         // capabilities have not answered yet
@@ -887,6 +919,7 @@ function setGate(kind: Gate) {
         rails,
         capabilities: {},
         nextActions,
+        isKycApproved,
         gateFor: () => gateState,
         bankRails: () =>
             rails.filter((r) =>

@@ -40,24 +40,13 @@ const initBody = { amount: '10', currency: 'ARS', country: 'AR' } as never
 beforeEach(() => jest.clearAllMocks())
 
 describe('manteca withdraw transport failures', () => {
-    it.each(['ServiceUnavailableError', 'ConnectionTimeoutError', 'MutationResponseTimeoutError', 'AbortError'])(
-        'rethrows %s from the submit call so the page can triage or recover it',
+    it.each(['ServiceUnavailableError', 'ConnectionTimeoutError'])(
+        'rethrows %s from the submit call so the page can triage it',
         async (name) => {
             mockServerFetch.mockRejectedValue(transportError(name))
             await expect(mantecaApi.withdrawWithSignedTx(withdrawBody)).rejects.toMatchObject({ name })
         }
     )
-
-    it('rethrows SyntaxError on non-JSON gateway 502/504 responses so recovery runs instead of clearing the hold', async () => {
-        mockServerFetch.mockResolvedValue({
-            ok: false,
-            status: 502,
-            json: async () => {
-                throw new SyntaxError('Unexpected token < in JSON')
-            },
-        } as unknown as Response)
-        await expect(mantecaApi.withdrawWithSignedTx(withdrawBody)).rejects.toBeInstanceOf(SyntaxError)
-    })
 
     it.each(['ServiceUnavailableError', 'ConnectionTimeoutError'])(
         'rethrows %s from the lock-rate call so the page can triage it',

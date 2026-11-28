@@ -1,12 +1,14 @@
 import type { AttentionLedgerEntry } from '@/utils/general.utils'
 import type { SignupPreferences } from '@/types/signup-preferences'
 import { type UserCapabilities, type IdentityVerification } from '@/types/capabilities'
-import type { RailStatus } from '@/constants/api-enums.generated'
 
 export type RecipientType = 'address' | 'ens' | 'iban' | 'us' | 'username'
 
 // phases for the multi-phase kyc verification modal
 export type KycModalPhase = 'verifying' | 'submitted' | 'preparing' | 'bridge_tos' | 'supplement' | 'complete'
+
+// Moved here from bridge-accounts.utils.ts to avoid circular dependency
+export type BridgeKycStatus = 'not_started' | 'under_review' | 'approved' | 'rejected' | 'incomplete'
 
 export interface IUserBalance {
     chainId: string
@@ -245,10 +247,18 @@ interface userInvites {
     inviteeUsername: string
 }
 
+export type UserRailStatus =
+    | 'PENDING'
+    | 'ENABLED'
+    | 'REQUIRES_INFORMATION'
+    | 'REQUIRES_EXTRA_INFORMATION'
+    | 'REJECTED'
+    | 'FAILED'
+
 export interface IUserRail {
     id: string
     railId: string
-    status: RailStatus
+    status: UserRailStatus
     metadata?: { bridgeCustomerId?: string; additionalRequirements?: string[]; [key: string]: unknown } | null
     rail: {
         id: string

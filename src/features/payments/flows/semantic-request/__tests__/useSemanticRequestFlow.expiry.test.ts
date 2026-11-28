@@ -252,7 +252,6 @@ describe('request self-contributions', () => {
             expect(mockSendMoney).toHaveBeenCalledWith(ctx.recipient.resolvedAddress, '10', {
                 kind: 'REQUEST_PAY',
                 chargeId: 'charge-1',
-                onBroadcast: expect.any(Function),
             })
         } else {
             expect(mockSendTransactions).toHaveBeenCalledTimes(1)
@@ -351,7 +350,6 @@ describe('open-amount requests', () => {
         expect(mockSendMoney).toHaveBeenCalledWith(originalCharge.requestLink.recipientAddress, '12', {
             kind: 'REQUEST_PAY',
             chargeId: 'charge-1',
-            onBroadcast: expect.any(Function),
         })
         expect(ctx.setCharge).toHaveBeenCalledWith(
             expect.objectContaining({ tokenAmount: '12', currencyAmount: '12', openAmount: true })
@@ -394,7 +392,6 @@ describe('open-amount requests', () => {
         expect(mockSendMoney).toHaveBeenCalledWith(originalCharge.requestLink.recipientAddress, '10', {
             kind: 'REQUEST_PAY',
             chargeId: 'charge-1',
-            onBroadcast: expect.any(Function),
         })
     })
 })

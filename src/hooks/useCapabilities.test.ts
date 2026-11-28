@@ -136,6 +136,7 @@ describe('useCapabilities', () => {
             expect(result.current.rails).toEqual([])
             expect(result.current.nextActions).toEqual([])
             expect(result.current.restrictions).toEqual([])
+            expect(result.current.isKycApproved).toBe(false)
             expect(result.current.isKycInProgress).toBe(false)
         })
 
@@ -322,8 +323,13 @@ describe('useCapabilities', () => {
         })
     })
 
-    // "any enabled rail" moved to useVerification().hasAnyEnabledRail (useVerification.characterization.test.tsx)
-    describe('isKycInProgress', () => {
+    describe('isKycApproved / isKycInProgress', () => {
+        it('isKycApproved is true when at least one rail is enabled', () => {
+            mockAuth(FIXTURE)
+            const { result } = renderHook(() => useCapabilities())
+            expect(result.current.isKycApproved).toBe(true)
+        })
+
         it('isKycInProgress is true when a rail is pending or requires-info', () => {
             mockAuth(FIXTURE)
             const { result } = renderHook(() => useCapabilities())
@@ -359,9 +365,10 @@ describe('useCapabilities', () => {
             })
             const { result } = renderHook(() => useCapabilities())
             expect(result.current.isKycInProgress).toBe(false)
+            expect(result.current.isKycApproved).toBe(true)
         })
 
-        it('isKycInProgress is true for a pending card rail', () => {
+        it('isKycApproved is false when no rail is enabled', () => {
             mockAuth({
                 rails: [
                     {
@@ -379,6 +386,7 @@ describe('useCapabilities', () => {
                 restrictions: [],
             })
             const { result } = renderHook(() => useCapabilities())
+            expect(result.current.isKycApproved).toBe(false)
             expect(result.current.isKycInProgress).toBe(true)
         })
     })

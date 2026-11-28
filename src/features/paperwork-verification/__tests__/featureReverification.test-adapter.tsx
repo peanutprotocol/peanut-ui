@@ -106,17 +106,8 @@ jest.mock('../components/LoadScreens', () => ({
     VerificationOutage: () => null,
 }))
 jest.mock('../components/VerifyLayout', () => ({
-    VerifyHeroLayout: ({
-        children,
-        footer,
-        title,
-    }: {
-        children?: React.ReactNode
-        footer: React.ReactNode
-        title?: string
-    }) => (
+    VerifyHeroLayout: ({ children, footer }: { children?: React.ReactNode; footer: React.ReactNode }) => (
         <section>
-            {title && <h1>{title}</h1>}
             {children}
             {footer}
         </section>
@@ -152,7 +143,6 @@ export async function mountFeatureGate(fixture: Fixture) {
             : { kind: 'reverify_for_feature', feature: fixture.feature, targetProvider: 'RAIN', attemptId: null }
     let activeEntry: Entry | null = null
     let noEntry = false
-    let residenceUnsupported = false
     let featureState = fixture.featureState
     const reads: string[] = []
     let pending: Pending | null = null
@@ -168,10 +158,7 @@ export async function mountFeatureGate(fixture: Fixture) {
         if (options?.beforeDispatch && !options.beforeDispatch()) throw new Error('Request obsolete')
         if (path.startsWith('/users/kyc/plan')) {
             reads.push(path)
-            const entry =
-                mockUserId !== 'contract-user-a' || noEntry || residenceUnsupported
-                    ? undefined
-                    : (activeEntry ?? invitation)
+            const entry = mockUserId !== 'contract-user-a' || noEntry ? undefined : (activeEntry ?? invitation)
             return response(200, {
                 activeAttemptId: entry?.attemptId ?? null,
                 available: Boolean(entry),
@@ -187,7 +174,6 @@ export async function mountFeatureGate(fixture: Fixture) {
                 proofOfAddressReason: null,
                 routes: [],
                 temporaryProtection: null,
-                ...(residenceUnsupported && { unavailableReason: 'residence_not_supported' as const }),
             } satisfies PlanResponse)
         }
         if (path === '/users/kyc/features/' + fixture.feature + '/activate' && conflict) {
@@ -287,9 +273,6 @@ export async function mountFeatureGate(fixture: Fixture) {
         setNoEntry: (state: Fixture['featureState']) => {
             noEntry = true
             featureState = state
-        },
-        setResidenceUnsupported: () => {
-            residenceUnsupported = true
         },
         resolveStartError: async (status: number, body: unknown, retryAfter?: string) => {
             await act(async () => requestInFlight().resolve(response(status, body, retryAfter)))

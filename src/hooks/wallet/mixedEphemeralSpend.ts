@@ -7,7 +7,6 @@ import { buildRainWithdrawTypedData } from '@/utils/rainWithdraw.utils'
 import type { PrepareRainWithdrawalResponse } from '@/services/rain'
 import { createEphemeralSpendSession, type EphemeralCall } from '@/utils/ephemeralSpendKey'
 import { rescueUserOpReceipt } from '@/utils/userop-rescue.utils'
-import { describeSignedUserOp, type BroadcastUserOp } from './spendBroadcast'
 
 /*
  * One-tap mixed spend: the single
@@ -37,9 +36,8 @@ export interface MixedEphemeralSpendArgs {
     requiredUsdcAmount: bigint
     subsequentCalls: { to: Hex; value: bigint; data: Hex }[]
     /** Fired immediately before the UserOp broadcast — the caller's
-     *  "failures after this are execution-ambiguous" boundary (TASK-21815).
-     *  Carries the signed op, so a caller can find it on chain later. */
-    onBroadcastAttempt?: (userOp: BroadcastUserOp | null) => void
+     *  "failures after this are execution-ambiguous" boundary (TASK-21815). */
+    onBroadcastAttempt?: () => void
 }
 
 export type MixedEphemeralSpendResult =
@@ -139,7 +137,7 @@ export async function tryMixedEphemeralSpend(args: MixedEphemeralSpendArgs): Pro
         const signature = await session.account.signUserOperation(
             preparedOp as Parameters<typeof session.account.signUserOperation>[0]
         )
-        args.onBroadcastAttempt?.(describeSignedUserOp(session.account, chain.id, preparedOp, signature))
+        args.onBroadcastAttempt?.()
         const userOpHash = await session.client.sendUserOperation({
             ...preparedOp,
             account: session.account,

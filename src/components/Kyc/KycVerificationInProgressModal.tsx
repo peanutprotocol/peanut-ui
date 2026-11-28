@@ -194,9 +194,8 @@ export const KycVerificationInProgressModal = ({
                 content={tosError ? undefined : <BridgeTermsCard providerId={providerId} />}
                 ctas={[
                     {
-                        // Continue, not Accept: the user accepts on Bridge's page.
-                        // When loading ToS failed, the button closes the modal so label it honestly.
-                        text: tosError ? tCommon('close') : tCommon('continue'),
+                        // Continue, not Accept: the user accepts on Bridge's page
+                        text: tCommon('continue'),
                         onClick: () => {
                             track('continue', 'tap')
                             if (!tosError && onAcceptTerms) onAcceptTerms()

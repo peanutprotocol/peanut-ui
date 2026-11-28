@@ -125,23 +125,6 @@ describe('useCrispUserData', () => {
         ).toBe(true)
     })
 
-    // The segment means "has a card application", held card or not, as before the served card state.
-    it.each([
-        ['an application with no card', true, { cardState: 'add-card', cards: [] }, true],
-        ['a card on its way', true, { cardState: 'creating-card', cards: [] }, true],
-        ['a held card', true, { cardState: 'active', cards: [{ status: 'LOCKED' }] }, true],
-        ['no application', false, { cardState: 'add-card', cards: [] }, false],
-    ])('tags card-holder for any card application: %s', (_name, hasApplication, overview, holder) => {
-        client.setQueryData([RAIN_CARD_OVERVIEW_QUERY_KEY, 'user-1'], {
-            status: { hasApplication, railStatus: hasApplication ? 'ENABLED' : null },
-            balance: null,
-            ...overview,
-        })
-        const { result } = renderHook(() => useCrispUserData(), { wrapper: wrapper(client) })
-
-        expect(result.current.segments.includes('card-holder')).toBe(holder)
-    })
-
     /*
      * The consumer pushes to Crisp on every identity change, and the cache reads
      * build a fresh object each render — so identity has to track the VALUE, or

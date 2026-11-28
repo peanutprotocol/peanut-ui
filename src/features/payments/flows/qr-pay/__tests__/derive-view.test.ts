@@ -45,14 +45,4 @@ describe('deriveQrPayView: the Brazil pause', () => {
         expect(deriveQrPayView(READY)).toBe('FORM')
         expect(deriveQrPayView({ ...READY, isProviderDisabled: true })).toBe('MAINTENANCE')
     })
-
-    it('never hides an unsettled or completed payment behind maintenance, init errors, or loaders', () => {
-        expect(deriveQrPayView({ ...READY, hasUnsettledPayment: true, isProviderDisabled: true })).toBe('STATUS')
-        expect(deriveQrPayView({ ...READY, hasUnsettledPayment: true, errorInitiatingPayment: 'oops' })).toBe('STATUS')
-        expect(deriveQrPayView({ ...READY, hasUnsettledPayment: true, isLoadingPaymentData: true })).toBe('STATUS')
-        expect(deriveQrPayView({ ...READY, isSuccess: true, isProviderDisabled: true })).toBe('SUCCESS')
-        expect(deriveQrPayView({ ...READY, isSuccess: true, rateUnavailable: true, isLoadingPaymentData: true })).toBe(
-            'SUCCESS'
-        )
-    })
 })

@@ -7,6 +7,7 @@ import type { KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import type { IdentityVerification } from '@/types/capabilities'
 import { getKycQuestions } from '@/app/actions/kyc-paperwork-verification'
 import { findKycDocumentPlan, getKycDocumentStatus } from '@/app/actions/kyc-workflow'
+import { KycFlowHandedBackError } from '@/app/actions/kyc-flow-hand-back'
 import { PaperworkVerificationFlow } from '../PaperworkVerificationFlow'
 
 // A decided rejection (Sumsub RED + FINAL) ends on /verify with its reason. Today the API takes the
@@ -217,10 +218,8 @@ describe('a rejected identity on /verify', () => {
         expect(mockReplace).not.toHaveBeenCalled()
     })
 
-    it('an existing identity conflict still shows its rejection', async () => {
-        jest.mocked(getKycQuestions).mockRejectedValue(
-            Object.assign(new Error('KYC questions unavailable'), { status: 409, code: 'existing_verification' })
-        )
+    it('a hand-back does not send a rejected identity Home either', async () => {
+        jest.mocked(getKycQuestions).mockRejectedValue(new KycFlowHandedBackError())
         renderFlow()
         expect(await screen.findByText(DUPLICATE_COPY)).toBeInTheDocument()
         expect(mockReplace).not.toHaveBeenCalled()
