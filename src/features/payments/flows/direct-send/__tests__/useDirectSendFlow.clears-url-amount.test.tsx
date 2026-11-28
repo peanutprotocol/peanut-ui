@@ -14,9 +14,6 @@ jest.mock('@/features/payments/shared/hooks/useChargeManager', () => ({
 jest.mock('@/features/payments/shared/hooks/usePaymentRecorder', () => ({
     usePaymentRecorder: () => ({ recordPayment: async () => ({ uuid: 'p1' }), isRecording: false }),
 }))
-jest.mock('@/features/payments/shared/hooks/usePaymentStatusRecovery', () => ({
-    usePaymentStatusRecovery: () => jest.fn(),
-}))
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({
         isConnected: true,

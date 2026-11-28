@@ -120,6 +120,18 @@ export function emptyCorridorRecord<T>(): Record<DepositCorridor, T | undefined>
     return corridorRecord<T | undefined>(() => undefined)
 }
 
+/** Index rail-keyed API items by deposit corridor, ignoring unrecognized rails. */
+export function indexByCorridor<T extends { railId: string }>(
+    items: readonly T[] | undefined
+): Record<DepositCorridor, T | undefined> {
+    const byCorridor = emptyCorridorRecord<T>()
+    for (const item of items ?? []) {
+        const corridor = corridorFromRailId(item.railId)
+        if (corridor) byCorridor[corridor] = item
+    }
+    return byCorridor
+}
+
 /** a corridor a user can hold as a reusable account somebody else can pay into */
 export function isClaimable(rail: DepositRail): boolean {
     return rail.claimable !== false

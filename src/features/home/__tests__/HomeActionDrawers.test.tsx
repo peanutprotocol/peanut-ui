@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { withNuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
 import { resolveAddMoneyMethods } from '@/features/add-money/addMoneyMethods'
+import { saveLastDepositMethod } from '@/features/add-money/lastUsedAddMethod'
 import { isCapacitor } from '@/utils/capacitor'
 import { HomeActionDrawers } from '../components/HomeActionDrawers'
 import { resetBottomNavVisibilityForTests, useBottomNavHidden } from '@/utils/bottom-nav-visibility'
@@ -64,6 +65,7 @@ beforeEach(() => {
     resetBottomNavVisibilityForTests()
     depositAccountsEnabled = true
     jest.mocked(isCapacitor).mockReturnValue(false)
+    localStorage.clear()
 })
 
 const returning = resolveAddMoneyMethods({
@@ -110,18 +112,58 @@ describe('HomeActionDrawers', () => {
         expect(urlUpdates.at(-1)?.searchParams.get('drawer')).toBeNull()
     })
 
-    it('offers only ready methods and opens the ready-only currency list', async () => {
+    // Kush, 27 Nov: "Bank accounts" and "More ways to add money" are one Bank transfer row, as on the picker
+    it('lists the picker rows, with one Bank transfer row that opens the bank hub', async () => {
         renderWithUrl('?drawer=add')
 
-        expect(screen.getByTestId('home-drawer-add-account')).toBeInTheDocument()
-        expect(screen.getByTestId('home-drawer-add-crypto')).toBeInTheDocument()
-        expect(screen.getByTestId('home-drawer-add-more')).toBeInTheDocument()
-        expect(screen.queryByTestId('home-drawer-add-transfer')).not.toBeInTheDocument()
-        expect(screen.queryByTestId('home-drawer-add-pix')).not.toBeInTheDocument()
+        const rows = screen.getAllByTestId(/^home-drawer-add-/)
+        expect(rows.map((row) => row.getAttribute('data-testid'))).toEqual([
+            'home-drawer-add-bank',
+            'home-drawer-add-crypto',
+        ])
+        expect(rows[0]).toHaveTextContent('bankTransfer')
 
-        fireEvent.click(screen.getByTestId('home-drawer-add-account'))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/options?method=account&ready=1'))
+        fireEvent.click(rows[0])
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
         expect(mockCapture).not.toHaveBeenCalled()
+    })
+
+    describe('the last used method', () => {
+        const ids = () => screen.getAllByTestId(/^home-drawer-add-/).map((row) => row.getAttribute('data-testid'))
+
+        it('shows no Last used pill before any deposit completed', () => {
+            renderWithUrl('?drawer=add')
+            expect(screen.queryByText('lastUsed')).not.toBeInTheDocument()
+        })
+
+        // Kush, 27 Nov: "last used" is the last completed deposit, never a tap
+        it('does not remember a tap alone', async () => {
+            const first = renderWithUrl('?drawer=add')
+            fireEvent.click(screen.getByTestId('home-drawer-add-crypto'))
+            await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/crypto?returnTo=%2Fhome'))
+            first.unmount()
+
+            renderWithUrl('?drawer=add')
+            expect(screen.queryByText('lastUsed')).not.toBeInTheDocument()
+            expect(ids()).toEqual(['home-drawer-add-bank', 'home-drawer-add-crypto'])
+        })
+
+        // Hugo, via Kush 28 Nov: one list, the Last used pill on its row instead of a section
+        it('leads with the method of the last completed deposit and marks only that row Last used', () => {
+            saveLastDepositMethod('crypto')
+            renderWithUrl('?drawer=add')
+            expect(ids()).toEqual(['home-drawer-add-crypto', 'home-drawer-add-bank'])
+            expect(screen.getAllByText('lastUsed')).toHaveLength(1)
+            expect(screen.getByTestId('home-drawer-add-crypto')).toHaveTextContent('lastUsed')
+            expect(screen.queryByRole('heading', { name: 'lastUsed' })).not.toBeInTheDocument()
+        })
+
+        it('ignores a stored method this user no longer has, and keeps every row', () => {
+            localStorage.setItem('peanut-last-add-method', JSON.stringify('ars'))
+            renderWithUrl('?drawer=add')
+            expect(screen.queryByText('lastUsed')).not.toBeInTheDocument()
+            expect(ids()).toEqual(['home-drawer-add-bank', 'home-drawer-add-crypto'])
+        })
     })
 
     // Which Pix deposit routes offer the row: useAddMoneyReadiness.test.ts
@@ -144,7 +186,7 @@ describe('HomeActionDrawers', () => {
 
         fireEvent.click(pix)
         // Pix has one currency: no chooser of one BRL row in between (TASK-25033)
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/pix'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/pix?returnTo=%2Fhome'))
     })
 
     // The owner, 24 Nov (TASK-25350). Which peso gates offer the row: useAddMoneyReadiness.test.ts
@@ -165,9 +207,8 @@ describe('HomeActionDrawers', () => {
             const rows = screen.getAllByTestId(/^home-drawer-add-/)
             expect(rows.map((row) => row.getAttribute('data-testid'))).toEqual([
                 'home-drawer-add-ars',
-                'home-drawer-add-account',
+                'home-drawer-add-bank',
                 'home-drawer-add-crypto',
-                'home-drawer-add-more',
             ])
             expect(rows[0]).toHaveTextContent('ARS')
             expect(decodeURIComponent(rows[0].querySelector('img')?.getAttribute('src') ?? '')).toContain(
@@ -176,7 +217,7 @@ describe('HomeActionDrawers', () => {
 
             fireEvent.click(rows[0])
             // one currency: no chooser of one ARS row in between
-            await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/argentina/manteca'))
+            await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/argentina/manteca?returnTo=%2Fhome'))
             expect(urlUpdates.at(-1)?.searchParams.get('drawer')).toBeNull()
         })
 
@@ -195,16 +236,10 @@ describe('HomeActionDrawers', () => {
             jest.mocked(isCapacitor).mockReturnValue(true)
             renderWithUrl('?drawer=add', undefined, argentina)
             fireEvent.click(screen.getByTestId('home-drawer-add-ars'))
-            await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?country=argentina&view=manteca'))
+            await waitFor(() =>
+                expect(mockPush).toHaveBeenCalledWith('/add-money?country=argentina&view=manteca&returnTo=%2Fhome')
+            )
         })
-    })
-
-    it('opens the full method picker from More ways and clears the drawer', async () => {
-        const urlUpdates: UrlUpdateEvent[] = []
-        renderWithUrl('?drawer=add', (event) => urlUpdates.push(event))
-        fireEvent.click(screen.getByTestId('home-drawer-add-more'))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money'))
-        expect(urlUpdates.at(-1)?.searchParams.get('drawer')).toBeNull()
     })
 
     it('does not redirect or show stale rows while an old Add link checks readiness', () => {
@@ -267,18 +302,16 @@ describe('HomeActionDrawers', () => {
         expect(screen.queryByTestId('home-drawer-request-share-bank')).not.toBeInTheDocument()
     })
 
-    it('carries a query-bearing returnTo onto the ready bank-account chooser', async () => {
+    it('carries a query-bearing returnTo onto the bank hub', async () => {
         // The origin holds its own query string, so the value has to survive
         // encoding whole — an unencoded `&to=EUR` would arrive as a separate
         // param and the back button would land on half a URL.
         const origin = '/profile/exchange-rate?from=USD&to=EUR'
         renderWithUrl(`?drawer=add&returnTo=${encodeURIComponent(origin)}`)
 
-        fireEvent.click(screen.getByTestId('home-drawer-add-account'))
+        fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
         await waitFor(() =>
-            expect(mockPush).toHaveBeenCalledWith(
-                `/add-money/options?method=account&ready=1&returnTo=${encodeURIComponent(origin)}`
-            )
+            expect(mockPush).toHaveBeenCalledWith(`/add-money?method=bank&returnTo=${encodeURIComponent(origin)}`)
         )
     })
 

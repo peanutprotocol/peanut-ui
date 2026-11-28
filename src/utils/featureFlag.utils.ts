@@ -40,6 +40,8 @@ export const FLAG_DEFAULTS = {
     'user-interviews-invite': false,
     // Inviter suggestions need the suggest route (TASK-24908): hidden when PostHog is silent.
     'signup-rollout-inviter-suggestions': false,
+    // Real-time stuck buddy interventions & home idle whimsy cameo; checkpoint telemetry logs while false.
+    'stuck-buddy-interventions': false,
 } as const satisfies Record<string, boolean>
 
 export type FeatureFlagKey = keyof typeof FLAG_DEFAULTS

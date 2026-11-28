@@ -23,6 +23,7 @@ import {
     rememberRemoteConfig,
 } from '@/utils/posthog-deferred-addons'
 import { noteAppReviewFriction } from '@/utils/app-review-friction'
+import { noteStuckAnalyticsEvent } from '@/features/stuck-detector/signalTap'
 import { isNativeFetchRejectionExceptionEvent } from '@/utils/native-fetch-rejection'
 import { isExpectedExceptionChain } from '@/utils/expected-exception'
 import { installPaymentNetworkGoogleAnalyticsGuard, isPrivateDataPath } from '@/utils/private-routes'
@@ -126,7 +127,10 @@ if (
                     )
                     if (scriptErrorContext) Object.assign(event.properties, scriptErrorContext)
                 }
-                if (event?.event) noteAppReviewFriction(event.event)
+                if (event?.event) {
+                    noteAppReviewFriction(event.event)
+                    noteStuckAnalyticsEvent(event.event)
+                }
                 // Once-per-session login: runs here, after capture assigned/rotated
                 // $session_id — a pre-capture get_session_id() guard misses idle-
                 // resumed sessions and double-counts reloads (TASK-22516).

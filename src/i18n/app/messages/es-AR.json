@@ -509,7 +509,14 @@
             "youSend": "Vos enviás",
             "recipientGets": "Recibís"
         },
-        "balanceNote": "Tu saldo de Peanut se muestra en USD. Donde se admitan transferencias bancarias en moneda local, podés retirar en esa moneda."
+        "balanceNote": "Tu saldo de Peanut se muestra en USD. Donde se admitan transferencias bancarias en moneda local, podés retirar en esa moneda.",
+        "title": "Cotizaciones y comisiones",
+        "converter": {
+            "youSendLocal": "Enviás ({currency})",
+            "youSendUsd": "Enviás desde tu saldo (USD)",
+            "youReceiveUsd": "Recibís en tu saldo",
+            "youReceiveLocal": "Recibís en tu banco ({currency})"
+        }
     },
     "setup": {
         "choicesLater": "Podés cambiar tus opciones más adelante.",
@@ -980,6 +987,7 @@
             "invalidPaymentUrlDescription": "El enlace está incompleto o mal escrito. Pedile a quien lo envió que lo comparta de nuevo.",
             "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pedile un nuevo enlace a quien la envió.",
             "externalPaymentNotConfirmed": "No se pudo confirmar este pago. Si el dinero salió de tu billetera, contactá a soporte.",
+            "paymentNotSent": "Este pago no se completó y no salió dinero de tu billetera. Podés intentarlo de nuevo.",
             "requestTokenRetired": "Esta solicitud ya no se puede pagar. Pedí una nueva en USDC."
         },
         "bankTransfer": {
@@ -1337,9 +1345,10 @@
         },
         "manteca": {
             "sendOnlyOwnAccountTitle": "Enviá solo desde una cuenta a tu nombre",
-            "transferDeadline": "Transferí antes de las {time}.",
-            "transferExpiredTitle": "La orden de depósito venció",
-            "transferExpiredDescription": "¿Ya enviaste plata? Contactá a soporte.",
+            "transferExpiredDescription": "Esta orden de depósito venció. ¿Ya enviaste plata? Contactá a soporte.",
+            "orderFailedDescription": "Esta orden de depósito no se completó. ¿Ya enviaste plata? Contactá a soporte.",
+            "supportOrderPrefill": "La orden de depósito en pesos {orderId} terminó. Puede que haya enviado plata.",
+            "detailsComeNext": "Después vas a ver los datos bancarios. Sirven por 30 minutos.",
             "startNewDeposit": "Iniciar un nuevo depósito",
             "shareOwnAccountOnly": "Envialo solo desde una cuenta bancaria a mi nombre. Las transferencias desde cuentas de terceros no se pueden acreditar.",
             "etaInstant": "Normalmente en minutos",
@@ -1372,7 +1381,10 @@
             "bankAccountFailed": "No se pudo procesar la cuenta bancaria. Intentalo de nuevo o contactá a soporte.",
             "bankAccountSettingUp": "Tu cuenta bancaria aún se está configurando. Intentalo de nuevo en un momento."
         },
-        "bankNotAvailableNote": "Las transferencias bancarias no están disponibles en tu país. Todavía podés ingresar y retirar cripto."
+        "bankNotAvailableNote": "Las transferencias bancarias no están disponibles en tu país. Todavía podés ingresar y retirar cripto.",
+        "verified": {
+            "sub": "{variant, select, bankReady {{count, plural, one {Tu cuenta en {accounts} está abierta.} other {Tus cuentas en {accounts} están abiertas.}} Agregá dinero.} other {Agregá dinero para empezar a pagar con Peanut.}}"
+        }
     },
     "withdraw": {
         "reviewUpdatedQuote": "Revisá la cotización actualizada para continuar.",
@@ -1582,6 +1594,7 @@
         "shareJoin": "Unite a Peanut conmigo: {link}"
     },
     "kyc": {
+        "clientUpdateRequired": "Actualizá la app de Peanut para continuar con la verificación.",
         "rejectLabelsFallbackDescription": "Necesitamos un poco más de información para confirmar tu identidad. Enviá los datos solicitados para continuar.",
         "terminalDescription": "Primero necesitamos revisar tu cuenta. Tus fondos siguen en tu cuenta.",
         "failedDescriptionRetry": "No pudimos confirmar tu identidad. Podés intentarlo otra vez.",
@@ -2272,12 +2285,6 @@
         "rainCooldownRetryShortly": "Un retiro anterior con la tarjeta sigue activo. Volvé a intentarlo en breve.",
         "rainCooldownRetryLive": "Un retiro anterior con la tarjeta sigue activo. Volvé a intentarlo en {time}.",
         "rainCooldownRetryNow": "El enfriamiento de la tarjeta terminó. Ya podés volver a intentarlo.",
-        "xchainWithdrawLimit": "Alcanzaste el límite de retiros a otras redes. Los retiros en Arbitrum no tienen límite, o contactá a soporte para ampliar el tuyo.",
-        "xchainWithdrawLimitRetry": "Alcanzaste el límite de retiros a otras redes. Volvé a intentarlo en aproximadamente {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# día} other {# días}}. Los retiros en Arbitrum no tienen límite, o contactá a soporte para ampliar el tuyo.",
-        "xchainPaymentLimit": "Hiciste demasiadas transferencias a otras redes recientemente. Contactá a soporte para ampliar tu límite.",
-        "xchainPaymentLimitRetry": "Hiciste demasiadas transferencias a otras redes recientemente. Volvé a intentarlo en aproximadamente {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# día} other {# días}}, o contactá a soporte para ampliar tu límite.",
-        "xchainWithdrawDisabled": "Los retiros a otras redes están limitados en tu cuenta. Siempre podés retirar en Arbitrum, o contactá a soporte para recibir ayuda.",
-        "xchainPaymentDisabled": "Las transferencias a otras redes están limitadas en tu cuenta. Contactá a soporte para recibir ayuda.",
         "staleCardApproval": "Necesitás volver a habilitar tu tarjeta antes de retirar. Solo toma un toque con tu passkey.",
         "providerRejected": "Nuestro socio de pagos no pudo aceptar esta operación para tu cuenta. No se movió plata. Contactá a soporte.",
         "bankAccountNotUsable": "Esta cuenta bancaria ya no se puede usar. Agregala de nuevo.",
@@ -2493,5 +2500,24 @@
     "notifications": {
         "firstDepositTitle": "Enterate cuando se mueva tu dinero",
         "migrationSetupTitle": "Recibí alertas de dinero"
+    },
+    "stuckBuddy": {
+        "supportTopics": {
+            "setupPasskey": "Ayuda para configurar la passkey",
+            "loginRecovery": "Recuperación de inicio de sesión con passkey",
+            "passkeyError": "Ayuda con passkey ({errorName})",
+            "usernameCheck": "Error al verificar el nombre de usuario"
+        },
+        "drawers": {
+            "addMoney": {
+                "step1": "¿Rechazaron el alias? Copiá el CVU o número de cuenta completo.",
+                "step2": "¿Enviaste desde otro nombre? Algunas transferencias requieren una cuenta propia.",
+                "step3": "¿Pasó el tiempo de llegada indicado? Compartí el comprobante con soporte."
+            },
+            "homeFunded": {
+                "title": "Pagá en segundos",
+                "description": "Elegí la forma más rápida de hacer el primer pago."
+            }
+        }
     }
 }

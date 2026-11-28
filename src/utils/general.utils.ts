@@ -132,9 +132,10 @@ export const saveToLocalStorage = (key: string, data: unknown, expirySeconds?: n
         } else {
             localStorage.removeItem(`${key}-expiry`)
         }
-        // key is passed as an argument (not interpolated into the format string)
-        // so a user-controlled key can't act as a console format string (CodeQL).
-        console.log('Saved to localStorage:', key, data)
+        // Key only: a stored value can be a bearer secret (a send link with its
+        // password), and console output reaches Sentry breadcrumbs. The key is an
+        // argument, not part of the format string, so it can't act as one (CodeQL).
+        console.log('Saved to localStorage:', key)
         return true
     } catch (error) {
         Sentry.captureException(error)
@@ -492,6 +493,8 @@ export type UserPreferences = {
     capNudgeSubmittedAt?: string
     /** the attention manager's ledger (features/attention/ledger.ts): shown, dismissed and snoozed per ask */
     attention?: Partial<Record<string, AttentionLedgerEntry>>
+    /** bank and local accounts (`bank.USD`, `local.ARS`) the "Your bank is ready" page already showed as ready */
+    bankReadyShown?: string[]
 }
 
 export const updateUserPreferences = (

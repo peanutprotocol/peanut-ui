@@ -11,6 +11,7 @@ import { BalanceSection } from './views/BalanceSection'
 import { HomeTopNav } from './views/HomeTopNav'
 import { useHomeViewAnalytics } from './useHomeViewAnalytics'
 import { useAddMoneyReadiness } from '@/features/add-money/useAddMoneyReadiness'
+import { useBankReadyReminder } from '@/features/add-money/verified/useBankReadyReminder'
 
 /**
  * home page (figma board 17830:75689): top nav (menu / rewards), balance
@@ -28,14 +29,23 @@ export function HomePage() {
         isActivated,
         isIdentityVerified,
         isOnboardingComplete,
+        onboarding,
         spendableBalance,
         isFetchingSpendableBalance,
         isSpendableBalanceStale,
+        isSpendableBalanceReady,
         isBalanceHidden,
         toggleBalanceVisibility,
     } = useHomeFlow()
     const addMoney = useAddMoneyReadiness(!!address)
     useHomeViewAnalytics(isPageLoading)
+    // "never added money" waits for the live balance: a cached or unread balance is not an empty one
+    useBankReadyReminder(
+        !isSpendableBalanceReady || spendableBalance === undefined
+            ? undefined
+            : onboarding.addMoneyDone || spendableBalance > 0n,
+        addMoney.isLoading ? undefined : addMoney.pickerMethods
+    )
 
     if (isPageLoading) {
         return <Loading variant="mascot" coverFullScreen />

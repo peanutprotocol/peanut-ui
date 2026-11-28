@@ -345,7 +345,8 @@
             "shareRequestLink": "Share a request link",
             "shareRequestLinkDescription": "Request an amount with a shareable link",
             "shareBankDetails": "Share bank details",
-            "shareBankDetailsDescription": "Get paid in EUR, USD and more with bank details."
+            "shareBankDetailsDescription": "Get paid in EUR, USD and more with bank details.",
+            "lastUsed": "Last used"
         },
         "postVerification": {
             "title": "Verification complete!",
@@ -909,6 +910,86 @@
         "row": {
             "approximate": "An estimate. The rate is set when the transfer converts, so the amount received can differ slightly.",
             "appliesWhenConverting": "Exchange rates apply when converting to {currency}"
+        },
+        "tabs": {
+            "rates": "Exchange rates",
+            "fees": "Fees"
+        },
+        "direction": {
+            "addShort": "Add money",
+            "withdrawShort": "Withdraw",
+            "withdrawQrShort": "Withdraw / QR"
+        },
+        "converter": {
+            "youSendLocal": "You send ({currency})",
+            "youSendUsd": "You send from balance (USD)",
+            "youReceiveUsd": "You receive in balance",
+            "youReceiveLocal": "You receive in bank ({currency})",
+            "amountAria": "Amount",
+            "usdSubline": "Same currency · ACH: $0 · Outgoing Wire: $20",
+            "updatedAt": "Updated {time}",
+            "providerFee": "Provider fee",
+            "flatFee": "Flat fee",
+            "achZero": "ACH: $0"
+        },
+        "compare": {
+            "title": "Compare other dollar rates",
+            "subtitle": "Cripto, MEP, Blue, Card & Official",
+            "pageTitle": "Other dollar rates today"
+        },
+        "allCurrencies": {
+            "title": "All currencies & rails",
+            "subtitle": "ARS, EUR, BRL, USD, GBP, MXN & COP",
+            "pageTitle": "All currencies & rails",
+            "currencyCol": "Currency (per 1 USD)",
+            "buySellCol": "Add / Withdraw"
+        },
+        "currencies": {
+            "ARS": "Argentine Peso",
+            "EUR": "Euro",
+            "USD": "US Dollar",
+            "GBP": "British Pound",
+            "MXN": "Mexican Peso",
+            "COP": "Colombian Peso",
+            "BRL": "Brazilian Real"
+        },
+        "benchmarks": {
+            "heading": "Market benchmarks",
+            "cripto": "Dólar cripto",
+            "mep": "Dólar MEP",
+            "blue": "Dólar blue",
+            "tarjeta": "Dólar tarjeta",
+            "oficial": "Dólar oficial",
+            "sourceNote": "Source: {source}. Indicative references."
+        },
+        "drawer": {
+            "title": "{currency} exchange rates",
+            "subtitleCbu": "Locked for 30 min on this order.",
+            "subtitleQr": "Locks when you confirm.",
+            "subtitleLive": "Live indicative rates.",
+            "openAria": "View {currency} exchange rate details"
+        },
+        "fees": {
+            "sections": {
+                "bankTransfers": "Bank transfers & Pix",
+                "card": "Peanut Card (Visa)",
+                "crypto": "Crypto (deposits & withdrawals)"
+            },
+            "rows": {
+                "usdWireOut": "USD · Wire (out)",
+                "brlPixBr": "BRL · Pix (Brazil)",
+                "cardIssuance": "Issuance, monthly & top-up",
+                "cardPayments": "Card payments",
+                "cryptoDeposits": "USDC / USDT deposits",
+                "cryptoL2Withdrawals": "Other L2s & networks",
+                "cryptoL2Quoted": "Shown in quote"
+            },
+            "notes": {
+                "bankTransfers": "USD Wire ({wireFee}) is a flat Peanut fee; Brazil Pix ({pixFee}) is a provider fee. Cross-currency transfers use the live exchange rate.",
+                "cardVisa": "Visa may apply its own exchange rate and network fees on cross-currency or international payments.",
+                "cryptoNetworks": "{networks} & more. Other tokens convert at market rate."
+            },
+            "fullScheduleLink": "Full fee schedule & terms ↗"
         }
     },
     "setup": {
@@ -1631,6 +1712,7 @@
             "requestNotFoundDescription": "This payment request doesn't exist or was removed. Ask the sender for a new link.",
             "requestClosedTitle": "This request is closed",
             "externalPaymentNotConfirmed": "This payment could not be confirmed. If money left your wallet, contact support.",
+            "paymentNotSent": "This payment did not go through, and no money left your wallet. You can try again.",
             "requestTokenNotAccepted": "{symbol} isn’t supported. Ask the sender for a USDC or USDT link.",
             "requestTokenRetired": "This request can't be paid anymore. Ask for a new one in USDC."
         },
@@ -2286,7 +2368,7 @@
         "methods": {
             "moreWays": "More ways to add money",
             "pixDetails": "Scan or copy code",
-            "arsDetails": "From your Mercado Pago or bank account",
+            "arsDetails": "Mercado Pago or your bank",
             "cryptoDetails": "From wallets or exchanges",
             "openAccount": "Open a bank account",
             "crypto": "Crypto",
@@ -2358,9 +2440,15 @@
         "manteca": {
             "youreAdding": "Adding",
             "sendOnlyOwnAccountTitle": "Send only from an account in your name",
-            "transferDeadline": "Transfer by {time}.",
-            "transferExpiredTitle": "Deposit order expired",
-            "transferExpiredDescription": "Already sent money? Contact support.",
+            "transferExpiredDescription": "This deposit order expired. Already sent money? Contact support.",
+            "orderFailedDescription": "This deposit order did not go through. Already sent money? Contact support.",
+            "supportOrderPrefill": "Peso deposit order {orderId} ended. I may have sent money.",
+            "sendTo": "Send to",
+            "validFor": "Valid for",
+            "rateFeesArrival": "Rate, fees and arrival",
+            "detailsComeNext": "Bank details come next. They work for 30 minutes.",
+            "orderCheckingTitle": "Checking the order",
+            "orderCheckingDescription": "We're checking whether a transfer arrived.",
             "startNewDeposit": "Start a new deposit",
             "paymentReceivedTitle": "Payment received",
             "paymentReceivedDescription": "We're adding it to your balance.",
@@ -2368,7 +2456,6 @@
             "openTransferDescription": "{currency} {amount} is waiting for your bank transfer. A new amount replaces it.",
             "openTransferCta": "See transfer details",
             "sendOnlyOwnAccountDescription": "Deposits from third-party accounts are not supported and funds may be lost.",
-            "accountDetails": "Bank details",
             "depositAddress": "Deposit address",
             "alias": "Alias",
             "razonSocial": "Razón Social",
@@ -2445,7 +2532,19 @@
         },
         "pixMaintenanceBadge": "Maintenance",
         "addCryptoTitle": "Add crypto",
-        "bankNotAvailableNote": "Bank transfers aren't available in your country. You can still add and withdraw crypto."
+        "bankNotAvailableNote": "Bank transfers aren't available in your country. You can still add and withdraw crypto.",
+        "verified": {
+            "title": "ID verified",
+            "titleBankReady": "Bank account ready",
+            "sub": "{variant, select, bankReady {{count, plural, one {Your {accounts} account is open.} other {Your {accounts} accounts are open.}} Add money.} other {Add money to start paying with Peanut.}}",
+            "underReview": "Under review by {provider}, we’ll notify you",
+            "notApproved": "Not approved by {provider}",
+            "actionTerms": "{provider}’s terms for {currencies}",
+            "actionTermsGeneric": "{provider}’s terms",
+            "actionAddress": "proof of address",
+            "cryptoWorksNow": "From wallets or exchanges, works now",
+            "actionNeeded": "Action needed"
+        }
     },
     "withdraw": {
         "reviewUpdatedQuote": "Review the updated quote to continue.",
@@ -3363,6 +3462,8 @@
         "qrFirstScanDescription": "One notification when it completes."
     },
     "kyc": {
+        "residenceNotSupported": "We can’t verify this country’s residents yet.",
+        "clientUpdateRequired": "Update the Peanut app to continue verification.",
         "statusDrawerTitle": "Verification status",
         "identityVerification": "Identity verification",
         "doesntStoreDocuments": "Peanut doesn't store any of your documents",
@@ -4953,12 +5054,6 @@
         "rainCooldownRetryShortly": "A previous card withdrawal is still active. Please try again shortly.",
         "rainCooldownRetryLive": "A previous card withdrawal is still active. Try again in {time}.",
         "rainCooldownRetryNow": "The card cool-down has ended. You can try again now.",
-        "xchainWithdrawLimit": "You reached the limit for withdrawals to other networks. Withdrawals on Arbitrum have no limit, or contact support to raise yours.",
-        "xchainWithdrawLimitRetry": "You reached the limit for withdrawals to other networks. Try again in about {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minute} other {# minutes}}} one {# hour} other {# hours}}} one {# day} other {# days}}. Withdrawals on Arbitrum have no limit, or contact support to raise yours.",
-        "xchainPaymentLimit": "You made too many transfers to other networks recently. Contact support to raise your limit.",
-        "xchainPaymentLimitRetry": "You made too many transfers to other networks recently. Try again in about {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minute} other {# minutes}}} one {# hour} other {# hours}}} one {# day} other {# days}}, or contact support to raise your limit.",
-        "xchainWithdrawDisabled": "Withdrawals to other networks are limited on your account. You can always withdraw on Arbitrum, or contact support for help.",
-        "xchainPaymentDisabled": "Transfers to other networks are limited on your account. Contact support for help.",
         "rainInsufficientCollateral": "Your card doesn’t have enough collateral for this withdrawal.",
         "staleCardApproval": "Your card needs to be re-enabled before you can withdraw. It only takes one passkey tap.",
         "providerRejected": "Our payment partner couldn't accept this for your account. No money moved. Contact support.",
@@ -5567,5 +5662,68 @@
     "brazilPause": {
         "title": "Brazil services paused",
         "body": "BRL deposits and withdrawals are currently unavailable. Pix payments are unavailable for residents of Brazil."
+    },
+    "stuckBuddy": {
+        "prompts": {
+            "addMoney": "Need help with a bank transfer?",
+            "verifyLoop": "Need help with verification?",
+            "setupPasskey": "Trouble saving a passkey?",
+            "homeFunded": "Ready for a first payment?",
+            "activeIssue": "Running into an issue?"
+        },
+        "ctas": {
+            "addMoney": "Deposit help",
+            "contactSupport": "Contact support",
+            "homeFunded": "See quick options",
+            "activeIssue": "Report bug or chat"
+        },
+        "a11y": {
+            "dismiss": "Dismiss helper",
+            "openHelper": "Open Peanut helper"
+        },
+        "supportTopics": {
+            "addMoney": "Bank transfer deposit help",
+            "verifyLoop": "Verification help",
+            "setupPasskey": "Passkey setup help",
+            "loginRecovery": "Passkey login recovery",
+            "passkeyError": "Passkey help ({errorName})",
+            "usernameCheck": "Username check failed",
+            "homeFunded": "First payment help",
+            "activeIssue": "Issue in Peanut app",
+            "bugReport": "Bug report ({category}) on {route}",
+            "bugReportWithNote": "Bug report ({category}) on {route}: {note}"
+        },
+        "bugCategories": {
+            "paymentFailed": "Payment failed",
+            "screenStuck": "Screen stuck",
+            "somethingWrong": "Something looks wrong"
+        },
+        "drawers": {
+            "addMoney": {
+                "title": "Deposit troubleshooting",
+                "description": "Quick bank transfer checks.",
+                "step1": "Details rejected? Copy the full account number or IBAN.",
+                "step2": "Different sender? Some transfers require an account in the same legal name.",
+                "step3": "Past the arrival time on screen? Share the bank receipt with support.",
+                "primaryCta": "Copy message and contact support",
+                "copyMessage": "Need help with a bank transfer deposit in Peanut."
+            },
+            "homeFunded": {
+                "title": "Pay in seconds",
+                "description": "Pick the fastest way to make a first payment.",
+                "qrCta": "Pay by QR",
+                "cardCta": "Get Peanut Card",
+                "sendCta": "Send money",
+                "tertiarySupport": "Something blocking a payment? Contact support"
+            },
+            "activeIssue": {
+                "title": "Report an issue",
+                "description": "Opens in-app support chat with your details so the team can help.",
+                "categoryLabel": "Issue category",
+                "noteLabel": "Optional note",
+                "notePlaceholder": "Short note",
+                "submitCta": "Send to support"
+            }
+        }
     }
 }

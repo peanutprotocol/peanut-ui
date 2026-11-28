@@ -1024,17 +1024,20 @@ const HUGE_HISTORY_ENTRY = {
 // The capture clock is frozen at 2026-09-01 12:00 UTC. This order's
 // deadline is still ahead of that clock; the expired variant reports the
 // terminal status from the status endpoint instead of inferring it from time.
+// an open order lives 30 minutes from creation: a fixed past time would draw the expired card,
+// since the details screen counts down to expireAt
+const ARS_DEPOSIT_EXPIRES_AT = new Date(Date.now() + 30 * 60_000).toISOString()
 const ARS_DEPOSIT = {
     id: 'fixture-ars-deposit',
     stages: {
-        '1': { thresholdAmount: '10000', asset: 'ARS', expireAt: '2026-09-01T12:30:00.000Z' },
+        '1': { thresholdAmount: '10000', asset: 'ARS', expireAt: ARS_DEPOSIT_EXPIRES_AT },
         '3': { amount: '10' },
     },
     details: {
         depositAddress: '0000000000000000000000',
         depositAlias: 'fixture.deposit.test',
         price: '1000',
-        priceExpireAt: '2026-09-01T12:30:00.000Z',
+        priceExpireAt: ARS_DEPOSIT_EXPIRES_AT,
         withdrawCostInAsset: '0',
     },
 }
@@ -1776,6 +1779,39 @@ const ARS_TOP_UP_RESIDENT = {
     capabilities: MANTECA_AR_CAPABILITIES,
 }
 
+/**
+ * "ID verified" (/verified, add-money proposal): the report right after approval, by account. `wait` is a
+ * provider review, `tos` Bridge's terms; the bank feature's USD and EUR accounts share one entry.
+ */
+const VERIFIED_WAIT = { key: 'provider-wait', kind: 'wait' }
+const VERIFIED_TOS = { key: 'bridge-tos', kind: 'accept-tos' }
+type VerifiedEntry = { state: string; action?: string }
+const verifiedUser = (
+    country: 'AR' | 'BR',
+    local: Record<string, VerifiedEntry>,
+    bank: VerifiedEntry,
+    extra: Record<string, unknown> = {}
+) => ({
+    user: { username: 'lena' },
+    identityVerification: { status: 'verified' },
+    residence: {
+        verified: { country, status: 'VERIFIED', updatedAt: null },
+        declared: null,
+        secondaryDeclaredCountry: null,
+    },
+    capabilities: {
+        ...MANTECA_AR_CAPABILITIES,
+        nextActions: [VERIFIED_WAIT, VERIFIED_TOS],
+        ...extra,
+        features: {
+            qr: { state: 'on' },
+            card: { state: 'ready' },
+            local: { ...Object.values(local)[0], accounts: local },
+            bank: { ...bank, accounts: { USD: bank, EUR: bank } },
+        },
+    },
+})
+
 /** The ARS bank rail waits on the person's Manteca step (questionnaire and phone check), as the API reports it. */
 const mantecaArStepCapabilities = (code: 'manteca_action_incomplete' | 'manteca_action_expired') => {
     const userMessage =
@@ -2067,6 +2103,40 @@ const bridgeTermsResponse = (confirm: { accepted: boolean }) => ({
 const VA_READY_RESPONSE = {
     'GET /users/me': { capabilities: VA_READY_CAPABILITIES, depositAccounts: { enabled: true } },
 }
+
+// HANDOFF rule 7: a Bridge one-time transfer that lands while its bank details are
+// up ends on the success screen. Each poll answers in turn (Fixture.sequences): open, then done.
+const EUR_ONRAMP = {
+    transferId: 'fixture-onramp-eur',
+    depositInstructions: {
+        amount: '20.00',
+        currency: 'eur',
+        depositMessage: 'BRGFIXTURE20EUR',
+        bankName: 'Fixture Bank AG',
+        bankAddress: '1 Fixture Strasse, Berlin',
+        accountHolderName: 'Fixture Payments S.A.',
+        iban: 'DE00000000000000000000',
+        bic: 'FIXTDEFFXXX',
+    },
+}
+const RECEIVED_DEPOSIT_ENTRY = {
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-09-01T11:00:00.000Z'),
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    userRole: 'RECIPIENT',
+    recipientAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+}
+const eurTransferEntry = (status: string) => ({
+    ...RECEIVED_DEPOSIT_ENTRY,
+    uuid: EUR_ONRAMP.transferId,
+    status,
+    amount: '21.62',
+    senderAccount: { identifier: 'bank', type: 'BANK_IBAN', isUser: true },
+    currency: { amount: '20', code: 'EUR' },
+    extraData: { kind: 'ONRAMP', provider: 'BRIDGE', usdAmount: '21.62' },
+})
 
 /**
  * A UK top-up as the API returns it: GBP over Faster Payments, so the bank
@@ -3133,6 +3203,85 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Add money by bank: the accounts you hold, crypto, and every country you can send from.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
+    'verified-loading': {
+        route: '/verified',
+        geoCountry: 'AR',
+        isLoadingState: true,
+        about: 'Verified page right after approval: the ARS and bank rows load in place, crypto works.',
+        responses: { 'GET /users/me': verifiedUser('AR', { ARS: { state: 'pending' } }, { state: 'pending' }) },
+    },
+    'verified-not-ready': {
+        route: '/verified',
+        geoCountry: 'AR',
+        about: "Verified page: ARS under review by Manteca, the bank row needs Bridge's terms, crypto works now.",
+        responses: {
+            'GET /users/me': verifiedUser(
+                'AR',
+                { ARS: { state: 'setting_up', action: VERIFIED_WAIT.key } },
+                { state: 'action_required', action: VERIFIED_TOS.key }
+            ),
+        },
+    },
+    'verified-after-terms': {
+        route: '/verified',
+        geoCountry: 'AR',
+        about: 'Verified page after the terms: both bank rows under review, crypto works now.',
+        responses: {
+            'GET /users/me': verifiedUser(
+                'AR',
+                { ARS: { state: 'setting_up', action: VERIFIED_WAIT.key } },
+                { state: 'setting_up', action: VERIFIED_WAIT.key }
+            ),
+        },
+    },
+    'verified-not-opened': {
+        route: '/verified',
+        geoCountry: 'AR',
+        about: 'Verified page when the API opened no account on approval (`ready`, `activate`): the rows open at once.',
+        responses: {
+            'GET /users/me': verifiedUser(
+                'AR',
+                { ARS: { state: 'ready', action: 'activate' } },
+                { state: 'ready', action: 'activate' }
+            ),
+        },
+    },
+    'verified-ready': {
+        route: '/verified',
+        geoCountry: 'AR',
+        about: 'Verified page once the accounts work: every row opens, the name chip has its green check.',
+        responses: { 'GET /users/me': verifiedUser('AR', { ARS: { state: 'on' } }, { state: 'on' }) },
+    },
+    // slice 5: the page Home (and the bank_ready push) opens once an account opened later. Home only hands over
+    // when the device already holds a record (the first load only records), so its unit tests cover that part
+    'verified-bank-ready': {
+        route: '/verified?variant=bank-ready',
+        geoCountry: 'AR',
+        balance: '0',
+        about: 'Your bank is ready: the accounts that just opened by name, every row opens, the name chip has its check.',
+        responses: {
+            'GET /users/me': {
+                ...verifiedUser('AR', { ARS: { state: 'on' } }, { state: 'on' }),
+                user: { username: 'lena', activationMilestone: 'verified', isActivated: false },
+            },
+        },
+    },
+    'verified-brazil': {
+        route: '/verified',
+        geoCountry: 'BR',
+        about: "Verified page in Brazil: Pix leads on Avenia's route, the bank row under review by Bridge.",
+        responses: {
+            'GET /users/me': verifiedUser(
+                'BR',
+                { BRL: { state: 'on' } },
+                { state: 'setting_up', action: VERIFIED_WAIT.key },
+                {
+                    rails: aveniaResponses('enabled')['GET /users/me'].capabilities.rails,
+                    routes: aveniaRoutes('enabled'),
+                }
+            ),
+        },
+    },
     'add-money-crypto': { route: '/add-money/crypto', about: 'Crypto deposit: the network picker.' },
     // TASK-21375: Argentina's bank transfer and Mercado Pago open the same
     // screen, so the country offers one row.
@@ -3144,8 +3293,10 @@ export const FIXTURES: Record<string, Fixture> = {
     ...Object.fromEntries(
         (
             [
-                ['pending', 'PROCESSING', 1, 'the transfer deadline'],
+                ['pending', 'PROCESSING', 1, 'the details with their countdown'],
                 ['expired', 'CANCELLED', 1, 'the expired order and start-over button'],
+                // the order did not go through: same ended card, no CVU to pay into
+                ['failed', 'FAILED', 1, 'the failed order and Contact support'],
                 // TASK-25444: the pesos reached Manteca, then the balance got them
                 ['received', 'PROCESSING', 2, 'payment received while the balance is credited'],
                 ['completed', 'COMPLETED', 3, 'the received deposit and Done'],
@@ -3254,6 +3405,19 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/add-money/united-kingdom/bank?step=inputAmount&amount=7',
         about: 'Add money by bank, UK: continue to the GBP bank details (sort code and account number).',
         responses: { ...VA_READY_RESPONSE, 'POST /bridge/onramp/create': GBP_ONRAMP },
+    },
+    // Tap Continue and slide to confirm: the transfer's entry reads AWAITING_FUNDS,
+    // and the next poll (15 s) PAYMENT_PROCESSED.
+    'add-money-bank-transfer-received': {
+        route: '/add-money/germany/bank?step=inputAmount&amount=20',
+        about: 'Bridge one-time transfer that lands while the bank details are up: the success screen.',
+        responses: { ...VA_READY_RESPONSE, 'POST /bridge/onramp/create': EUR_ONRAMP },
+        sequences: {
+            [`GET /history/${EUR_ONRAMP.transferId}`]: [
+                eurTransferEntry('AWAITING_FUNDS'),
+                eurTransferEntry('PAYMENT_PROCESSED'),
+            ],
+        },
     },
     // Open /add-money/spain?__fixture=add-money-country-provider-wait and tap
     // "From Bank". The euro rail is under provider review (waiting-on-provider),
@@ -5922,6 +6086,101 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Payments page: residence, the card and QR payments, then the Peanut rows.',
         responses: VA_READY_RESPONSE,
     },
+    'profile-exchange-rate': {
+        route: '/profile/exchange-rate',
+        about: 'Rates & fees page — live bilateral converter and ARS drill-downs.',
+        responses: {
+            'GET /fx/rates': {
+                base: 'USD',
+                basis: 'display_sell',
+                indicative: true,
+                generatedAt: '2026-01-01T00:00:00.000Z',
+                rates: [
+                    {
+                        code: 'USD',
+                        unitsPerBase: '1',
+                        buyUnitsPerBase: '1',
+                        selection: 'identity',
+                        baseSource: 'identity',
+                        quoteSource: 'identity',
+                        effectiveAt: null,
+                    },
+                    {
+                        code: 'ARS',
+                        unitsPerBase: '1485.10',
+                        buyUnitsPerBase: '1509.20',
+                        selection: 'provider_pair',
+                        baseSource: 'identity',
+                        quoteSource: 'manteca',
+                        effectiveAt: '2026-01-01T00:00:00.000Z',
+                    },
+                    {
+                        code: 'EUR',
+                        unitsPerBase: '0.9210',
+                        buyUnitsPerBase: '0.9280',
+                        selection: 'provider_pair',
+                        baseSource: 'identity',
+                        quoteSource: 'bridge',
+                        effectiveAt: '2026-01-01T00:00:00.000Z',
+                    },
+                    {
+                        code: 'BRL',
+                        unitsPerBase: '5.70',
+                        buyUnitsPerBase: '5.76',
+                        selection: 'provider_pair',
+                        baseSource: 'identity',
+                        quoteSource: 'manteca',
+                        effectiveAt: '2026-01-01T00:00:00.000Z',
+                    },
+                    {
+                        code: 'GBP',
+                        unitsPerBase: '0.7860',
+                        buyUnitsPerBase: '0.7940',
+                        selection: 'provider_pair',
+                        baseSource: 'identity',
+                        quoteSource: 'bridge',
+                        effectiveAt: '2026-01-01T00:00:00.000Z',
+                    },
+                    {
+                        code: 'MXN',
+                        unitsPerBase: '20.02',
+                        buyUnitsPerBase: '20.28',
+                        selection: 'provider_pair',
+                        baseSource: 'identity',
+                        quoteSource: 'bridge',
+                        effectiveAt: '2026-01-01T00:00:00.000Z',
+                    },
+                    {
+                        code: 'COP',
+                        unitsPerBase: '4350',
+                        buyUnitsPerBase: '4415',
+                        selection: 'provider_pair',
+                        baseSource: 'identity',
+                        quoteSource: 'bridge',
+                        effectiveAt: '2026-01-01T00:00:00.000Z',
+                    },
+                ],
+            },
+            'GET /fx/reference': {
+                currency: 'ARS',
+                base: 'USD',
+                source: 'dolarapi',
+                indicative: true,
+                benchmarks: [
+                    { key: 'cripto', buy: '1490.00', sell: '1505.00', effectiveAt: '2026-01-01T00:00:00.000Z' },
+                    { key: 'mep', buy: '1465.00', sell: '1475.00', effectiveAt: '2026-01-01T00:00:00.000Z' },
+                    { key: 'blue', buy: '1480.00', sell: '1500.00', effectiveAt: '2026-01-01T00:00:00.000Z' },
+                    { key: 'tarjeta', buy: null, sell: '1920.00', effectiveAt: '2026-01-01T00:00:00.000Z' },
+                    { key: 'oficial', buy: '1420.00', sell: '1460.00', effectiveAt: '2026-01-01T00:00:00.000Z' },
+                ],
+                generatedAt: '2026-01-01T00:00:00.000Z',
+            },
+        },
+    },
+    'profile-exchange-rate-fees': {
+        route: '/profile/exchange-rate?tab=fees',
+        about: 'Rates & fees page — bank rails, Peanut Card, and crypto fee schedule.',
+    },
     'profile-accounts-br-resident': {
         views: [
             {
@@ -6249,7 +6508,7 @@ export const FIXTURES: Record<string, Fixture> = {
         capture: { expectSelector: '[role="dialog"][data-state="open"] [data-testid="home-drawer-add-ars"]' },
         route: '/home?drawer=add',
         geoCountry: 'AR',
-        about: 'The Add drawer for a returning resident of Argentina: ARS leads, bank accounts next, then crypto and more ways (the owner, 24 Nov).',
+        about: 'The Add drawer for a returning resident of Argentina: ARS leads, then bank transfer and crypto (the owner, 24 Nov).',
         responses: {
             'GET /users/me': {
                 ...ARS_TOP_UP_RESIDENT,
@@ -6260,7 +6519,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'home-add-drawer-pix-paused': {
         capture: { expectSelector: OPEN_DIALOG },
         route: '/home?drawer=add',
-        about: 'The Add drawer for a returning resident of Brazil under the Brazil pause: no Pix row; bank accounts, crypto and more ways (the owner, 15 Nov).',
+        about: 'The Add drawer for a returning resident of Brazil under the Brazil pause: no Pix row; bank transfer and crypto (the owner, 15 Nov).',
         responses: {
             'GET /users/me': {
                 ...aveniaResponses('first-use')['GET /users/me'],

@@ -6,7 +6,10 @@ import type { paths } from '@/types/api.generated'
 // why it lives apart from utils/currency.ts, which pulls in useCurrency.
 
 type FxRateResponse = paths['/fx/rate']['get']['responses'][200]['content']['application/json']
+type FxRatesResponse = paths['/fx/rates']['get']['responses'][200]['content']['application/json']
 type FxCardMarkupResponse = paths['/fx/card-markup']['get']['responses'][200]['content']['application/json']
+type FxFeesResponse = paths['/fx/fees']['get']['responses'][200]['content']['application/json']
+type FxReferenceResponse = paths['/fx/reference']['get']['responses'][200]['content']['application/json']
 type FxSelection = FxRateResponse['selection']
 type FxSource = FxRateResponse['fromSource']
 const PLAIN_DECIMAL = /^(?:0|[1-9]\d*)(?:\.\d{1,18})?$/
@@ -314,4 +317,126 @@ export async function fetchCardMarkup(
     const result = parseCardMarkupResponse(data, currency, lockedPeanutRate)
     if (result.kind === 'invalid') throw new Error(`FX API returned an invalid card-markup contract for ${currency}`)
     return result.kind === 'none' ? null : result.markup
+}
+
+export interface FxBulkRateEntry {
+    code: string
+    /** Quote-currency units per 1 base unit on sell / withdraw / QR side. */
+    sellRate: number
+    /** Quote-currency units per 1 base unit on buy / add-money side. */
+    buyRate: number
+    effectiveAt: string | null
+}
+
+export interface FxBulkRatesSnapshot {
+    base: string
+    generatedAt: string
+    rates: Record<string, FxBulkRateEntry>
+}
+
+export async function fetchDisplayRates(baseCurrency = 'USD'): Promise<FxBulkRatesSnapshot> {
+    const base = baseCurrency.toUpperCase()
+    const query = new URLSearchParams({ base })
+    const response = await apiFetch(`/fx/rates?${query.toString()}`, {
+        method: 'GET',
+        includeAuth: false,
+        credentials: 'omit',
+        redirect: 'error',
+        timeoutMs: 10_000,
+    })
+    if (!response.ok) {
+        throw new FxApiError(response.status, base, 'rates', response.headers?.get?.('Retry-After') ?? null)
+    }
+
+    let raw: unknown
+    try {
+        raw = await response.json()
+    } catch {
+        throw new Error(`FX API returned invalid JSON for ${base} rates`)
+    }
+
+    if (!raw || typeof raw !== 'object') {
+        throw new Error(`FX API returned invalid rates payload for ${base}`)
+    }
+    const data = raw as Partial<FxRatesResponse>
+    if (data.base !== base || !Array.isArray(data.rates) || typeof data.generatedAt !== 'string') {
+        throw new Error(`FX API returned an invalid rates contract for ${base}`)
+    }
+
+    const rates: Record<string, FxBulkRateEntry> = {}
+    for (const row of data.rates) {
+        if (!row || typeof row.code !== 'string') continue
+        const sellRate = Number(row.unitsPerBase)
+        // Backward-compatible with pre-deploy backend where buyUnitsPerBase is absent.
+        const buyRate = typeof row.buyUnitsPerBase === 'string' ? Number(row.buyUnitsPerBase) : sellRate
+        if (!Number.isFinite(sellRate) || sellRate <= 0 || !Number.isFinite(buyRate) || buyRate <= 0) continue
+        rates[row.code.toUpperCase()] = {
+            code: row.code.toUpperCase(),
+            sellRate,
+            buyRate,
+            effectiveAt: typeof row.effectiveAt === 'string' ? row.effectiveAt : null,
+        }
+    }
+
+    return { base, generatedAt: data.generatedAt, rates }
+}
+
+export type FxFeeSchedule = FxFeesResponse
+export type FxReferenceBenchmarks = FxReferenceResponse
+export type FxBenchmarkEntry = FxReferenceResponse['benchmarks'][number]
+export type FxBenchmarkKey = FxBenchmarkEntry['key']
+
+export async function fetchFeeSchedule(): Promise<FxFeeSchedule> {
+    const response = await apiFetch('/fx/fees', {
+        method: 'GET',
+        includeAuth: false,
+        credentials: 'omit',
+        redirect: 'error',
+        timeoutMs: 10_000,
+        silentTimeout: true,
+    })
+    if (!response.ok) {
+        throw new FxApiError(response.status, 'FX', 'fees', response.headers?.get?.('Retry-After') ?? null)
+    }
+
+    let raw: unknown
+    try {
+        raw = await response.json()
+    } catch {
+        throw new Error('FX API returned invalid JSON for fees')
+    }
+    const data = raw as Partial<FxFeeSchedule>
+    if (!data || !Array.isArray(data.bankTransfers) || !data.card || !data.crypto) {
+        throw new Error('FX API returned an invalid fees contract')
+    }
+    return data as FxFeeSchedule
+}
+
+export async function fetchReferenceBenchmarks(currencyCode: string): Promise<FxReferenceBenchmarks | null> {
+    const currency = currencyCode.toUpperCase()
+    const query = new URLSearchParams({ currency })
+    const response = await apiFetch(`/fx/reference?${query.toString()}`, {
+        method: 'GET',
+        includeAuth: false,
+        credentials: 'omit',
+        redirect: 'error',
+        timeoutMs: 10_000,
+        silentTimeout: true,
+    })
+    if (response.status === 404) return null
+    if (!response.ok) {
+        throw new FxApiError(response.status, currency, 'reference', response.headers?.get?.('Retry-After') ?? null)
+    }
+
+    let raw: unknown
+    try {
+        raw = await response.json()
+    } catch {
+        throw new Error(`FX API returned invalid JSON for ${currency} benchmarks`)
+    }
+    const data = raw as Partial<FxReferenceBenchmarks>
+    if (!data || data.currency !== currency || !Array.isArray(data.benchmarks) || data.benchmarks.length === 0) {
+        throw new Error(`FX API returned an invalid benchmarks contract for ${currency}`)
+    }
+    return data as FxReferenceBenchmarks
 }
