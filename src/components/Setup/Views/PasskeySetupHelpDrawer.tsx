@@ -53,7 +53,7 @@ export const PasskeySetupHelpDrawer = ({
 }: PasskeySetupHelpDrawerProps) => {
     const t = useTranslations('setup.passkey.help')
     const tCommon = useTranslations('common')
-    const supportLink = useSetupSupportClick(`Passkey help (${errorName})`, onSupport)
+    const supportLink = useSetupSupportClick({ key: 'passkeyError', errorName }, onSupport)
 
     const getTitle = (): string => {
         if (errorName === PASSKEY_NOT_SAVED_HELP) return t('titles.passkeyNotSaved')

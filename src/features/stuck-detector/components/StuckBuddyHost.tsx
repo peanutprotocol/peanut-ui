@@ -8,73 +8,63 @@ import posthog from 'posthog-js'
 import * as Sentry from '@sentry/nextjs'
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { BASE_URL } from '@/constants/general.consts'
+import { IS_PRODUCTION } from '@/constants/general.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
 import { useModalsContextOptional } from '@/context/ModalsContext'
 import { useFeatureFlags } from '@/hooks/useFeatureFlag'
-import { useVisualViewport } from '@/hooks/useVisualViewport'
+import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { isAndroidNative, isIOSNative } from '@/utils/capacitor'
-import { isManagerOverlayOpen, useAnyOverlayOpen } from '@/utils/overlay-visibility'
+import { getPlatform } from '@/utils/capacitor'
+import { useAnyAppOverlayOpen } from '@/utils/overlay-visibility'
+import { redactSupportText } from '@/utils/support-context'
 import { decideStuckIntervention } from '../decideIntervention'
 import {
-    createDefaultStuckMemory,
     markSeenAddMoneyUnfunded,
     readStuckMemory,
-    recordSessionOutcome,
+    recordObservedFriction,
+    recordSurfaceActionCooldown,
     recordSurfaceDismissal,
 } from '../memory'
 import {
     canonicalStuckRoute,
-    isBankDepositPath,
     isStuckExcludedPath,
     journeyForPath,
     parseDemoSurface,
     surfaceForPath,
 } from '../routeJourney'
-import { scoreStuckSession, STUCK_MODEL } from '../scoreModel'
 import {
+    clearActiveImpression,
     evaluateIdleTick,
     getStuckRuntimeSnapshot,
     markSessionNudgeShown,
-    markShadowLogged,
-    notePointerTap,
+    noteElementClick,
+    noteUserActivity,
+    setStuckDocumentVisible,
     setStuckRoute,
     subscribeStuckRuntime,
 } from '../signalStore'
 import type { BugReportCategory, StuckSurface } from '../types'
+import { useKeyboardOpen } from '../useKeyboardOpen'
 import { ActiveIssueDrawer } from './ActiveIssueDrawer'
 import { AddMoneyHelpDrawer } from './AddMoneyHelpDrawer'
 import { HomeFundedDrawer } from './HomeFundedDrawer'
 import { PeanutBuddy } from './PeanutBuddy'
 
 const IDLE_POLL_MS = 5_000
-const IS_PROD_DOMAIN = BASE_URL === 'https://peanut.me'
-
-const BUDDY_PROMPT_KEYS: Record<StuckSurface, { prompt: string; cta: string }> = {
-    add_money: { prompt: 'prompts.addMoney', cta: 'ctas.addMoney' },
-    verify_loop: { prompt: 'prompts.verifyLoop', cta: 'ctas.contactSupport' },
-    setup_passkey: { prompt: 'prompts.setupPasskey', cta: 'ctas.contactSupport' },
-    home_funded: { prompt: 'prompts.homeFunded', cta: 'ctas.homeFunded' },
-    active_issue: { prompt: 'prompts.activeIssue', cta: 'ctas.activeIssue' },
-}
-
+const CHECKPOINT_SECONDS = [0, 15, 30, 60] as const
+const QR_PAY_COUNTRIES = new Set(['AR', 'ARG', 'ARGENTINA', 'BR', 'BRA', 'BRAZIL'])
 const DIRECT_SUPPORT_SURFACES = new Set<StuckSurface>(['verify_loop', 'setup_passkey'])
 
 interface StuckBuddyCoreProps {
     variant: 'app' | 'setup'
     balanceUsd: number | null
     hasSpent: boolean
+    canUseQrPay: boolean
+    canUseCard: boolean
 }
 
-function resolvePlatform(): 'ios-native' | 'android-native' | 'web' {
-    if (isIOSNative()) return 'ios-native'
-    if (isAndroidNative()) return 'android-native'
-    return 'web'
-}
-
-function StuckBuddyCore({ variant, balanceUsd, hasSpent }: StuckBuddyCoreProps) {
+function StuckBuddyCore({ variant, balanceUsd, hasSpent, canUseQrPay, canUseCard }: StuckBuddyCoreProps) {
     const pathname = usePathname() || ''
     const [urlParams] = useQueryStates({
         country: parseAsString,
@@ -91,192 +81,217 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent }: StuckBuddyCoreProps) 
     const userId = user?.user?.userId ?? null
     const modals = useModalsContextOptional()
     const isFlagEnabled = useFeatureFlags()
-    const anyUserOverlayOpen = useAnyOverlayOpen()
-    const { keyboardInset } = useVisualViewport(true)
+    const anyOverlayOpen = useAnyAppOverlayOpen()
 
     const runtime = useSyncExternalStore(subscribeStuckRuntime, getStuckRuntimeSnapshot, getStuckRuntimeSnapshot)
     const analyticsOptedOut = typeof posthog.has_opted_out_capturing === 'function' && posthog.has_opted_out_capturing()
-    const [memory, setMemory] = useState(() =>
-        analyticsOptedOut ? createDefaultStuckMemory() : readStuckMemory(userId)
-    )
+
+    // Functional dismissal preferences are always read regardless of analytics consent (never re-nag opted-out users).
+    const [memory, setMemory] = useState(() => readStuckMemory(userId))
     const [drawerSurface, setDrawerSurface] = useState<StuckSurface | null>(null)
     const [dismissedThisVisit, setDismissedThisVisit] = useState(false)
     const [nowMs, setNowMs] = useState(() => Date.now())
-    const smoothedRef = useRef(0)
-    const sessionOutcomeSavedRef = useRef(false)
-
-    // Refresh per-user localStorage memory when auth or opt-out state settles.
-    useEffect(() => {
-        setMemory(analyticsOptedOut ? createDefaultStuckMemory() : readStuckMemory(userId))
-    }, [userId, analyticsOptedOut])
-
-    // Sync canonical route (including Capacitor ?country=...&view=bank|manteca) into signal store.
-    useEffect(() => {
-        setStuckRoute(effectiveRoute)
-        setDismissedThisVisit(false)
-        if (!analyticsOptedOut && isBankDepositPath(effectiveRoute) && (balanceUsd ?? 0) <= 0) {
-            setMemory(markSeenAddMoneyUnfunded(userId))
-        }
-    }, [effectiveRoute, userId, balanceUsd, analyticsOptedOut])
-
-    // Lightweight global tap listener for rage-tap detection (honors `data-stuck-ignore`).
-    useEffect(() => {
-        if (typeof window === 'undefined' || isStuckExcludedPath(effectiveRoute)) return
-        const onPointerDown = (event: PointerEvent) => {
-            const target = event.target as HTMLElement | null
-            const ignored = Boolean(target?.closest?.('[data-stuck-ignore="true"], [data-mood-ignore]'))
-            notePointerTap(event.clientX, event.clientY, ignored)
-        }
-        window.addEventListener('pointerdown', onPointerDown, { passive: true })
-        return () => window.removeEventListener('pointerdown', onPointerDown)
-    }, [effectiveRoute])
-
-    // Periodic idle & dwell tick (5s cadence — negligible CPU).
-    useEffect(() => {
-        if (isStuckExcludedPath(effectiveRoute)) return
-        const interval = window.setInterval(() => {
-            const now = Date.now()
-            evaluateIdleTick(now)
-            setNowMs(now)
-        }, IDLE_POLL_MS)
-        return () => window.clearInterval(interval)
-    }, [effectiveRoute])
 
     const demoSurface = useMemo(
         () =>
             parseDemoSurface(
                 urlParams.stuck_demo ? `?stuck_demo=${encodeURIComponent(urlParams.stuck_demo)}` : '',
-                !IS_PROD_DOMAIN
+                !IS_PRODUCTION
             ),
         [urlParams.stuck_demo]
     )
 
     const surface = useMemo(() => surfaceForPath(effectiveRoute, hasSpent), [effectiveRoute, hasSpent])
     const journey = useMemo(() => journeyForPath(effectiveRoute), [effectiveRoute])
-
-    const scoreResult = useMemo(() => {
-        const durationSeconds = Math.max(0, (nowMs - runtime.sessionStartedAt) / 1000)
-        const result = scoreStuckSession(
-            {
-                flags: runtime.flags,
-                durationSeconds,
-                loggedIn: Boolean(userId),
-                journey,
-                platform: resolvePlatform(),
-                memory,
-            },
-            smoothedRef.current
-        )
-        smoothedRef.current = result.smoothedScore
-        return result
-    }, [nowMs, runtime.sessionStartedAt, runtime.flags, userId, journey, memory])
-
-    // Shadow-mode telemetry: log once per session when the trained GBDT crosses 0.60,
-    // even while the UI rollout flag is OFF so we validate live precision before flipping 50/50.
-    useEffect(() => {
-        if (runtime.shadowLoggedForSession || isStuckExcludedPath(effectiveRoute)) return
-        const peak = Math.max(scoreResult.rawScore, scoreResult.smoothedScore)
-        if (peak < STUCK_MODEL.defaultThreshold) return
-        markShadowLogged()
-        posthog.capture(ANALYTICS_EVENTS.STUCK_SCORE_SHADOW, {
-            model_version: scoreResult.modelVersion,
-            raw_score: Number(scoreResult.rawScore.toFixed(4)),
-            smoothed_score: Number(scoreResult.smoothedScore.toFixed(4)),
-            journey,
-            surface: surface ?? 'none',
-            ui_flag_enabled: isFlagEnabled('stuck-buddy-interventions'),
-            has_app_error: runtime.flags.appError,
-            has_money_failed: runtime.flags.moneyFailed,
-            has_kyc_blocked: runtime.flags.kycBlocked,
-            has_rage_taps: runtime.flags.rageTaps,
-            has_long_idle: runtime.flags.longIdle,
-        })
-        if (!analyticsOptedOut && !sessionOutcomeSavedRef.current) {
-            sessionOutcomeSavedRef.current = true
-            setMemory(
-                recordSessionOutcome(userId, {
-                    hadFriction:
-                        runtime.flags.appError ||
-                        runtime.flags.moneyFailed ||
-                        runtime.flags.kycBlocked ||
-                        runtime.flags.rageTaps,
-                    wasStuck: true,
-                })
-            )
-        }
-    }, [
-        runtime.shadowLoggedForSession,
-        runtime.flags,
-        effectiveRoute,
-        scoreResult,
-        journey,
-        surface,
-        isFlagEnabled,
-        userId,
-        analyticsOptedOut,
-    ])
-
     const uiEnabled = Boolean(demoSurface) || isFlagEnabled('stuck-buddy-interventions')
+    const isKeyboardOpen = useKeyboardOpen(Boolean(surface || demoSurface) && uiEnabled)
 
-    const decision = useMemo(() => {
-        if (!uiEnabled || dismissedThisVisit) {
-            return { show: false as const, suppressedBy: 'below_threshold' as const }
+    // Refresh functional memory when authenticated user changes.
+    useEffect(() => {
+        setMemory(readStuckMemory(userId))
+    }, [userId])
+
+    // Sync canonical route into runtime store and clear per-visit dismissal.
+    useEffect(() => {
+        setStuckRoute(effectiveRoute)
+        setDismissedThisVisit(false)
+    }, [effectiveRoute])
+
+    // Record `seenAddMoneyUnfunded` ONLY when leaving a bank-details step with verified $0 balance
+    // (never on first entry, never when balance is still loading, never while flag is off).
+    const balanceUsdRef = useRef(balanceUsd)
+    balanceUsdRef.current = balanceUsd
+    useEffect(() => {
+        if (!uiEnabled || !runtime.isDepositDetailsStep) return
+        return () => {
+            if (balanceUsdRef.current !== null && balanceUsdRef.current <= 0) {
+                setMemory(markSeenAddMoneyUnfunded(userId))
+            }
         }
-        return decideStuckIntervention({
-            pathname: effectiveRoute,
+    }, [uiEnabled, runtime.isDepositDetailsStep, userId])
+
+    // Persist factual observed friction (never a score crossing) only while flag is enabled.
+    const hasObservedFailure = runtime.flags.moneyFailed || runtime.flags.kycBlocked || runtime.flags.appError
+    useEffect(() => {
+        if (!uiEnabled || !hasObservedFailure) return
+        setMemory(recordObservedFriction(userId))
+    }, [uiEnabled, hasObservedFailure, userId])
+
+    // Visibility-aware dwell/idle clocks + activity & same-element rage-click listeners.
+    useEffect(() => {
+        if (typeof window === 'undefined' || isStuckExcludedPath(effectiveRoute)) return
+        setStuckDocumentVisible(document.visibilityState === 'visible')
+
+        const onVisibility = () => setStuckDocumentVisible(document.visibilityState === 'visible')
+        const onClick = (event: MouseEvent) => {
+            const target = event.target as HTMLElement | null
+            const ignored = Boolean(target?.closest?.('[data-stuck-ignore="true"]'))
+            noteElementClick(event.target, event.clientX, event.clientY, ignored)
+        }
+        const onActivity = () => noteUserActivity()
+
+        document.addEventListener('visibilitychange', onVisibility)
+        window.addEventListener('click', onClick, { passive: true })
+        window.addEventListener('keydown', onActivity, { passive: true })
+        window.addEventListener('input', onActivity, { passive: true })
+        window.addEventListener('scroll', onActivity, { passive: true })
+
+        return () => {
+            document.removeEventListener('visibilitychange', onVisibility)
+            window.removeEventListener('click', onClick)
+            window.removeEventListener('keydown', onActivity)
+            window.removeEventListener('input', onActivity)
+            window.removeEventListener('scroll', onActivity)
+        }
+    }, [effectiveRoute])
+
+    // Periodic visible dwell & idle tick (5s cadence; skipped on excluded routes).
+    useEffect(() => {
+        if (isStuckExcludedPath(effectiveRoute) || (!surface && !demoSurface)) return
+        const interval = window.setInterval(() => {
+            const now = Date.now()
+            evaluateIdleTick(now)
+            setNowMs(now)
+        }, IDLE_POLL_MS)
+        return () => window.clearInterval(interval)
+    }, [effectiveRoute, surface, demoSurface])
+
+    // Leak-free browser-feature checkpoint logging (entry, 15s, 30s, 60s of active visible dwell)
+    // so any future mid-session model trains strictly on real browser-observable features.
+    const loggedCheckpointsRef = useRef<Set<string>>(new Set())
+    useEffect(() => {
+        if (isStuckExcludedPath(effectiveRoute) || !surface || analyticsOptedOut) return
+        const dwellSeconds = runtime.activeDwellMs / 1000
+        for (const cp of CHECKPOINT_SECONDS) {
+            if (dwellSeconds < cp) continue
+            const key = `${effectiveRoute}:${cp}`
+            if (loggedCheckpointsRef.current.has(key)) continue
+            loggedCheckpointsRef.current.add(key)
+            posthog.capture(ANALYTICS_EVENTS.STUCK_SIGNAL_CHECKPOINT, {
+                checkpoint_s: cp,
+                journey,
+                surface,
+                platform: getPlatform(),
+                logged_in: Boolean(userId),
+                is_deposit_details_step: runtime.isDepositDetailsStep,
+                active_dwell_ms: Math.round(runtime.activeDwellMs),
+                active_idle_ms: Math.round(runtime.activeIdleMs),
+                has_app_error: runtime.flags.appError,
+                has_money_failed: runtime.flags.moneyFailed,
+                has_kyc_blocked: runtime.flags.kycBlocked,
+                has_rage_taps: runtime.flags.rageTaps,
+                local_verify_attempts: runtime.localVerifyAttempts,
+                passkey_cancel_count: runtime.passkeyCancelCount,
+                corridor_switch_count: runtime.corridorSwitchCount,
+                error_retry_count: runtime.errorRetryCount,
+            })
+        }
+    }, [effectiveRoute, surface, journey, analyticsOptedOut, userId, runtime])
+
+    const activeImpressionMatchesCurrentRoute =
+        runtime.activeImpressionKey !== null && runtime.activeImpressionKey.startsWith(`${effectiveRoute}:`)
+
+    const decision = useMemo(
+        () =>
+            decideStuckIntervention({
+                surface,
+                uiEnabled,
+                isProd: IS_PRODUCTION,
+                dismissedThisVisit,
+                isDepositDetailsStep: runtime.isDepositDetailsStep,
+                activeDwellMs: runtime.activeDwellMs,
+                activeIdleMs: runtime.activeIdleMs,
+                flags: runtime.flags,
+                memory,
+                nowMs,
+                // Once an impression lands, keep THAT buddy mounted for this visit, while blocking any second buddy on later routes.
+                sessionNudgeShown: runtime.sessionNudgeShown && !activeImpressionMatchesCurrentRoute,
+                hasOverlayOpen: anyOverlayOpen || drawerSurface !== null,
+                isKeyboardOpen,
+                isFlowBusy: runtime.isFlowBusy,
+                passkeyStepState: runtime.passkeyStepState,
+                localVerifyAttempts: runtime.localVerifyAttempts,
+                passkeyCancelCount: runtime.passkeyCancelCount,
+                corridorSwitchCount: runtime.corridorSwitchCount,
+                errorRetryCount: runtime.errorRetryCount,
+                balanceUsd,
+                hasSpent,
+                demoSurface,
+            }),
+        [
             surface,
-            rawScore: scoreResult.rawScore,
-            smoothedScore: scoreResult.smoothedScore,
-            elapsedOnScreenMs: Math.max(0, nowMs - runtime.screenEnteredAt),
-            flags: runtime.flags,
+            uiEnabled,
+            dismissedThisVisit,
+            runtime,
             memory,
             nowMs,
-            sessionNudgeShown: runtime.sessionNudgeShown,
-            hasOverlayOpen: anyUserOverlayOpen || isManagerOverlayOpen() || drawerSurface !== null,
-            isKeyboardOpen: keyboardInset > 0,
-            isFlowBusy: runtime.isFlowBusy,
-            passkeyStepState: runtime.passkeyStepState,
-            localVerifyAttempts: runtime.localVerifyAttempts,
-            passkeyCancelCount: runtime.passkeyCancelCount,
-            corridorSwitchCount: runtime.corridorSwitchCount,
-            errorRetryCount: runtime.errorRetryCount,
+            activeImpressionMatchesCurrentRoute,
+            anyOverlayOpen,
+            drawerSurface,
+            isKeyboardOpen,
             balanceUsd,
             hasSpent,
             demoSurface,
+        ]
+    )
+
+    // Holdout comparability: log `stuck_buddy_eligible` identically in BOTH treatment and control arms.
+    const eligibleLoggedRef = useRef<string | null>(null)
+    useEffect(() => {
+        const eligibleMatch =
+            decision.show && decision.eligible
+                ? { surface: decision.surface, mode: decision.mode, reason: decision.reason, arm: 'treatment' as const }
+                : !decision.show && decision.eligibleInControl
+                  ? { ...decision.eligibleInControl, arm: 'control' as const }
+                  : null
+        if (!eligibleMatch) return
+        const key = `${effectiveRoute}:${eligibleMatch.surface}:${eligibleMatch.reason}:${eligibleMatch.arm}`
+        if (eligibleLoggedRef.current === key) return
+        eligibleLoggedRef.current = key
+        posthog.capture(ANALYTICS_EVENTS.STUCK_BUDDY_ELIGIBLE, {
+            surface: eligibleMatch.surface,
+            mode: eligibleMatch.mode,
+            reason: eligibleMatch.reason,
+            arm: eligibleMatch.arm,
+            journey,
         })
-    }, [
-        uiEnabled,
-        dismissedThisVisit,
-        effectiveRoute,
-        surface,
-        scoreResult.rawScore,
-        scoreResult.smoothedScore,
-        nowMs,
-        runtime,
-        memory,
-        anyUserOverlayOpen,
-        drawerSurface,
-        keyboardInset,
-        balanceUsd,
-        hasSpent,
-        demoSurface,
-    ])
+    }, [decision, effectiveRoute, journey])
 
     const shownLoggedRef = useRef<string | null>(null)
-    useEffect(() => {
+    const handleImpression = useCallback(() => {
         if (!decision.show) return
-        const key = `${decision.surface}:${decision.reason}`
+        if (!decision.isDemo) markSessionNudgeShown(`${effectiveRoute}:${decision.surface}`)
+        const key = `${effectiveRoute}:${decision.surface}:${decision.reason}`
         if (shownLoggedRef.current === key) return
         shownLoggedRef.current = key
         posthog.capture(ANALYTICS_EVENTS.STUCK_BUDDY_SHOWN, {
             surface: decision.surface,
             pose: decision.pose,
+            mode: decision.mode,
             reason: decision.reason,
             is_demo: decision.isDemo,
-            raw_score: Number(scoreResult.rawScore.toFixed(4)),
-            model_version: scoreResult.modelVersion,
         })
-    }, [decision, scoreResult.rawScore, scoreResult.modelVersion])
+    }, [decision, effectiveRoute])
 
     const handleContactSupport = useCallback(
         (topic: string, copyContext?: string) => {
@@ -297,54 +312,67 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent }: StuckBuddyCoreProps) 
 
     const handleBuddyAction = useCallback(() => {
         if (!decision.show) return
-        if (!decision.isDemo) markSessionNudgeShown()
         setDismissedThisVisit(true)
+        if (!decision.isDemo) {
+            markSessionNudgeShown()
+            clearActiveImpression()
+            setMemory(recordSurfaceActionCooldown(userId, decision.surface))
+        }
         posthog.capture(ANALYTICS_EVENTS.STUCK_BUDDY_ACTION, {
             surface: decision.surface,
             action: 'open_helper',
             reason: decision.reason,
         })
         if (DIRECT_SUPPORT_SURFACES.has(decision.surface)) {
-            const topicKey =
-                decision.surface === 'verify_loop' ? 'supportTopics.verifyLoop' : 'supportTopics.setupPasskey'
-            handleContactSupport(t(topicKey))
+            const topic =
+                decision.surface === 'verify_loop' ? t('supportTopics.verifyLoop') : t('supportTopics.setupPasskey')
+            handleContactSupport(topic)
+            return
+        }
+        if (decision.surface === 'home_wave') {
+            setDrawerSurface(balanceUsd !== null && balanceUsd >= 10 && !hasSpent ? 'home_funded' : 'active_issue')
             return
         }
         setDrawerSurface(decision.surface)
-    }, [decision, handleContactSupport, t])
+    }, [decision, userId, handleContactSupport, t, balanceUsd, hasSpent])
+
+    const handleAutoLeave = useCallback(() => {
+        setDismissedThisVisit(true)
+        if (decision.show && !decision.isDemo) {
+            markSessionNudgeShown()
+            clearActiveImpression()
+        }
+    }, [decision])
 
     const handleDismiss = useCallback(() => {
         if (!decision.show) return
         setDismissedThisVisit(true)
         if (!decision.isDemo) {
             markSessionNudgeShown()
-            if (!analyticsOptedOut) {
-                setMemory(recordSurfaceDismissal(userId, decision.surface))
-            }
+            clearActiveImpression()
+            // Functional dismissal preference persists even when analytics are opted out.
+            setMemory(recordSurfaceDismissal(userId, decision.surface))
         }
         posthog.capture(ANALYTICS_EVENTS.STUCK_BUDDY_DISMISSED, {
             surface: decision.surface,
             reason: decision.reason,
-            raw_score: Number(scoreResult.rawScore.toFixed(4)),
         })
-    }, [decision, userId, analyticsOptedOut, scoreResult.rawScore])
+    }, [decision, userId])
 
     const handleSubmitBugReport = useCallback(
-        (category: BugReportCategory, note: string) => {
+        (category: BugReportCategory, rawNote: string) => {
+            const safeNote = rawNote ? redactSupportText(rawNote) : ''
             const replayUrl =
                 !analyticsOptedOut && typeof posthog.get_session_replay_url === 'function'
                     ? posthog.get_session_replay_url()
                     : undefined
             posthog.capture(ANALYTICS_EVENTS.STUCK_BUG_REPORT_SUBMITTED, {
                 category,
-                has_note: Boolean(note),
+                has_note: Boolean(safeNote),
                 route: effectiveRoute,
                 error_code: runtime.lastErrorCode,
-                raw_score: Number(scoreResult.rawScore.toFixed(4)),
-                model_version: scoreResult.modelVersion,
                 replay_url: replayUrl ?? null,
             })
-            // Explicit user-initiated bug report submission; omit session replay and telemetry score when opted out.
             Sentry.captureMessage(`stuck-buddy bug report: ${category}`, {
                 level: 'info',
                 tags: {
@@ -354,18 +382,17 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent }: StuckBuddyCoreProps) 
                 },
                 extra: analyticsOptedOut
                     ? {
-                          note: note || undefined,
+                          note: safeNote || undefined,
                           lastErrorCode: runtime.lastErrorCode,
                       }
                     : {
-                          note: note || undefined,
+                          note: safeNote || undefined,
                           lastErrorCode: runtime.lastErrorCode,
                           replayUrl,
-                          rawScore: Number(scoreResult.rawScore.toFixed(4)),
                       },
             })
         },
-        [analyticsOptedOut, effectiveRoute, runtime.lastErrorCode, scoreResult.rawScore, scoreResult.modelVersion]
+        [analyticsOptedOut, effectiveRoute, runtime.lastErrorCode]
     )
 
     const clearance =
@@ -375,20 +402,40 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent }: StuckBuddyCoreProps) 
               ? 'footer'
               : 'bottom-nav'
 
+    const buddyCopy = (() => {
+        if (!decision.show) return null
+        switch (decision.surface) {
+            case 'add_money':
+                return { prompt: t('prompts.addMoney'), cta: t('ctas.addMoney') }
+            case 'verify_loop':
+                return { prompt: t('prompts.verifyLoop'), cta: t('ctas.contactSupport') }
+            case 'setup_passkey':
+                return { prompt: t('prompts.setupPasskey'), cta: t('ctas.contactSupport') }
+            case 'home_funded':
+            case 'home_wave':
+                return { prompt: t('prompts.homeFunded'), cta: t('ctas.homeFunded') }
+            case 'active_issue':
+                return { prompt: t('prompts.activeIssue'), cta: t('ctas.activeIssue') }
+        }
+    })()
+
     return (
         <>
             <AnimatePresence>
-                {decision.show && (
+                {decision.show && buddyCopy && (
                     <PeanutBuddy
                         key={`${decision.surface}-${decision.pose}`}
                         pose={decision.pose}
-                        prompt={t(BUDDY_PROMPT_KEYS[decision.surface].prompt as Parameters<typeof t>[0])}
-                        ctaLabel={t(BUDDY_PROMPT_KEYS[decision.surface].cta as Parameters<typeof t>[0])}
+                        prompt={buddyCopy.prompt}
+                        ctaLabel={buddyCopy.cta}
                         dismissLabel={t('a11y.dismiss')}
                         mascotLabel={t('a11y.openHelper')}
                         clearance={clearance}
+                        whimsy={decision.mode === 'whimsy'}
+                        onImpression={handleImpression}
                         onAction={handleBuddyAction}
                         onDismiss={handleDismiss}
+                        onAutoLeave={handleAutoLeave}
                     />
                 )}
             </AnimatePresence>
@@ -400,6 +447,8 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent }: StuckBuddyCoreProps) 
             />
             <HomeFundedDrawer
                 open={drawerSurface === 'home_funded'}
+                canUseQrPay={canUseQrPay}
+                canUseCard={canUseCard}
                 onClose={() => setDrawerSurface(null)}
                 onNavigate={(href) => router.push(href)}
                 onContactSupport={handleContactSupport}
@@ -418,12 +467,25 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent }: StuckBuddyCoreProps) 
 export function StuckBuddyHost() {
     const { user } = useAuth()
     const { balance } = useWallet()
+    const restrictions = useResidenceRestrictions()
     const balanceUsd = balance !== undefined ? Number(balance) / 10 ** PEANUT_WALLET_TOKEN_DECIMALS : null
     const hasSpent = Boolean(user?.user?.isActivated)
-    return <StuckBuddyCore variant="app" balanceUsd={balanceUsd} hasSpent={hasSpent} />
+    const country = (user?.residence?.verified?.country || user?.residence?.declared?.country || '').toUpperCase()
+    const canUseQrPay = QR_PAY_COUNTRIES.has(country)
+    const canUseCard = !restrictions.card
+
+    return (
+        <StuckBuddyCore
+            variant="app"
+            balanceUsd={balanceUsd}
+            hasSpent={hasSpent}
+            canUseQrPay={canUseQrPay}
+            canUseCard={canUseCard}
+        />
+    )
 }
 
 /** Mounted inside `(setup)/layout.tsx` for unauthenticated setup flows (no wallet queries). */
 export function SetupStuckBuddyHost() {
-    return <StuckBuddyCore variant="setup" balanceUsd={null} hasSpent={false} />
+    return <StuckBuddyCore variant="setup" balanceUsd={null} hasSpent={false} canUseQrPay={false} canUseCard={false} />
 }

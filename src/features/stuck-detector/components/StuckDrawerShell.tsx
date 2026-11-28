@@ -7,7 +7,7 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } f
 
 interface StuckDrawerShellProps {
     open: boolean
-    onOpenChange: (open: boolean) => void
+    onClose: () => void
     icon: IconName
     iconColor: IconBubbleColor
     title: string
@@ -22,7 +22,7 @@ interface StuckDrawerShellProps {
  */
 export function StuckDrawerShell({
     open,
-    onOpenChange,
+    onClose,
     icon,
     iconColor,
     title,
@@ -31,7 +31,12 @@ export function StuckDrawerShell({
     children,
 }: StuckDrawerShellProps) {
     return (
-        <Drawer open={open} onOpenChange={onOpenChange}>
+        <Drawer
+            open={open}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) onClose()
+            }}
+        >
             <DrawerContent data-stuck-ignore="true">
                 <div className="flex flex-col items-center pt-1 pb-6 text-center" data-testid={testId}>
                     <div className="mb-3 flex w-full flex-col items-center gap-4">

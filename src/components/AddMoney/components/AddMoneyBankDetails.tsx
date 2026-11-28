@@ -24,6 +24,7 @@ import { useOnrampQuote } from '@/hooks/useOnrampQuote'
 import { currencyToAccountType } from '@/utils/bridge.utils'
 import { useQueryState, parseAsString } from 'nuqs'
 import { useTranslations } from 'next-intl'
+import { setDepositDetailsStepActive } from '@/features/stuck-detector/signalStore'
 
 /**
  * TODO(architecture): Quote math is computed client-side instead of trusting backend.
@@ -53,6 +54,11 @@ type AddMoneyBankDetailsProps = {
 export default function AddMoneyBankDetails({ onBack }: AddMoneyBankDetailsProps) {
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
+
+    useEffect(() => {
+        setDepositDetailsStepActive(true)
+        return () => setDepositDetailsStepActive(false)
+    }, [])
 
     // URL state - read amount from URL query params
     const [rawReturnTo] = useQueryState(RETURN_TO_PARAM, parseAsString)

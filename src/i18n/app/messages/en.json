@@ -5645,7 +5645,7 @@
     "stuckBuddy": {
         "prompts": {
             "addMoney": "Need help with a bank transfer?",
-            "verifyLoop": "Having trouble with this field?",
+            "verifyLoop": "Need help with verification?",
             "setupPasskey": "Trouble saving a passkey?",
             "homeFunded": "Ready for a first payment?",
             "activeIssue": "Running into an issue?"
@@ -5660,15 +5660,13 @@
             "dismiss": "Dismiss helper",
             "openHelper": "Open Peanut helper"
         },
-        "inline": {
-            "verifyFormatHint": "Enter digits only, no spaces or dashes.",
-            "verifyPhoneHint": "Include the country code starting with +.",
-            "verifyGenericHint": "Check the format or contact support."
-        },
         "supportTopics": {
             "addMoney": "Bank transfer deposit help",
-            "verifyLoop": "Verification field format help",
+            "verifyLoop": "Verification help",
             "setupPasskey": "Passkey setup help",
+            "loginRecovery": "Passkey login recovery",
+            "passkeyError": "Passkey help ({errorName})",
+            "usernameCheck": "Username check failed",
             "homeFunded": "First payment help",
             "activeIssue": "Issue in Peanut app"
         },
@@ -5681,8 +5679,8 @@
             "addMoney": {
                 "title": "Deposit troubleshooting",
                 "description": "Quick bank transfer checks.",
-                "step1": "Alias rejected? Copy the full account number.",
-                "step2": "Sent from another name? Some transfers require an account in the same legal name.",
+                "step1": "Details rejected? Copy the full account number or IBAN.",
+                "step2": "Different sender? Some transfers require an account in the same legal name.",
                 "step3": "Past the arrival time on screen? Share the bank receipt with support.",
                 "primaryCta": "Copy message and contact support",
                 "copyMessage": "Need help with a bank transfer deposit in Peanut."
@@ -5692,20 +5690,20 @@
                 "description": "Pick the fastest way to make a first payment.",
                 "qrCta": "Pay by QR",
                 "cardCta": "Get Peanut Card",
+                "sendCta": "Send money",
                 "tertiarySupport": "Something blocking a payment? Contact support"
             },
             "activeIssue": {
                 "title": "Report an issue",
-                "description": "Sends the current screen, error code, and session trace to the team.",
+                "description": "Sends this screen and note to the team. Need a reply? Contact support below.",
                 "categoryLabel": "Issue category",
                 "noteLabel": "Optional note",
                 "notePlaceholder": "Short note",
-                "submitCta": "Send bug report",
-                "copyMessage": "Ran into an issue in the Peanut app."
+                "submitCta": "Send bug report"
             },
             "bugSent": {
                 "title": "Bug report sent",
-                "description": "Thanks for flagging this. The team has the screen and error trace."
+                "description": "Thanks for flagging this. Need a reply? Contact support anytime."
             }
         }
     }

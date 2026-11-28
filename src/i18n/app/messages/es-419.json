@@ -5645,7 +5645,7 @@
     "stuckBuddy": {
         "prompts": {
             "addMoney": "¿Ayuda con la transferencia?",
-            "verifyLoop": "¿Problemas con este campo?",
+            "verifyLoop": "¿Ayuda con la verificación?",
             "setupPasskey": "¿Problemas al guardar la passkey?",
             "homeFunded": "¿Hacemos el primer pago?",
             "activeIssue": "¿Hubo un problema?"
@@ -5660,15 +5660,13 @@
             "dismiss": "Cerrar ayuda",
             "openHelper": "Abrir ayuda de Peanut"
         },
-        "inline": {
-            "verifyFormatHint": "Ingresa solo números, sin espacios ni guiones.",
-            "verifyPhoneHint": "Incluye el código de país empezando con +.",
-            "verifyGenericHint": "Revisa el formato o contacta a soporte."
-        },
         "supportTopics": {
             "addMoney": "Ayuda con depósito por transferencia bancaria",
-            "verifyLoop": "Ayuda con el formato en verificación",
+            "verifyLoop": "Ayuda con la verificación",
             "setupPasskey": "Ayuda para configurar la passkey",
+            "loginRecovery": "Recuperación de inicio de sesión con passkey",
+            "passkeyError": "Ayuda con passkey ({errorName})",
+            "usernameCheck": "Error al verificar el nombre de usuario",
             "homeFunded": "Ayuda con el primer pago",
             "activeIssue": "Problema en la app de Peanut"
         },
@@ -5681,7 +5679,7 @@
             "addMoney": {
                 "title": "Ayuda con depósitos",
                 "description": "Revisiones rápidas para transferencias bancarias.",
-                "step1": "¿Rechazaron el alias? Copia el número de cuenta completo.",
+                "step1": "¿Datos rechazados? Copia el número de cuenta o IBAN completo.",
                 "step2": "¿Enviaste desde otro nombre? Algunas transferencias requieren una cuenta propia.",
                 "step3": "¿Pasó el tiempo de llegada indicado? Comparte el comprobante con soporte.",
                 "primaryCta": "Copiar mensaje y contactar soporte",
@@ -5692,20 +5690,20 @@
                 "description": "Elige la forma más rápida de hacer el primer pago.",
                 "qrCta": "Pagar con QR",
                 "cardCta": "Pedir la Peanut Card",
+                "sendCta": "Enviar dinero",
                 "tertiarySupport": "¿Problemas para pagar? Contactar soporte"
             },
             "activeIssue": {
                 "title": "Reportar un problema",
-                "description": "Se enviará la pantalla actual, el código de error y el registro de la sesión al equipo.",
+                "description": "Envía esta pantalla y tu nota al equipo. ¿Necesitas respuesta? Contacta a soporte abajo.",
                 "categoryLabel": "Tipo de problema",
                 "noteLabel": "Nota opcional",
                 "notePlaceholder": "Breve nota",
-                "submitCta": "Enviar reporte",
-                "copyMessage": "Tuve un problema en la app de Peanut."
+                "submitCta": "Enviar reporte"
             },
             "bugSent": {
                 "title": "Reporte enviado",
-                "description": "Gracias por avisar. El equipo ya recibió la pantalla y el registro del error."
+                "description": "Gracias por avisar. ¿Necesitas respuesta? Contacta a soporte cuando quieras."
             }
         }
     }

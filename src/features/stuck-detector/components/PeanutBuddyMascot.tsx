@@ -1,5 +1,6 @@
 'use client'
 
+import { useReducedMotion } from 'framer-motion'
 import type { AnimationItem } from 'lottie-web'
 import { useEffect, useRef, useState } from 'react'
 import {
@@ -24,8 +25,10 @@ interface PeanutBuddyMascotProps {
     targetPose: StuckBuddyPose
     /** Fired right on touchdown so the speech bubble springs open with Peanut's landing impact. */
     onLanded?: () => void
-    /** Optional alt text; defaults to decorative (`aria-hidden`). */
-    alt?: string
+    /** Fired if the Lottie chunk fails to load so the parent can fall back cleanly. */
+    onLoadFailed?: () => void
+    /** When true (whimsy cameo auto-leave), Peanut turns around and walks cheerfully back off-screen. */
+    exiting?: boolean
 }
 
 /**
@@ -35,28 +38,23 @@ interface PeanutBuddyMascotProps {
  *   2. Executes a 4-beat Disney character transition anchored at his feet:
  *      braking anticipation squat -> elastic stretch hop -> 1-frame apex pose cut with
  *      overlapping target playback -> weighted touchdown squash & damped settle.
- *   3. Loops `targetPose` seamlessly on the shared mascot clock.
+ *   3. Loops `targetPose` seamlessly on the shared mascot clock (or mirrors `walking` on exit).
  *
  * Under `prefers-reduced-motion: reduce`, renders `targetPose` frozen at frame 0 immediately.
  */
-export function PeanutBuddyMascot({ targetPose, onLanded, alt }: PeanutBuddyMascotProps) {
+export function PeanutBuddyMascot({ targetPose, onLanded, onLoadFailed, exiting = false }: PeanutBuddyMascotProps) {
     const walkContainerRef = useRef<HTMLDivElement>(null)
     const targetContainerRef = useRef<HTMLDivElement>(null)
     const stageRef = useRef<HTMLDivElement>(null)
     const onLandedRef = useRef(onLanded)
     onLandedRef.current = onLanded
+    const onLoadFailedRef = useRef(onLoadFailed)
+    onLoadFailedRef.current = onLoadFailed
+    const exitingRef = useRef(exiting)
+    exitingRef.current = exiting
 
+    const reducedMotion = Boolean(useReducedMotion())
     const [phase, setPhase] = useState<BuddyMotionPhase>('loading')
-    const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
-
-    useEffect(() => {
-        if (typeof window === 'undefined' || !window.matchMedia) return
-        const query = window.matchMedia('(prefers-reduced-motion: reduce)')
-        setPrefersReducedMotion(query.matches)
-        const onChange = (event: MediaQueryListEvent) => setPrefersReducedMotion(event.matches)
-        query.addEventListener('change', onChange)
-        return () => query.removeEventListener('change', onChange)
-    }, [])
 
     useEffect(() => {
         const walkHost = walkContainerRef.current
@@ -99,7 +97,7 @@ export function PeanutBuddyMascot({ targetPose, onLanded, alt }: PeanutBuddyMasc
                 walkAnim.goToAndStop(0, true)
                 targetAnim.goToAndStop(0, true)
 
-                if (prefersReducedMotion) {
+                if (reducedMotion) {
                     walkHost.style.opacity = '0'
                     targetHost.style.opacity = '1'
                     setPhase('idle')
@@ -109,7 +107,6 @@ export function PeanutBuddyMascot({ targetPose, onLanded, alt }: PeanutBuddyMasc
 
                 const profile = POSE_TRANSITION_PROFILES[targetPose]
 
-                // Phase 1: Stuttered walk-in ending cleanly on the pose-matched contact frame.
                 walkHost.style.opacity = '1'
                 targetHost.style.opacity = '0'
                 setPhase('walking')
@@ -125,9 +122,24 @@ export function PeanutBuddyMascot({ targetPose, onLanded, alt }: PeanutBuddyMasc
                     const fps = targetAnim.frameRate || 30
                     let idleFrame = initialFrame
                     let idleShown = initialShown
+                    let exitWalkFrame = 0
+                    let exitWalkShown = -1
+                    const exitWalkTotal = walkAnim?.totalFrames || 1
+                    const exitWalkFps = walkAnim?.frameRate || 30
                     setPhase('idle')
 
                     stopClock = subscribeToMascotClock((deltaSeconds) => {
+                        if (exitingRef.current && walkAnim) {
+                            walkHost.style.opacity = '1'
+                            targetHost.style.opacity = '0'
+                            if (stageEl) stageEl.style.transform = 'scaleX(-1)'
+                            exitWalkFrame = (exitWalkFrame + deltaSeconds * exitWalkFps * MASCOT_SPEED) % exitWalkTotal
+                            const held = Math.floor(exitWalkFrame / MASCOT_HOLD_FRAMES) * MASCOT_HOLD_FRAMES
+                            if (held === exitWalkShown) return
+                            exitWalkShown = held
+                            walkAnim.goToAndStop(jitterFrame(held, exitWalkTotal), true)
+                            return
+                        }
                         if (!targetAnim) return
                         idleFrame = (idleFrame + deltaSeconds * fps * MASCOT_SPEED) % total
                         const held = Math.floor(idleFrame / MASCOT_HOLD_FRAMES) * MASCOT_HOLD_FRAMES
@@ -162,8 +174,6 @@ export function PeanutBuddyMascot({ targetPose, onLanded, alt }: PeanutBuddyMasc
                         walkHost.style.opacity = frame.showTargetArt ? '0' : '1'
                         targetHost.style.opacity = frame.showTargetArt ? '1' : '0'
 
-                        // Overlapping action: advance targetPose right after the apex cut so the
-                        // wave or worried hands are already alive as Peanut cushions onto his feet.
                         if (frame.showTargetArt) {
                             targetFrame = (targetFrame + dt * fps * MASCOT_SPEED) % total
                             const held = Math.floor(targetFrame / MASCOT_HOLD_FRAMES) * MASCOT_HOLD_FRAMES
@@ -224,8 +234,9 @@ export function PeanutBuddyMascot({ targetPose, onLanded, alt }: PeanutBuddyMasc
                     walkAnim.goToAndStop(jitterFrame(held, walkTotal), true)
                 })
             })
-            // Decorative mascot must never trigger global ChunkLoadError page reloads.
-            .catch(() => {})
+            .catch(() => {
+                if (!cancelled) onLoadFailedRef.current?.()
+            })
 
         return () => {
             cancelled = true
@@ -235,15 +246,13 @@ export function PeanutBuddyMascot({ targetPose, onLanded, alt }: PeanutBuddyMasc
             walkAnim?.destroy()
             targetAnim?.destroy()
         }
-    }, [targetPose, prefersReducedMotion])
+    }, [targetPose, reducedMotion])
 
     return (
         <div
             ref={stageRef}
             className="relative size-full origin-[50%_90%] will-change-transform"
-            role={alt ? 'img' : undefined}
-            aria-label={alt || undefined}
-            aria-hidden={alt ? undefined : true}
+            aria-hidden="true"
             data-testid="peanut-buddy-mascot"
             data-buddy-phase={phase}
             data-buddy-pose={targetPose}

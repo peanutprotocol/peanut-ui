@@ -7,20 +7,40 @@ import { StuckDrawerShell } from './StuckDrawerShell'
 
 interface HomeFundedDrawerProps {
     open: boolean
+    canUseQrPay: boolean
+    canUseCard: boolean
     onClose: () => void
     onNavigate: (href: string) => void
     onContactSupport: (topic: string) => void
 }
 
-export function HomeFundedDrawer({ open, onClose, onNavigate, onContactSupport }: HomeFundedDrawerProps) {
+export function HomeFundedDrawer({
+    open,
+    canUseQrPay,
+    canUseCard,
+    onClose,
+    onNavigate,
+    onContactSupport,
+}: HomeFundedDrawerProps) {
     const t = useTranslations('stuckBuddy')
+
+    const primaryAction = canUseQrPay
+        ? { href: '/qr-pay', label: t('drawers.homeFunded.qrCta'), testId: 'stuck-drawer-qr' }
+        : canUseCard
+          ? { href: '/card', label: t('drawers.homeFunded.cardCta'), testId: 'stuck-drawer-card' }
+          : { href: '/send', label: t('drawers.homeFunded.sendCta'), testId: 'stuck-drawer-send' }
+
+    const secondaryAction =
+        canUseQrPay && canUseCard
+            ? { href: '/card', label: t('drawers.homeFunded.cardCta'), testId: 'stuck-drawer-card' }
+            : primaryAction.href !== '/send'
+              ? { href: '/send', label: t('drawers.homeFunded.sendCta'), testId: 'stuck-drawer-send' }
+              : null
 
     return (
         <StuckDrawerShell
             open={open}
-            onOpenChange={(isOpen) => {
-                if (!isOpen) onClose()
-            }}
+            onClose={onClose}
             icon="star"
             iconColor="yellow"
             title={t('drawers.homeFunded.title')}
@@ -32,23 +52,25 @@ export function HomeFundedDrawer({ open, onClose, onNavigate, onContactSupport }
                     className="w-full justify-center"
                     onClick={() => {
                         onClose()
-                        onNavigate('/qr-pay')
+                        onNavigate(primaryAction.href)
                     }}
-                    data-testid="stuck-drawer-qr"
+                    data-testid={primaryAction.testId}
                 >
-                    {t('drawers.homeFunded.qrCta')}
+                    {primaryAction.label}
                 </Button>
-                <Button
-                    variant="secondary"
-                    className="w-full justify-center"
-                    onClick={() => {
-                        onClose()
-                        onNavigate('/card')
-                    }}
-                    data-testid="stuck-drawer-card"
-                >
-                    {t('drawers.homeFunded.cardCta')}
-                </Button>
+                {secondaryAction && (
+                    <Button
+                        variant="secondary"
+                        className="w-full justify-center"
+                        onClick={() => {
+                            onClose()
+                            onNavigate(secondaryAction.href)
+                        }}
+                        data-testid={secondaryAction.testId}
+                    >
+                        {secondaryAction.label}
+                    </Button>
+                )}
                 <div className="mt-2">
                     <LinkButton
                         onClick={() => {

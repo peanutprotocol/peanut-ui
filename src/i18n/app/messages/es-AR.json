@@ -2498,20 +2498,27 @@
         "migrationSetupTitle": "Recibí alertas de dinero"
     },
     "stuckBuddy": {
-        "inline": {
-            "verifyFormatHint": "Ingresá solo números, sin espacios ni guiones.",
-            "verifyPhoneHint": "Incluí el código de país empezando con +.",
-            "verifyGenericHint": "Revisá el formato o contactá a soporte."
+        "supportTopics": {
+            "setupPasskey": "Ayuda para configurar la passkey",
+            "loginRecovery": "Recuperación de inicio de sesión con passkey",
+            "passkeyError": "Ayuda con passkey ({errorName})",
+            "usernameCheck": "Error al verificar el nombre de usuario"
         },
         "drawers": {
             "addMoney": {
                 "step1": "¿Rechazaron el alias? Copiá el CVU o número de cuenta completo.",
-                "step3": "¿Pasó el tiempo de llegada indicado? Compartí el comprobante con soporte.",
-                "step2": "¿Enviaste desde otro nombre? Algunas transferencias requieren una cuenta propia."
+                "step2": "¿Enviaste desde otro nombre? Algunas transferencias requieren una cuenta propia.",
+                "step3": "¿Pasó el tiempo de llegada indicado? Compartí el comprobante con soporte."
             },
             "homeFunded": {
                 "title": "Pagá en segundos",
                 "description": "Elegí la forma más rápida de hacer el primer pago."
+            },
+            "activeIssue": {
+                "description": "Envía esta pantalla y tu nota al equipo. ¿Necesitás respuesta? Contactá a soporte abajo."
+            },
+            "bugSent": {
+                "description": "Gracias por avisar. ¿Necesitás respuesta? Contactá a soporte cuando quieras."
             }
         }
     }

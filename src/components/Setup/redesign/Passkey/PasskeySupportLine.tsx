@@ -6,7 +6,7 @@ import { SETUP_SUPPORT_FALLBACK_URL, useSetupSupportClick } from '@/components/S
 /** "Still stuck? Contact support" under the buttons of a failure screen; opens in-app SupportDrawer when mounted. */
 export function PasskeySupportLine({ onSupport }: { onSupport: () => void }) {
     const t = useTranslations('setupRedesign.common')
-    const supportLink = useSetupSupportClick('Passkey setup help', onSupport)
+    const supportLink = useSetupSupportClick({ key: 'setupPasskey' }, onSupport)
     return (
         <span>
             {t.rich('support', {

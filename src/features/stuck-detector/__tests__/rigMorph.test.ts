@@ -10,7 +10,6 @@ describe('Disney 4-beat pose-matched mascot transition', () => {
         expect(POSE_TRANSITION_PROFILES['waving-hello'].walkExitFrame).toBe(8)
         expect(POSE_TRANSITION_PROFILES.thinking.walkExitFrame).toBe(28)
         expect(POSE_TRANSITION_PROFILES.worried.walkExitFrame).toBe(28)
-        expect(POSE_TRANSITION_PROFILES.sad.walkExitFrame).toBe(28)
     })
 
     it('exits walking only after min walk time and on the matched contact frame (or hard cap)', () => {

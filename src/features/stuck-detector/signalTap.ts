@@ -1,4 +1,5 @@
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { MONEY_FAILED_EVENTS } from '@/utils/app-review-friction'
 
 /**
  * Lightweight PostHog `before_send` tap for stuck-detection signals.
@@ -7,17 +8,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
  * `instrumentation-client.ts` does not pull React, Sentry, or Lottie into boot.
  */
 
-export type StuckSignalKind = 'appError' | 'moneyFailed' | 'moneyStuck' | 'kycBlocked' | 'passkeyCancel'
-
-const MONEY_FAILED_EVENTS = new Set<string>([
-    ANALYTICS_EVENTS.SEND_FAILED,
-    ANALYTICS_EVENTS.SEND_LINK_FAILED,
-    ANALYTICS_EVENTS.CLAIM_LINK_FAILED,
-    ANALYTICS_EVENTS.DEPOSIT_FAILED,
-    ANALYTICS_EVENTS.WITHDRAW_FAILED,
-    ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED,
-    ANALYTICS_EVENTS.CARD_APPLY_FAILED,
-])
+export type StuckSignalKind = 'appError' | 'moneyFailed' | 'moneyStuck' | 'kycBlocked' | 'passkeyCancel' | 'rageClick'
 
 const APP_ERROR_EVENTS = new Set<string>([
     '$exception',
@@ -64,6 +55,10 @@ export function emitStuckSignal(kind: StuckSignalKind, eventName: string): void 
 /** Called synchronously inside PostHog `before_send`. Never throws. */
 export function noteStuckAnalyticsEvent(eventName: string): void {
     if (!eventName) return
+    if (eventName === '$rageclick') {
+        emitStuckSignal('rageClick', eventName)
+        return
+    }
     if (MONEY_FAILED_EVENTS.has(eventName)) {
         emitStuckSignal('moneyFailed', eventName)
         return

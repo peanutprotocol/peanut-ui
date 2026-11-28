@@ -11,15 +11,15 @@ import { StuckDrawerShell } from './StuckDrawerShell'
 interface ActiveIssueDrawerProps {
     open: boolean
     onClose: () => void
-    onContactSupport: (topic: string, copyContext?: string) => void
+    onContactSupport: (topic: string) => void
     onSubmitBugReport: (category: BugReportCategory, note: string) => void
 }
 
-const BUG_CATEGORIES: readonly { id: BugReportCategory; labelKey: string }[] = [
+const BUG_CATEGORIES = [
     { id: 'payment_failed', labelKey: 'bugCategories.paymentFailed' },
     { id: 'screen_stuck', labelKey: 'bugCategories.screenStuck' },
     { id: 'something_wrong', labelKey: 'bugCategories.somethingWrong' },
-]
+] as const
 
 export function ActiveIssueDrawer({ open, onClose, onContactSupport, onSubmitBugReport }: ActiveIssueDrawerProps) {
     const t = useTranslations('stuckBuddy')
@@ -29,12 +29,10 @@ export function ActiveIssueDrawer({ open, onClose, onContactSupport, onSubmitBug
     const [note, setNote] = useState('')
     const [bugSent, setBugSent] = useState(false)
 
-    const handleOpenChange = (isOpen: boolean) => {
-        if (!isOpen) {
-            setBugSent(false)
-            setNote('')
-            onClose()
-        }
+    const handleClose = () => {
+        setBugSent(false)
+        setNote('')
+        onClose()
     }
 
     const handleSendBug = () => {
@@ -46,20 +44,29 @@ export function ActiveIssueDrawer({ open, onClose, onContactSupport, onSubmitBug
         return (
             <StuckDrawerShell
                 open={open}
-                onOpenChange={handleOpenChange}
+                onClose={handleClose}
                 icon="check"
                 iconColor="green"
                 title={t('drawers.bugSent.title')}
                 description={t('drawers.bugSent.description')}
                 testId="stuck-drawer-active_issue"
             >
-                <Button
-                    className="w-full justify-center"
-                    onClick={() => handleOpenChange(false)}
-                    data-testid="stuck-bug-done"
-                >
-                    {tCommon('done')}
-                </Button>
+                <div className="flex w-full flex-col items-center gap-4">
+                    <Button className="w-full justify-center" onClick={handleClose} data-testid="stuck-bug-done">
+                        {tCommon('done')}
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        className="w-full justify-center"
+                        onClick={() => {
+                            onContactSupport(t('supportTopics.activeIssue'))
+                            handleClose()
+                        }}
+                        data-testid="stuck-bug-sent-support"
+                    >
+                        {tCommon('contactSupport')}
+                    </Button>
+                </div>
             </StuckDrawerShell>
         )
     }
@@ -67,7 +74,7 @@ export function ActiveIssueDrawer({ open, onClose, onContactSupport, onSubmitBug
     return (
         <StuckDrawerShell
             open={open}
-            onOpenChange={handleOpenChange}
+            onClose={handleClose}
             icon="info"
             iconColor="blue"
             title={t('drawers.activeIssue.title')}
@@ -91,7 +98,7 @@ export function ActiveIssueDrawer({ open, onClose, onContactSupport, onSubmitBug
                                     : 'border-border-default bg-background-default text-foreground-primary'
                             )}
                         >
-                            {t(category.labelKey as Parameters<typeof t>[0])}
+                            {t(category.labelKey)}
                         </button>
                     )
                 })}
@@ -120,15 +127,15 @@ export function ActiveIssueDrawer({ open, onClose, onContactSupport, onSubmitBug
                     variant="secondary"
                     className="w-full justify-center"
                     onClick={() => {
-                        onContactSupport(t('supportTopics.activeIssue'), t('drawers.activeIssue.copyMessage'))
-                        handleOpenChange(false)
+                        onContactSupport(t('supportTopics.activeIssue'))
+                        handleClose()
                     }}
                     data-testid="stuck-drawer-support"
                 >
                     {tCommon('contactSupport')}
                 </Button>
                 <div className="mt-2">
-                    <LinkButton onClick={() => handleOpenChange(false)}>{tCommon('maybeLater')}</LinkButton>
+                    <LinkButton onClick={handleClose}>{tCommon('maybeLater')}</LinkButton>
                 </div>
             </div>
         </StuckDrawerShell>

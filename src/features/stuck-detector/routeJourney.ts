@@ -2,22 +2,28 @@ import type { StuckJourney, StuckSurface } from './types'
 
 const BLOCKED_PREFIXES = ['/support', '/crisp-proxy', '/dev', '/shhhhh', '/admin', '/payment-explorer']
 
+function hasSegmentPrefix(pathname: string, prefix: string): boolean {
+    return pathname === prefix || pathname.startsWith(`${prefix}/`)
+}
+
 /** Whether proactive stuck nudges are completely disallowed on this pathname. */
 export function isStuckExcludedPath(pathname: string): boolean {
     if (!pathname) return true
-    return BLOCKED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
+    return BLOCKED_PREFIXES.some((prefix) => hasSegmentPrefix(pathname, prefix))
 }
 
-/** Map a Next.js pathname to the model's journey taxonomy. */
+/** Map a Next.js pathname to Peanut's journey taxonomy (segment-safe, never prefix-colliding). */
 export function journeyForPath(pathname: string): StuckJourney {
-    if (pathname.startsWith('/setup')) return 'signup'
-    if (pathname.startsWith('/verify')) return 'kyc'
-    if (pathname.startsWith('/add-money')) return 'deposit'
-    if (pathname.startsWith('/qr-pay')) return 'qr_pay'
-    if (pathname.startsWith('/withdraw')) return 'withdraw'
-    if (pathname.startsWith('/card')) return 'card'
-    if (pathname.startsWith('/send') || pathname.startsWith('/pay')) return 'send'
-    if (pathname.startsWith('/profile/accounts')) return 'account_setup'
+    if (hasSegmentPrefix(pathname, '/setup')) return 'signup'
+    if (hasSegmentPrefix(pathname, '/verify')) return 'kyc'
+    if (hasSegmentPrefix(pathname, '/add-money')) return 'deposit'
+    if (hasSegmentPrefix(pathname, '/qr-pay')) return 'qr_pay'
+    if (hasSegmentPrefix(pathname, '/withdraw')) return 'withdraw'
+    if (pathname === '/card' || hasSegmentPrefix(pathname, '/card/apply')) return 'card'
+    if (hasSegmentPrefix(pathname, '/send') || pathname === '/pay' || hasSegmentPrefix(pathname, '/pay/')) {
+        return 'send'
+    }
+    if (hasSegmentPrefix(pathname, '/profile/accounts')) return 'account_setup'
     return 'other'
 }
 
@@ -48,12 +54,7 @@ export function canonicalStuckRoute(pathname: string, country?: string | null, v
 /** Whether a path is a non-bank direct deposit rail (crypto or Pix). */
 export function isNonBankDepositRailPath(pathname: string): boolean {
     const clean = canonicalStuckRoute(pathname)
-    return (
-        clean === '/add-money/crypto' ||
-        clean.startsWith('/add-money/crypto/') ||
-        clean === '/add-money/pix' ||
-        clean.startsWith('/add-money/pix/')
-    )
+    return hasSegmentPrefix(clean, '/add-money/crypto') || hasSegmentPrefix(clean, '/add-money/pix')
 }
 
 /**
@@ -73,17 +74,17 @@ export function isBankDepositPath(pathname: string): boolean {
 }
 
 /**
- * Map a pathname + activation state to one of the 5 eligible intervention surfaces.
- * Card terms, marketing pages, and add-money pickers are excluded; crypto and Pix use active_issue.
+ * Map a pathname + activation state to an eligible surface using exact segment checks.
+ * Never catches unrelated siblings such as `/card-payment`, `/card-recovery`, or `/card/pin`.
  */
 export function surfaceForPath(pathname: string, hasSpent: boolean): StuckSurface | null {
     if (isStuckExcludedPath(pathname)) return null
-    if (pathname.startsWith('/setup')) return 'setup_passkey'
-    if (pathname.startsWith('/verify')) return 'verify_loop'
+    if (hasSegmentPrefix(pathname, '/setup')) return 'setup_passkey'
+    if (hasSegmentPrefix(pathname, '/verify')) return 'verify_loop'
     if (isBankDepositPath(pathname)) return hasSpent ? 'active_issue' : 'add_money'
     if (isNonBankDepositRailPath(pathname)) return 'active_issue'
-    if (pathname === '/home') return hasSpent ? null : 'home_funded'
-    if (pathname.startsWith('/qr-pay') || pathname.startsWith('/withdraw') || pathname.startsWith('/card')) {
+    if (pathname === '/home') return hasSpent ? 'home_wave' : 'home_funded'
+    if (hasSegmentPrefix(pathname, '/qr-pay') || hasSegmentPrefix(pathname, '/withdraw') || pathname === '/card') {
         return 'active_issue'
     }
     return null
@@ -99,6 +100,7 @@ export function parseDemoSurface(search: string, allowDemo: boolean): StuckSurfa
         raw === 'verify_loop' ||
         raw === 'setup_passkey' ||
         raw === 'home_funded' ||
+        raw === 'home_wave' ||
         raw === 'active_issue'
     ) {
         return raw

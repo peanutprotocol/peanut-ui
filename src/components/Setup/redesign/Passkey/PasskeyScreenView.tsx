@@ -13,7 +13,7 @@ import type { SignupPasskey } from '@/features/setup/useSignupPasskey'
 import { useBackHandler } from '@/hooks/useBackHandler'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { notifyHaptic } from '@/utils/haptics'
-import { setPasskeyStepState } from '@/features/stuck-detector/signalStore'
+import { setPasskeyStepState, setStuckFlowBusy } from '@/features/stuck-detector/signalStore'
 import { PasskeyFailureArt } from './PasskeyFailureArt'
 import { PasskeyHeroArt } from './PasskeyHeroArt'
 import { PasskeyHeroPanel } from './PasskeyHeroPanel'
@@ -96,6 +96,13 @@ export function PasskeyScreenView({ passkey }: { passkey: SignupPasskey }) {
         setPasskeyStepState(hasDedicatedHelp ? 'dedicated_help' : 'ready')
         return () => setPasskeyStepState('inactive')
     }, [failed, cannot, state, helpDrawer, passkey.recoveryDrawer?.visible])
+
+    // Treat an in-flight passkey ceremony as busy so the buddy never walks in behind the OS sheet.
+    useEffect(() => {
+        const inFlight = Boolean(passkey.isClaiming || passkey.isLoggingIn)
+        setStuckFlowBusy(inFlight)
+        return () => setStuckFlowBusy(false)
+    }, [passkey.isClaiming, passkey.isLoggingIn])
 
     // The tap's beat: the hero's sheet grows and the brackets flash twice.
     const [flash, setFlash] = useState(0)

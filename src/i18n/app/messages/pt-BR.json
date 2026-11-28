@@ -5645,7 +5645,7 @@
     "stuckBuddy": {
         "prompts": {
             "addMoney": "Ajuda com a transferência?",
-            "verifyLoop": "Dificuldade neste campo?",
+            "verifyLoop": "Ajuda com a verificação?",
             "setupPasskey": "Problema ao salvar a passkey?",
             "homeFunded": "Hora do primeiro pagamento?",
             "activeIssue": "Encontrou um problema?"
@@ -5660,15 +5660,13 @@
             "dismiss": "Fechar ajuda",
             "openHelper": "Abrir ajuda do Peanut"
         },
-        "inline": {
-            "verifyFormatHint": "Digite apenas números, sem espaços nem traços.",
-            "verifyPhoneHint": "Inclua o código do país começando com +.",
-            "verifyGenericHint": "Verifique o formato ou fale com o suporte."
-        },
         "supportTopics": {
             "addMoney": "Ajuda com depósito por transferência bancária",
-            "verifyLoop": "Ajuda com o formato na verificação",
+            "verifyLoop": "Ajuda com a verificação",
             "setupPasskey": "Ajuda para configurar a passkey",
+            "loginRecovery": "Recuperação de acesso com passkey",
+            "passkeyError": "Ajuda com passkey ({errorName})",
+            "usernameCheck": "Falha ao verificar o nome de usuário",
             "homeFunded": "Ajuda com o primeiro pagamento",
             "activeIssue": "Problema no app do Peanut"
         },
@@ -5681,7 +5679,7 @@
             "addMoney": {
                 "title": "Ajuda com depósitos",
                 "description": "Checagens rápidas para transferências bancárias.",
-                "step1": "Dados recusados? Copie o número completo da conta.",
+                "step1": "Dados recusados? Copie o número completo da conta ou IBAN.",
                 "step2": "Enviado de outro nome? Algumas transferências exigem conta no mesmo nome.",
                 "step3": "Passou o prazo mostrado na tela? Envie o comprovante para o suporte.",
                 "primaryCta": "Copiar mensagem e falar com o suporte",
@@ -5692,20 +5690,20 @@
                 "description": "Escolha a forma mais rápida de fazer o primeiro pagamento.",
                 "qrCta": "Pagar com QR",
                 "cardCta": "Pedir o Peanut Card",
+                "sendCta": "Enviar dinheiro",
                 "tertiarySupport": "Problemas para pagar? Falar com o suporte"
             },
             "activeIssue": {
                 "title": "Reportar um problema",
-                "description": "Isso envia a tela atual, o código de erro e o registro da sessão para a equipe.",
+                "description": "Envia esta tela e sua observação para a equipe. Precisa de resposta? Fale com o suporte abaixo.",
                 "categoryLabel": "Tipo de problema",
                 "noteLabel": "Observação opcional",
                 "notePlaceholder": "Breve descrição",
-                "submitCta": "Enviar relato",
-                "copyMessage": "Encontrei um problema no app do Peanut."
+                "submitCta": "Enviar relato"
             },
             "bugSent": {
                 "title": "Relato enviado",
-                "description": "Agradecemos por avisar. A equipe já recebeu a tela e o registro do erro."
+                "description": "Agradecemos por avisar. Precisa de resposta? Fale com o suporte quando quiser."
             }
         }
     }

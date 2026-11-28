@@ -36,7 +36,7 @@ export const LoginRecoveryDrawer = ({
     const t = useTranslations('setup.loginRecovery')
     const tHelp = useTranslations('setup.passkey.help')
     const tCommon = useTranslations('common')
-    const supportLink = useSetupSupportClick('Passkey login recovery', onSupport)
+    const supportLink = useSetupSupportClick({ key: 'loginRecovery' }, onSupport)
     const step = (id: 'sameAccount' | 'thatPhone') => t(`steps.${platform}.${id}` as Parameters<typeof t>[0])
     // On a phone the account sync comes first; in a browser the other phone does.
     const steps =

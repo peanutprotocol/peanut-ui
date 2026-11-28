@@ -34,7 +34,7 @@ export function UsernameHelpRow({
 }) {
     const t = useTranslations('setupRedesign.username')
     const { reducedMotion } = useSetupShell()
-    const supportLink = useSetupSupportClick('Username check failed', onSupport)
+    const supportLink = useSetupSupportClick({ key: 'usernameCheck' }, onSupport)
     const available = (
         <>
             <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-background-icon-bubble-green text-foreground-inverse">

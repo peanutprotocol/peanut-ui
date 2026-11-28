@@ -85,22 +85,6 @@ export const POSE_TRANSITION_PROFILES: Record<StuckBuddyPose, PoseTransitionProf
         landDropPx: 3.5,
         landTiltDeg: -1.8,
     },
-    sad: {
-        walkExitFrame: 28,
-        durationMs: 480,
-        squatScaleX: 1.13,
-        squatScaleY: 0.84,
-        squatSkewDeg: -5.0,
-        squatDropPx: 3.0,
-        apexLiftPx: 9.0,
-        apexScaleX: 0.9,
-        apexScaleY: 1.1,
-        apexTiltDeg: 2.0,
-        landScaleX: 1.11,
-        landScaleY: 0.87,
-        landDropPx: 3.5,
-        landTiltDeg: -2.0,
-    },
 }
 
 const BEAT_SQUAT_END = 0.26

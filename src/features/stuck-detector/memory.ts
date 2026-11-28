@@ -1,16 +1,18 @@
 import { readStoredValue, writeStoredValue } from '@/utils/safe-storage'
 import type { StuckMemory, StuckSurface } from './types'
 
-const STORAGE_PREFIX = 'peanut:stuck-memory:v1:'
+const STORAGE_PREFIX = 'peanut:stuck-memory:v2:'
+
 export const DISMISS_COOLDOWN_MS = 7 * 86_400_000
+export const GLOBAL_QUIET_COOLDOWN_MS = 24 * 3_600_000
+export const LIFETIME_DISMISS_CAP = 3
 
 const DEFAULT_MEMORY: StuckMemory = {
-    sessionCount: 1,
-    priorObsFriction: 0,
-    priorStuck: 0,
-    prevWasStuck: false,
+    priorObservedFriction: false,
     seenAddMoneyUnfunded: false,
     dismissedUntil: {},
+    globalQuietUntil: 0,
+    lifetimeDismissCount: 0,
 }
 
 function keyFor(userId?: string | null): string {
@@ -27,19 +29,21 @@ export function readStuckMemory(userId?: string | null): StuckMemory {
     try {
         const parsed = JSON.parse(raw) as Partial<StuckMemory>
         return {
-            sessionCount: typeof parsed.sessionCount === 'number' && parsed.sessionCount >= 1 ? parsed.sessionCount : 1,
-            priorObsFriction:
-                typeof parsed.priorObsFriction === 'number' && parsed.priorObsFriction >= 0
-                    ? parsed.priorObsFriction
-                    : 0,
-            priorStuck: typeof parsed.priorStuck === 'number' && parsed.priorStuck >= 0 ? parsed.priorStuck : 0,
-            prevWasStuck: Boolean(parsed.prevWasStuck),
+            priorObservedFriction: Boolean(parsed.priorObservedFriction),
             seenAddMoneyUnfunded: Boolean(parsed.seenAddMoneyUnfunded),
             dismissedUntil:
                 parsed.dismissedUntil && typeof parsed.dismissedUntil === 'object' ? { ...parsed.dismissedUntil } : {},
+            globalQuietUntil:
+                typeof parsed.globalQuietUntil === 'number' && Number.isFinite(parsed.globalQuietUntil)
+                    ? parsed.globalQuietUntil
+                    : 0,
+            lifetimeDismissCount:
+                typeof parsed.lifetimeDismissCount === 'number' && parsed.lifetimeDismissCount >= 0
+                    ? Math.floor(parsed.lifetimeDismissCount)
+                    : 0,
         }
     } catch {
-        return { ...DEFAULT_MEMORY, dismissedUntil: {} }
+        return createDefaultStuckMemory()
     }
 }
 
@@ -51,6 +55,10 @@ export function writeStuckMemory(userId: string | null | undefined, memory: Stuc
     }
 }
 
+/**
+ * Persists a functional dismissal preference (always written even if analytics are opted out):
+ * sets the 7-day per-surface cooldown, a 24h global quiet period, and increments the lifetime cap.
+ */
 export function recordSurfaceDismissal(
     userId: string | null | undefined,
     surface: StuckSurface,
@@ -63,27 +71,45 @@ export function recordSurfaceDismissal(
             ...current.dismissedUntil,
             [surface]: nowMs + DISMISS_COOLDOWN_MS,
         },
+        globalQuietUntil: Math.max(current.globalQuietUntil, nowMs + GLOBAL_QUIET_COOLDOWN_MS),
+        lifetimeDismissCount: current.lifetimeDismissCount + 1,
     }
     writeStuckMemory(userId, next)
     return next
 }
 
-export function recordSessionOutcome(
+/**
+ * Persists a cooldown after the user tapped the buddy CTA so the same buddy does not re-nag
+ * in the next session (does not count toward the explicit-dismissal lifetime cap).
+ */
+export function recordSurfaceActionCooldown(
     userId: string | null | undefined,
-    { hadFriction, wasStuck }: { hadFriction: boolean; wasStuck: boolean }
+    surface: StuckSurface,
+    nowMs = Date.now()
 ): StuckMemory {
     const current = readStuckMemory(userId)
     const next: StuckMemory = {
         ...current,
-        sessionCount: current.sessionCount + 1,
-        priorObsFriction: current.priorObsFriction + (hadFriction ? 1 : 0),
-        priorStuck: current.priorStuck + (wasStuck ? 1 : 0),
-        prevWasStuck: wasStuck,
+        dismissedUntil: {
+            ...current.dismissedUntil,
+            [surface]: nowMs + DISMISS_COOLDOWN_MS,
+        },
+        globalQuietUntil: Math.max(current.globalQuietUntil, nowMs + GLOBAL_QUIET_COOLDOWN_MS),
     }
     writeStuckMemory(userId, next)
     return next
 }
 
+/** Records a factual observed failure (never a model score) for funded-unspent Home follow-ups. */
+export function recordObservedFriction(userId: string | null | undefined): StuckMemory {
+    const current = readStuckMemory(userId)
+    if (current.priorObservedFriction) return current
+    const next: StuckMemory = { ...current, priorObservedFriction: true }
+    writeStuckMemory(userId, next)
+    return next
+}
+
+/** Called on exit from a bank-details screen with verified $0 balance so a 2nd visit can offer help. */
 export function markSeenAddMoneyUnfunded(userId: string | null | undefined): StuckMemory {
     const current = readStuckMemory(userId)
     if (current.seenAddMoneyUnfunded) return current

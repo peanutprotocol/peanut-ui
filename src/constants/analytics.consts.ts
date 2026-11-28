@@ -562,7 +562,8 @@ export const ANALYTICS_EVENTS = {
     QR_CAMERA_PERMISSION: 'qr_camera_permission',
 
     // ── Real-time stuck detection & proactive buddy ──
-    STUCK_SCORE_SHADOW: 'stuck_score_shadow',
+    STUCK_SIGNAL_CHECKPOINT: 'stuck_signal_checkpoint',
+    STUCK_BUDDY_ELIGIBLE: 'stuck_buddy_eligible',
     STUCK_BUDDY_SHOWN: 'stuck_buddy_shown',
     STUCK_BUDDY_ACTION: 'stuck_buddy_action',
     STUCK_BUDDY_DISMISSED: 'stuck_buddy_dismissed',

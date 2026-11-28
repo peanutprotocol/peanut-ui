@@ -19,9 +19,7 @@ export function AddMoneyHelpDrawer({ open, onClose, onContactSupport }: AddMoney
     return (
         <StuckDrawerShell
             open={open}
-            onOpenChange={(isOpen) => {
-                if (!isOpen) onClose()
-            }}
+            onClose={onClose}
             icon="question-mark"
             iconColor="blue"
             title={t('drawers.addMoney.title')}
