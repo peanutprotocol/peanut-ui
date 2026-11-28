@@ -11,8 +11,7 @@ import { StuckDrawerShell } from './StuckDrawerShell'
 interface ActiveIssueDrawerProps {
     open: boolean
     onClose: () => void
-    onContactSupport: (topic: string) => void
-    onSubmitBugReport: (category: BugReportCategory, note: string) => void
+    onSubmitBugReport: (category: BugReportCategory, categoryLabel: string, note: string) => void
 }
 
 const BUG_CATEGORIES = [
@@ -21,54 +20,22 @@ const BUG_CATEGORIES = [
     { id: 'something_wrong', labelKey: 'bugCategories.somethingWrong' },
 ] as const
 
-export function ActiveIssueDrawer({ open, onClose, onContactSupport, onSubmitBugReport }: ActiveIssueDrawerProps) {
+export function ActiveIssueDrawer({ open, onClose, onSubmitBugReport }: ActiveIssueDrawerProps) {
     const t = useTranslations('stuckBuddy')
     const tCommon = useTranslations('common')
 
     const [selectedCategory, setSelectedCategory] = useState<BugReportCategory>('payment_failed')
     const [note, setNote] = useState('')
-    const [bugSent, setBugSent] = useState(false)
 
     const handleClose = () => {
-        setBugSent(false)
         setNote('')
         onClose()
     }
 
-    const handleSendBug = () => {
-        onSubmitBugReport(selectedCategory, note.trim())
-        setBugSent(true)
-    }
-
-    if (bugSent) {
-        return (
-            <StuckDrawerShell
-                open={open}
-                onClose={handleClose}
-                icon="check"
-                iconColor="green"
-                title={t('drawers.bugSent.title')}
-                description={t('drawers.bugSent.description')}
-                testId="stuck-drawer-active_issue"
-            >
-                <div className="flex w-full flex-col items-center gap-4">
-                    <Button className="w-full justify-center" onClick={handleClose} data-testid="stuck-bug-done">
-                        {tCommon('done')}
-                    </Button>
-                    <Button
-                        variant="secondary"
-                        className="w-full justify-center"
-                        onClick={() => {
-                            onContactSupport(t('supportTopics.activeIssue'))
-                            handleClose()
-                        }}
-                        data-testid="stuck-bug-sent-support"
-                    >
-                        {tCommon('contactSupport')}
-                    </Button>
-                </div>
-            </StuckDrawerShell>
-        )
+    const handleSendToSupport = () => {
+        const picked = BUG_CATEGORIES.find((c) => c.id === selectedCategory) ?? BUG_CATEGORIES[0]
+        onSubmitBugReport(selectedCategory, t(picked.labelKey), note.trim())
+        handleClose()
     }
 
     return (
@@ -119,24 +86,11 @@ export function ActiveIssueDrawer({ open, onClose, onContactSupport, onSubmitBug
                 />
             </div>
 
-            <div className="flex w-full flex-col items-center gap-4 pt-1">
-                <Button className="w-full justify-center" onClick={handleSendBug} data-testid="stuck-bug-submit">
+            <div className="flex w-full flex-col items-center gap-6 pt-1">
+                <Button className="w-full justify-center" onClick={handleSendToSupport} data-testid="stuck-bug-submit">
                     {t('drawers.activeIssue.submitCta')}
                 </Button>
-                <Button
-                    variant="secondary"
-                    className="w-full justify-center"
-                    onClick={() => {
-                        onContactSupport(t('supportTopics.activeIssue'))
-                        handleClose()
-                    }}
-                    data-testid="stuck-drawer-support"
-                >
-                    {tCommon('contactSupport')}
-                </Button>
-                <div className="mt-2">
-                    <LinkButton onClick={handleClose}>{tCommon('maybeLater')}</LinkButton>
-                </div>
+                <LinkButton onClick={handleClose}>{tCommon('maybeLater')}</LinkButton>
             </div>
         </StuckDrawerShell>
     )

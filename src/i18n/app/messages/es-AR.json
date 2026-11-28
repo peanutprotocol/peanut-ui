@@ -2513,12 +2513,6 @@
             "homeFunded": {
                 "title": "Pagá en segundos",
                 "description": "Elegí la forma más rápida de hacer el primer pago."
-            },
-            "activeIssue": {
-                "description": "Envía esta pantalla y tu nota al equipo. ¿Necesitás respuesta? Contactá a soporte abajo."
-            },
-            "bugSent": {
-                "description": "Gracias por avisar. ¿Necesitás respuesta? Contactá a soporte cuando quieras."
             }
         }
     }

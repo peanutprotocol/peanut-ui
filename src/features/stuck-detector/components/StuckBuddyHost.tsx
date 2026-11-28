@@ -391,7 +391,7 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent, canUseQrPay, canUseCard
     }, [decision, userId])
 
     const handleSubmitBugReport = useCallback(
-        (category: BugReportCategory, rawNote: string) => {
+        (category: BugReportCategory, categoryLabel: string, rawNote: string) => {
             const safeNote = rawNote ? redactSupportText(rawNote) : ''
             const replayUrl =
                 !analyticsOptedOut && typeof posthog.get_session_replay_url === 'function'
@@ -422,8 +422,23 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent, canUseQrPay, canUseCard
                           replayUrl,
                       },
             })
+            // Route every bug report straight into in-app SupportDrawer prefilled with the context
+            // so the user gets a real reply without leaving the app (never silently overwrites clipboard).
+            const prefilled = safeNote
+                ? t('supportTopics.bugReportWithNote', {
+                      category: categoryLabel,
+                      route: effectiveRoute,
+                      note: safeNote,
+                  })
+                : t('supportTopics.bugReport', {
+                      category: categoryLabel,
+                      route: effectiveRoute,
+                  })
+            if (modals) {
+                modals.openSupportWithMessage(prefilled)
+            }
         },
-        [analyticsOptedOut, effectiveRoute, runtime.lastErrorCode]
+        [analyticsOptedOut, effectiveRoute, runtime.lastErrorCode, modals, t]
     )
 
     const clearance =
@@ -488,7 +503,6 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent, canUseQrPay, canUseCard
             <ActiveIssueDrawer
                 open={drawerSurface === 'active_issue'}
                 onClose={() => setDrawerSurface(null)}
-                onContactSupport={handleContactSupport}
                 onSubmitBugReport={handleSubmitBugReport}
             />
         </>

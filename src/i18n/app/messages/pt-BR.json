@@ -5668,7 +5668,9 @@
             "passkeyError": "Ajuda com passkey ({errorName})",
             "usernameCheck": "Falha ao verificar o nome de usuário",
             "homeFunded": "Ajuda com o primeiro pagamento",
-            "activeIssue": "Problema no app do Peanut"
+            "activeIssue": "Problema no app do Peanut",
+            "bugReport": "Relato de problema ({category}) em {route}",
+            "bugReportWithNote": "Relato de problema ({category}) em {route}: {note}"
         },
         "bugCategories": {
             "paymentFailed": "Pagamento falhou",
@@ -5695,15 +5697,11 @@
             },
             "activeIssue": {
                 "title": "Reportar um problema",
-                "description": "Envia esta tela e sua observação para a equipe. Precisa de resposta? Fale com o suporte abaixo.",
+                "description": "Abre o chat de suporte no app com os detalhes para ajudar.",
                 "categoryLabel": "Tipo de problema",
                 "noteLabel": "Observação opcional",
                 "notePlaceholder": "Breve descrição",
-                "submitCta": "Enviar relato"
-            },
-            "bugSent": {
-                "title": "Relato enviado",
-                "description": "Agradecemos por avisar. Precisa de resposta? Fale com o suporte quando quiser."
+                "submitCta": "Enviar para o suporte"
             }
         }
     }

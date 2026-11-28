@@ -214,7 +214,7 @@ describe('StuckBuddyHost invariants', () => {
         expect(window.localStorage.length).toBe(0)
     })
 
-    it('redacts sensitive link secrets from bug report notes before sending to Sentry', () => {
+    it('redacts sensitive link secrets, logs to Sentry, and opens prefilled in-app SupportDrawer', () => {
         mockFlagEnabled = true
         mockPathname = '/card'
         renderHost()
@@ -237,6 +237,9 @@ describe('StuckBuddyHost invariants', () => {
                     note: 'Failed on https://peanut.me/claim',
                 }),
             })
+        )
+        expect(mockOpenSupportWithMessage).toHaveBeenCalledWith(
+            'Bug report (Payment failed) on /card: Failed on https://peanut.me/claim'
         )
     })
 })

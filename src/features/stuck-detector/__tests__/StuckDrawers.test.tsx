@@ -69,31 +69,16 @@ describe('Stuck intervention DRY Bruddle drawers', () => {
         expect(screen.getByTestId('stuck-drawer-card')).toBeTruthy()
     })
 
-    it('ActiveIssueDrawer submits bug report with honest confirmation and never passes copyContext on Contact support', () => {
-        const onContactSupport = jest.fn()
+    it('ActiveIssueDrawer submits category, label, and note to route into in-app support and closes cleanly', () => {
         const onSubmitBugReport = jest.fn()
         const onClose = jest.fn()
-        renderWithIntl(
-            <ActiveIssueDrawer
-                open
-                onClose={onClose}
-                onContactSupport={onContactSupport}
-                onSubmitBugReport={onSubmitBugReport}
-            />
-        )
+        renderWithIntl(<ActiveIssueDrawer open onClose={onClose} onSubmitBugReport={onSubmitBugReport} />)
 
-        // Contact support must NOT silently overwrite clipboard (single topic argument only).
-        fireEvent.click(screen.getByTestId('stuck-drawer-support'))
-        expect(onContactSupport).toHaveBeenCalledWith(enMessages.stuckBuddy.supportTopics.activeIssue)
-        expect(onContactSupport.mock.calls[0]).toHaveLength(1)
-
-        // Submit bug report shows confirmation with secondary Contact support path.
         fireEvent.click(screen.getByTestId('bug-chip-screen_stuck'))
         fireEvent.change(screen.getByLabelText('Optional note'), { target: { value: 'Stuck on QR screen' } })
         fireEvent.click(screen.getByTestId('stuck-bug-submit'))
 
-        expect(onSubmitBugReport).toHaveBeenCalledWith('screen_stuck', 'Stuck on QR screen')
-        expect(screen.getByText('Bug report sent')).toBeTruthy()
-        expect(screen.getByTestId('stuck-bug-sent-support')).toBeTruthy()
+        expect(onSubmitBugReport).toHaveBeenCalledWith('screen_stuck', 'Screen stuck', 'Stuck on QR screen')
+        expect(onClose).toHaveBeenCalledTimes(1)
     })
 })
