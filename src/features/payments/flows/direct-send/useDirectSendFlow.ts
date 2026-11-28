@@ -13,7 +13,7 @@
  */
 
 import { useCallback, useContext, useMemo } from 'react'
-import { formatUnits, type Address } from 'viem'
+import { type Address } from 'viem'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useDirectSendFlowContext } from './DirectSendFlowContext'
 import { MutationResponseTimeoutError } from '@/utils/connection-timeout-error'
@@ -87,19 +87,13 @@ export function useDirectSendFlow() {
         spendableBalanceDecimal,
         hasSufficientSpendableBalance: hasSufficientBalance,
         isFetchingSpendableBalance,
-        availableSpendableBalance,
         isSpendableBalanceReady,
     } = useWallet()
 
-    // the live spendable total the affordability gate runs on, in dollars; undefined until both terms
-    // read, so a cached display balance never reads as funded (TASK-25467)
-    const liveSpendableUsd = useMemo(
-        () =>
-            isSpendableBalanceReady && availableSpendableBalance !== undefined
-                ? Number(formatUnits(availableSpendableBalance, PEANUT_WALLET_TOKEN_DECIMALS))
-                : undefined,
-        [isSpendableBalanceReady, availableSpendableBalance]
-    )
+    // the spendable total in dollars for the add-money gap; undefined until both live terms read, so the
+    // persisted display cache never counts as funds. During a refetch useWallet holds the last total
+    // both reads agreed on, so a smart/Rain skew mid-move never reads as funded (TASK-25467)
+    const liveSpendableUsd = isSpendableBalanceReady ? spendableBalanceDecimal : undefined
 
     const isLoggedIn = !!user?.user?.userId
 
@@ -233,7 +227,8 @@ export function useDirectSendFlow() {
             }
         } catch (err) {
             if (err instanceof MutationResponseTimeoutError && failedStep === 'record-payment' && chargeId) {
-                await recoverPaymentStatus(chargeId)
+                // a payment the read-back confirms is sent: drop the amount, as the success path does
+                if ((await recoverPaymentStatus(chargeId)) === 'completed') setAmount('')
                 return
             }
             // The card re-approval prompt was dismissed, or the screen was left,

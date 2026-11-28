@@ -101,6 +101,7 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
         formattedSpendableBalance: '100',
         hasSufficientSpendableBalance: mockHasSufficientBalance,
         isFetchingSpendableBalance: false,
+        isSpendableBalanceReady: true,
     }),
 }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'u1' } } }) }))
@@ -227,6 +228,8 @@ it('keeps unresolved recording unsuccessful, then accepts only authoritative com
     expect(ctx.setCharge).toHaveBeenLastCalledWith(completed)
     expect(ctx.setCurrentView).toHaveBeenLastCalledWith('STATUS')
     expect(ctx.setIsSuccess).toHaveBeenLastCalledWith(true)
+    // chip on ui#4316: a confirmed send drops the URL amount, so a refresh does not offer it again
+    expect(ctx.setAmount).toHaveBeenCalledWith('')
     expectNoReplayOrGenericFailure()
 })
 
@@ -238,6 +241,8 @@ it('keeps exhausted pending read-back on STATUS without success, failure, or rep
     expect(mockGetCharge.mock.calls.length).toBeLessThanOrEqual(61)
     expect(ctx.setCurrentView).toHaveBeenLastCalledWith('STATUS')
     expect(ctx.setIsSuccess).toHaveBeenLastCalledWith(false)
+    // the outcome is unknown, so the amount stays for a retry
+    expect(ctx.setAmount).not.toHaveBeenCalled()
     expectNoReplayOrGenericFailure()
 })
 
@@ -249,6 +254,7 @@ it.each(['FAILED', 'CANCELLED'])('allows generic failure only after authoritativ
     expect(mockGetCharge).toHaveBeenCalledWith('charge-1')
     expect(ctx.setError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
     expect(ctx.setIsSuccess).not.toHaveBeenCalledWith(true)
+    expect(ctx.setAmount).not.toHaveBeenCalled()
     expect(mockSendMoney).toHaveBeenCalledTimes(1)
 })
 
