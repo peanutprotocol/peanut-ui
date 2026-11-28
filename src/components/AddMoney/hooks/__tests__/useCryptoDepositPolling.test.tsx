@@ -91,6 +91,23 @@ test('reports a deposit seen open before it completed, and not one already compl
     await waitFor(() => expect(replayed).toHaveBeenCalledWith(5, expect.anything(), false))
 })
 
+test('a failed first read does not count as seeing the deposit open', async () => {
+    let fail = true
+    mockFetch.mockImplementation(async () =>
+        fail ? response(500, { error: 'Unexpected upstream error' }) : response(200, { status: 'completed', amount: 5 })
+    )
+    const onSuccess = jest.fn()
+    renderHook(() => useCryptoDepositPolling('sda-flaky', onSuccess, undefined, { readNow: true }), { wrapper })
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(100)
+    })
+    fail = false
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(5_100)
+    })
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(5, expect.anything(), false))
+})
+
 test.each([404, 500])('does not treat unrelated HTTP %s errors as an absent deposit', async (status) => {
     mockFetch.mockResolvedValue(response(status, { error: 'Unexpected upstream error' }))
     await expect(rhinoApi.getDepositAddressStatus('sda-test')).rejects.toThrow('Failed to fetch deposit address status')

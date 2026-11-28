@@ -74,13 +74,14 @@ export function useCryptoDepositPolling(
     }, [statusData])
 
     useEffect(() => {
-        // an absent status (404) or one still in flight: whatever completes next was sent while on screen
-        if ((statusData || isError) && status !== 'completed' && status !== 'failed') seenOpen.current = true
+        // a status read as not started (rhino.ts maps the API's 404 to it) or still in flight: whatever
+        // completes next was sent while on screen. A failed read says nothing, so it does not count
+        if (statusData && status !== 'completed' && status !== 'failed') seenOpen.current = true
         if (status === 'completed' && statusData?.amount && !hasCalledSuccess.current) {
             hasCalledSuccess.current = true
             onSuccess(statusData.amount, statusData, seenOpen.current)
         }
-    }, [statusData, status, isError, onSuccess])
+    }, [statusData, status, onSuccess])
 
     const resetStatus = useCallback(async () => {
         if (isResettingRef.current || !depositAddress) return

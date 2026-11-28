@@ -141,7 +141,7 @@ describe('HomeActionDrawers', () => {
         it('does not remember a tap alone', async () => {
             const first = renderWithUrl('?drawer=add')
             fireEvent.click(screen.getByTestId('home-drawer-add-crypto'))
-            await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/crypto'))
+            await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/crypto?returnTo=%2Fhome'))
             first.unmount()
 
             renderWithUrl('?drawer=add')
@@ -185,7 +185,7 @@ describe('HomeActionDrawers', () => {
 
         fireEvent.click(pix)
         // Pix has one currency: no chooser of one BRL row in between (TASK-25033)
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/pix'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/pix?returnTo=%2Fhome'))
     })
 
     // The owner, 24 Nov (TASK-25350). Which peso gates offer the row: useAddMoneyReadiness.test.ts
@@ -216,7 +216,7 @@ describe('HomeActionDrawers', () => {
 
             fireEvent.click(rows[0])
             // one currency: no chooser of one ARS row in between
-            await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/argentina/manteca'))
+            await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/argentina/manteca?returnTo=%2Fhome'))
             expect(urlUpdates.at(-1)?.searchParams.get('drawer')).toBeNull()
         })
 
@@ -235,7 +235,9 @@ describe('HomeActionDrawers', () => {
             jest.mocked(isCapacitor).mockReturnValue(true)
             renderWithUrl('?drawer=add', undefined, argentina)
             fireEvent.click(screen.getByTestId('home-drawer-add-ars'))
-            await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?country=argentina&view=manteca'))
+            await waitFor(() =>
+                expect(mockPush).toHaveBeenCalledWith('/add-money?country=argentina&view=manteca&returnTo=%2Fhome')
+            )
         })
     })
 

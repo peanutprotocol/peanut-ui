@@ -13,16 +13,11 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
-import { BANK_HUB_PATH, type AddMoneyPickerMethod } from '@/features/add-money/addMoneyMethods'
+import { addMoneyMethodHref, type AddMoneyPickerMethod } from '@/features/add-money/addMoneyMethods'
+import { useAddMoneyMethodRows } from '@/features/add-money/useAddMoneyMethodRows'
 import { readLastDepositMethod, splitLastUsed } from '@/features/add-money/lastUsedAddMethod'
 import type { useAddMoneyReadiness } from '@/features/add-money/useAddMoneyReadiness'
 import { readReturnTo, RETURN_TO_PARAM, withReturnTo } from '@/utils/return-to.utils'
-import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
-import { ARS_ADD_MONEY_PATH, DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
-import { CorridorFlag } from '@/features/deposit-accounts/components/CorridorFlag'
-import { rewriteMethodPath } from '@/utils/native-routes'
-
-const ARS_RAIL = DEPOSIT_RAILS.BANK_TRANSFER_AR
 
 /**
  * home IA bottom drawers (figma boards 17831:79186 / 17830:76839): the Add and
@@ -36,11 +31,11 @@ export function HomeActionDrawers({
 }) {
     const [drawer, setDrawer] = useHomeDrawer()
     const t = useTranslations('home.drawers')
-    const tMethods = useTranslations('addMoney.methods')
     const tNav = useTranslations('navigation')
     const router = useRouter()
     // Carry origins from existing Add drawer links into the chosen destination.
     const [returnTo, setReturnTo] = useQueryState(RETURN_TO_PARAM, parseAsString)
+    const origin = readReturnTo(new URLSearchParams(returnTo ? { returnTo } : {}), '/home')
     // keep the last open drawer rendered through vaul's exit animation so the
     // sheet doesn't empty mid-slide when the url param clears
     const lastDrawerRef = useRef<HomeDrawer | null>(null)
@@ -54,34 +49,19 @@ export function HomeActionDrawers({
     useEffect(() => {
         if (staleAdd && !redirecting.current) {
             redirecting.current = true
-            const origin = readReturnTo(new URLSearchParams(returnTo ? { returnTo } : {}), '/home')
             void Promise.all([setDrawer(null), setReturnTo(null)]).then(() =>
                 router.replace(origin ? withReturnTo('/add-money', origin) : '/add-money')
             )
         }
         if (drawer !== 'add') redirecting.current = false
-    }, [drawer, staleAdd, returnTo, router, setDrawer, setReturnTo])
+    }, [drawer, staleAdd, origin, router, setDrawer, setReturnTo])
+    const methodRows = useAddMoneyMethodRows()
     const addRow = (method: AddMoneyPickerMethod) => ({
         key: method,
-        title:
-            method === 'ars'
-                ? ARS_RAIL.currency
-                : tMethods(method === 'bank' ? 'bankTransfer' : method === 'pix' ? 'pix' : 'crypto'),
-        leading:
-            method === 'ars' ? (
-                <CorridorFlag iso2={ARS_RAIL.flagIso2} />
-            ) : (
-                <IconBubble {...CONCEPT_ICONS[method]} size="s" />
-            ),
-        href:
-            method === 'bank'
-                ? BANK_HUB_PATH
-                : method === 'crypto'
-                  ? '/add-money/crypto'
-                  : // Pix and ARS have one currency each, so they open the deposit, not a chooser of one row
-                    method === 'pix'
-                    ? PIX_ADD_MONEY_PATH
-                    : rewriteMethodPath(ARS_ADD_MONEY_PATH),
+        title: methodRows[method].title,
+        leading: methodRows[method].icon,
+        // an Add row returns to its origin, else Home; the bank hub keeps only a real origin
+        href: addMoneyMethodHref(method, origin ?? '/home', origin),
     })
     // the Add drawer lists the picker's rows, with the method of the last completed deposit first
     const { lastUsed, others } = splitLastUsed(
@@ -93,7 +73,7 @@ export function HomeActionDrawers({
             ? others.map(addRow)
             : (content ? homeDrawerOptions(content, depositAccounts) : []).map((option) => ({
                   key: option.key,
-                  href: option.href,
+                  href: origin ? withReturnTo(option.href, origin) : option.href,
                   leading: <IconBubble {...CONCEPT_ICONS[option.concept]} size="s" />,
                   title: t(option.titleKey),
                   body: option.bodyKey ? t(option.bodyKey) : undefined,
@@ -102,11 +82,10 @@ export function HomeActionDrawers({
     const navigate = async (option: { href: string }) => {
         if (navigating.current) return
         navigating.current = true
-        const origin = readReturnTo(new URLSearchParams(returnTo ? { returnTo } : {}), '/home')
         try {
             // Clear Home's drawer state before navigating so Back lands on closed Home.
             await Promise.all([setDrawer(null), setReturnTo(null)])
-            router.push(origin ? withReturnTo(option.href, origin) : option.href)
+            router.push(option.href)
         } finally {
             navigating.current = false
         }
