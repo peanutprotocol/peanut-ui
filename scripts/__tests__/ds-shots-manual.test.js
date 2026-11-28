@@ -50,7 +50,7 @@ function condition(job) {
     const block = workflow('tests.yml').split(`    ${job}:\n`)[1]
     const expression = block.match(/        if: >-\n((?:            .*\n)+)/)[1].trim()
     const javascript = expression.replace(/needs\.([a-z-]+)/g, 'needs["$1"]')
-    return new Function('github', 'needs', 'always', 'contains', 'fromJSON', `return ${javascript}`)
+    return new Function('github', 'needs', 'always', 'cancelled', 'contains', 'fromJSON', `return ${javascript}`)
 }
 
 function automatic(event, ref, base = 'dev', job = 'ds-shots') {
@@ -60,7 +60,8 @@ function automatic(event, ref, base = 'dev', job = 'ds-shots') {
         repository: 'peanutprotocol/peanut-ui',
         event: { pull_request: { base: { ref: base }, head: { repo: { full_name: 'peanutprotocol/peanut-ui' } } } },
     }
-    const helpers = [() => true, (array, value) => array.includes(value), JSON.parse]
+    // always(), cancelled() (a run under test is never cancelled), contains(), fromJSON()
+    const helpers = [() => true, () => false, (array, value) => array.includes(value), JSON.parse]
     const render = event === 'pull_request' && condition('ds-shots-filter')(github, {}, ...helpers)
     return condition(job)(
         github,
