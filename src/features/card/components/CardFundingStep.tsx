@@ -158,23 +158,6 @@ export function CardFundingStep({
         <PageStack>
             <NavHeader title={t('navTitle')} onPrev={onPrev} />
             <h1 className="text-heading-s text-foreground-primary">{tAdd('title')}</h1>
-            <p className="text-body-m text-foreground-secondary">
-                {gapUsd && spendableUsd !== undefined
-                    ? t('fundingBodyGap', {
-                          minimum: formatBankAmount(CARD_MIN_BALANCE_USD, 'USD'),
-                          // a spendable balance rounds down (in whole units first: 0.29 * 100 is 28.999…)
-                          balance: formatBankAmount(Math.floor(Math.round(spendableUsd * 1e6) / 1e4) / 100, 'USD'),
-                          gap: formatBankAmount(gapUsd, 'USD'),
-                      })
-                    : t('fundingBody')}
-            </p>
-            {sent && !sentLanded && (
-                <Callout priority="info" data-testid="card-add-money-bank-sent">
-                    {sent.usd
-                        ? tCard('bankSentPending', { amount: formatBankAmount(sent.usd, 'USD') })
-                        : tCard('bankSentPendingNoAmount')}
-                </Callout>
-            )}
             <ListGroup>
                 {bank.offered && bankRow}
                 <CryptoMethodRow onClick={() => pickMethod('crypto')} testId="card-add-money-crypto" />
@@ -198,6 +181,28 @@ export function CardFundingStep({
                 />
             )}
             <PageStack.Footer>
+                {/* one note right above the CTA: the transfer on its way replaces the gap note */}
+                {sent && !sentLanded ? (
+                    <Callout priority="info" data-testid="card-add-money-bank-sent">
+                        {sent.usd
+                            ? tCard('bankSentPending', { amount: formatBankAmount(sent.usd, 'USD') })
+                            : tCard('bankSentPendingNoAmount')}
+                    </Callout>
+                ) : (
+                    <Callout priority="info" data-testid="card-add-money-gap">
+                        {gapUsd && spendableUsd !== undefined
+                            ? t('fundingBodyGap', {
+                                  minimum: formatBankAmount(CARD_MIN_BALANCE_USD, 'USD'),
+                                  // a spendable balance rounds down (in whole units first: 0.29 * 100 is 28.999…)
+                                  balance: formatBankAmount(
+                                      Math.floor(Math.round(spendableUsd * 1e6) / 1e4) / 100,
+                                      'USD'
+                                  ),
+                                  gap: formatBankAmount(gapUsd, 'USD'),
+                              })
+                            : t('fundingBody')}
+                    </Callout>
+                )}
                 <Button variant="primary" className="w-full" disabled={!funded} onClick={onContinue}>
                     {tCommon('continue')}
                 </Button>
