@@ -221,14 +221,14 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
                                 <NameChip username={username} verified={anyBankReady(states)} className="mt-3" />
                             )}
                             <p className="mt-3 text-body-m text-foreground-primary signup-sm:mt-2 signup-sm:text-body-s">
-                                {bankReady && readyCurrencies.length
-                                    ? t('subBankReady', {
-                                          count: readyCurrencies.length,
-                                          accounts: new Intl.ListFormat(locale, { type: 'conjunction' }).format(
-                                              readyCurrencies
-                                          ),
-                                      })
-                                    : t('sub')}
+                                {/* one key with a bank-ready branch: the screen's word budget counts its longest branch */}
+                                {t('sub', {
+                                    variant: bankReady && readyCurrencies.length ? 'bankReady' : 'other',
+                                    count: readyCurrencies.length,
+                                    accounts: new Intl.ListFormat(locale, { type: 'conjunction' }).format(
+                                        readyCurrencies
+                                    ),
+                                })}
                             </p>
                         </div>
                     }

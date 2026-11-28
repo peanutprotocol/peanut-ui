@@ -1382,8 +1382,7 @@
         },
         "bankNotAvailableNote": "Las transferencias bancarias no están disponibles en tu país. Todavía podés ingresar y retirar cripto.",
         "verified": {
-            "sub": "Agregá dinero para empezar a pagar con Peanut.",
-            "subBankReady": "{count, plural, one {Tu cuenta en {accounts} está abierta.} other {Tus cuentas en {accounts} están abiertas.}} Agregá dinero para empezar."
+            "sub": "{variant, select, bankReady {{count, plural, one {Tu cuenta en {accounts} está abierta.} other {Tus cuentas en {accounts} están abiertas.}} Agregá dinero.} other {Agregá dinero para empezar a pagar con Peanut.}}"
         }
     },
     "withdraw": {

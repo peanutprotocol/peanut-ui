@@ -16,9 +16,12 @@ import {
     shownBankReady,
 } from './bankReadyReminder'
 
-// one chance per app load: home is the first screen of the load (an app open, not a return from a task),
-// and the chance ends when home is left, so coming back to home after a task never opens the page
-let chance: 'unknown' | 'open' | 'spent' = 'unknown'
+// one chance per app load: home is the first screen of the load (an app open, not a return from a task). It
+// ends with the first decision made from every input, whatever it says (Kush, D1: the next app open only), or
+// when home is left, so a capability refresh mid-visit or a return from a task never opens the page.
+// module state, so it holds only because reactStrictMode is false (next.config.js): a strict double mount would
+// run the cleanup below and spend the chance before the first decision.
+export const reminderLoad: { chance: 'unknown' | 'open' | 'spent' } = { chance: 'unknown' }
 
 /**
  * On Home: when a bank account opened since the person last saw it ready, and they never added money, open
@@ -34,40 +37,32 @@ export function useBankReadyReminder(addedMoney: boolean | undefined, methods: r
     const busy = useAttentionOptional()?.session.busy ?? false
 
     useEffect(() => {
-        if (chance === 'unknown') chance = hasInAppHistory() ? 'spent' : 'open'
+        if (reminderLoad.chance === 'unknown') reminderLoad.chance = hasInAppHistory() ? 'spent' : 'open'
         return () => {
-            chance = 'spent'
+            reminderLoad.chance = 'spent'
         }
     }, [])
 
     const report = capabilities.features
     useEffect(() => {
-        if (!userId || !report || !methods) return
+        if (reminderLoad.chance !== 'open' || !userId || !report || !methods) return
         const ready = rowAccountIds(readyAccountIds(report), methods)
         const shown = shownBankReady(userId)
         // first load since this shipped: what is ready now was ready before, record it and announce nothing
         if (!shown) {
+            reminderLoad.chance = 'spent'
             markBankReadyShown(userId, ready)
             return
         }
         if (addedMoney === undefined) return
-        const accounts = bankReadyReminder({
-            ready,
-            shown,
-            addedMoney,
-            inTask: chance !== 'open' || busy,
-        })
+        // every input is read: this is the load's one decision
+        reminderLoad.chance = 'spent'
+        const accounts = bankReadyReminder({ ready, shown, addedMoney, inTask: busy })
         if (!accounts.length) return
-        chance = 'spent'
         // the page records the accounts and reports the re-show once it shows
         markReshowing(accounts)
         router.replace(BANK_READY_PAGE)
         // methods by value: the picker list is a new array on every render
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId, addedMoney, report, busy, router, methods?.join()])
-}
-
-/** tests only: a new app load */
-export function resetBankReadyReminderForTests(): void {
-    chance = 'unknown'
 }

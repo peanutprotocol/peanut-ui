@@ -52,7 +52,8 @@ export function markBankReadyShown(userId: string, ids: readonly string[]): void
     if (!shown || added.length) updateUserPreferences(userId, { bankReadyShown: [...(shown ?? []), ...added] })
 }
 
-// the accounts Home just opened the page for, in this app load. The page reports the re-show and records the
+// the accounts Home just opened the page for, in this app load (module state: it relies on reactStrictMode being
+// false in next.config.js, as the reminder's one chance per load does). The page reports the re-show and records the
 // accounts only once it shows, as its other events do; a page that leaves before that keeps the reminder.
 let reshowing: string[] | null = null
 export function markReshowing(ids: readonly string[]): void {
