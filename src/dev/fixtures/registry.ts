@@ -3032,6 +3032,18 @@ export const FIXTURES: Record<string, Fixture> = {
             ),
         },
     },
+    'verified-not-opened': {
+        route: '/verified',
+        geoCountry: 'AR',
+        about: 'Verified page when the API opened no account on approval (`ready`, `activate`): the rows open at once.',
+        responses: {
+            'GET /users/me': verifiedUser(
+                'AR',
+                { ARS: { state: 'ready', action: 'activate' } },
+                { state: 'ready', action: 'activate' }
+            ),
+        },
+    },
     'verified-ready': {
         route: '/verified',
         geoCountry: 'AR',

@@ -28,8 +28,9 @@ jest.mock('../../useAddMoneyMethodRows', () => ({
             {},
             { get: (_, method) => ({ title: String(method), description: `${String(method)} row`, icon: null }) }
         ),
-    addMoneyMethodHref: () => '/add-money',
 }))
+// a first visit: no token from a row's flow coming back
+jest.mock('nuqs', () => ({ useQueryState: () => [null, jest.fn()] }))
 jest.mock('@/features/deposit-accounts/useDepositGateRemediation', () => ({
     useDepositGateRemediation: () => ({ resolveGate: jest.fn(), modals: null }),
 }))

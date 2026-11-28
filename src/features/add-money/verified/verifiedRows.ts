@@ -44,8 +44,12 @@ export function bankRowState(gate: GateState, settled: boolean): BankRowState {
             return 'review'
         case 'pending':
             return settled ? 'review' : 'loading'
+        case 'needs-enrollment':
+            // the API's settled answer for an account not opened on approval (`ready`, `activate` for a verify-once
+            // identity): the row opens it now
+            return 'open'
         default:
-            // not read yet, or the approval not reflected yet; after the wait the row opens the bank hub
+            // not read yet, or a read that has not caught up with the approval; after the wait the row opens the hub
             return settled ? 'open' : 'loading'
     }
 }
@@ -106,7 +110,7 @@ export function identityJustApproved(): boolean {
 /**
  * Whether the page may say "verified": only to a verified identity. While the user read lags an approval (it says
  * processing, or this tab just saw the approval) the page waits; once the wait is over, or for anyone else, it
- * leaves for Home. `undefined`: the user is not read yet.
+ * leaves for Home. `undefined`: the user is not read yet, or carries no status.
  */
 export function verifiedPageAccess(
     status: IdentityVerificationStatus | undefined,
@@ -114,6 +118,38 @@ export function verifiedPageAccess(
     justApproved = false
 ): 'show' | 'wait' | 'leave' {
     if (status === 'verified') return 'show'
-    if (status === undefined || ((status === 'processing' || justApproved) && !settled)) return 'wait'
+    // no status (the read failed or carries none) or one that lags the approval: wait, then leave like anyone else
+    if (!settled && (status === undefined || status === 'processing' || justApproved)) return 'wait'
     return 'leave'
+}
+
+// One visit: from opening the page until leaving it any way but a row. A row's flow comes back to a return path
+// that carries a one-time token; only that way back is the same visit. Any other opening (Home, a link, the
+// bank-ready reminder) has no token, so it is a new visit even if a row's flow was abandoned (Chip on #4317).
+const ROW_RETURN_KEY = 'peanut:verified-row-return'
+export const VISIT_PARAM = 'visit'
+
+/** the path a row's flow returns to, with a fresh one-time token for this visit */
+export function rowReturnPath(variant: VerifiedPageVariant): string {
+    const token = String(Date.now())
+    try {
+        window.sessionStorage.setItem(ROW_RETURN_KEY, token)
+    } catch {
+        // private mode: the return counts as a new visit
+    }
+    const params = new URLSearchParams(variant === 'bank-ready' ? { variant } : {})
+    params.set(VISIT_PARAM, token)
+    return `${VERIFIED_PAGE_PATH}?${params}`
+}
+
+/** whether this opening is a row's way back (its token matches the one stored); a token works once */
+export function returningFromRow(token: string | null): boolean {
+    try {
+        const stored = window.sessionStorage.getItem(ROW_RETURN_KEY)
+        if (!token || token !== stored) return false
+        window.sessionStorage.removeItem(ROW_RETURN_KEY)
+        return true
+    } catch {
+        return false
+    }
 }

@@ -1,10 +1,36 @@
 import { corridorHasTopUp } from './countryRoutes'
-import { DEPOSIT_RAIL_ORDER, DEPOSIT_RAILS, isClaimable } from '@/features/deposit-accounts/rails'
+import { ARS_ADD_MONEY_PATH, DEPOSIT_RAIL_ORDER, DEPOSIT_RAILS, isClaimable } from '@/features/deposit-accounts/rails'
+import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
+import { rewriteMethodPath } from '@/utils/native-routes'
+import { withReturnTo } from '@/utils/return-to.utils'
 import { residenceAllows } from '@/features/deposit-accounts/residenceGate'
 
 export type AddMoneyMethod = 'account' | 'bank' | 'pix' | 'ars' | 'crypto' | 'more'
 /** The rows of the Add picker and of the card's funding step. */
 export type AddMoneyPickerMethod = Extract<AddMoneyMethod, 'ars' | 'pix' | 'bank' | 'crypto'>
+
+/** the bank hub: its country list routes to the reusable account or the one-time transfer (`useDepositCountryRouting`) */
+export const BANK_HUB_PATH = '/add-money?method=bank'
+
+/**
+ * Where a row goes. `returnTo` is where its flow comes back to. The bank hub shares /add-money's path, so it
+ * cannot return to the picker: it takes `bankReturnTo`, where the picker itself would return (none: Home).
+ */
+export function addMoneyMethodHref(
+    method: AddMoneyPickerMethod,
+    returnTo: string,
+    bankReturnTo: string | null
+): string {
+    if (method === 'bank') return bankReturnTo ? withReturnTo(BANK_HUB_PATH, bankReturnTo) : BANK_HUB_PATH
+    // Pix and ARS have one currency each, so they open the deposit, not a chooser of one row
+    const path =
+        method === 'crypto'
+            ? '/add-money/crypto'
+            : method === 'pix'
+              ? PIX_ADD_MONEY_PATH
+              : rewriteMethodPath(ARS_ADD_MONEY_PATH)
+    return withReturnTo(path, returnTo)
+}
 
 /**
  * Where the Pix row stands on both Add lists, Home's drawer and the Add picker, read from the API's Pix

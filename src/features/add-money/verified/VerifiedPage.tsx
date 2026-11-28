@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
+import { useQueryState } from 'nuqs'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
@@ -21,7 +22,8 @@ import { findPixRoute, pixDepositOffered } from '@/features/pix/pixRoute.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { trackAddMoney } from '../analytics'
-import { addMoneyMethodHref, useAddMoneyMethodRows } from '../useAddMoneyMethodRows'
+import { addMoneyMethodHref } from '../addMoneyMethods'
+import { useAddMoneyMethodRows } from '../useAddMoneyMethodRows'
 import { useAddMoneyReadiness } from '../useAddMoneyReadiness'
 import Loading from '@/components/Global/Loading'
 import { markBankReadyShown, readyAccountIds, rowAccountIds, takeReshowing } from './bankReadyReminder'
@@ -31,10 +33,12 @@ import {
     anyBankReady,
     type BankRowState,
     cryptoWorksNow,
-    VERIFIED_PAGE_PATH,
     VERIFIED_ROWS_SETTLE_MS,
     type VerifiedPageVariant,
     identityJustApproved,
+    returningFromRow,
+    rowReturnPath,
+    VISIT_PARAM,
     verifiedPageAccess,
     verifiedRow,
 } from './verifiedRows'
@@ -54,6 +58,7 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
     const tCommon = useTranslations('common')
     const locale = useLocale()
     const router = useRouter()
+    const [visitToken] = useQueryState(VISIT_PARAM)
     const { user } = useAuth()
     const { capabilities } = useCapabilities()
     const readiness = useAddMoneyReadiness(true)
@@ -104,7 +109,10 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
     useEffect(() => {
         reshown.current = takeReshowing()
     }, [])
-    const shown = useRef(false)
+    // a return from a row's flow is the same visit: no second shown or resolved event
+    const sameVisit = useRef<boolean | null>(null)
+    if (sameVisit.current === null) sameVisit.current = returningFromRow(visitToken)
+    const shown = useRef(sameVisit.current)
     useEffect(() => {
         if (shown.current || readiness.isLoading || access !== 'show') return
         shown.current = true
@@ -115,7 +123,7 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
         // once per view, with the rows as they first read
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [readiness.isLoading, access])
-    const reportedResolve = useRef(false)
+    const reportedResolve = useRef(sameVisit.current)
     useEffect(() => {
         if (!resolved || access !== 'show' || reportedResolve.current) return
         reportedResolve.current = true
@@ -169,7 +177,7 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
                 const what = actionWhat(method)
                 return (
                     <span>
-                        <span className="underline">{t('actionNeeded')}</span>
+                        {t('actionNeeded')}
                         {what && `, ${what}`}
                     </span>
                 )
@@ -185,7 +193,8 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
             remediation.resolveGate(bank[method].gate, corridorOf(method))
             return
         }
-        router.push(addMoneyMethodHref(method, VERIFIED_PAGE_PATH, VERIFIED_PAGE_PATH))
+        const back = rowReturnPath(variant)
+        router.push(addMoneyMethodHref(method, back, back))
     }
 
     const username = user?.user.username

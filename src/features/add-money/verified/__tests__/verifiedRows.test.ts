@@ -9,6 +9,8 @@ import {
     isSelfStartedVerification,
     identityJustApproved,
     markIdentityApproved,
+    returningFromRow,
+    rowReturnPath,
     verifiedPageAccess,
     verifiedRow,
     type BankRowState,
@@ -27,8 +29,10 @@ describe('bankRowState', () => {
         [{ kind: 'pending' }, true, 'review'],
         // not read yet: loading, then the row opens the bank hub
         [{ kind: 'loading' }, false, 'loading'],
-        [{ kind: 'needs-enrollment' }, false, 'loading'],
-        [{ kind: 'needs-enrollment' }, true, 'open'],
+        // not opened on approval: the API's settled answer, so the row opens it at once
+        [{ kind: 'needs-enrollment' }, false, 'open'],
+        [{ kind: 'needs-identity' }, false, 'loading'],
+        [{ kind: 'needs-identity' }, true, 'open'],
     ]
     it.each(cases)('%o (settled %s) is %s', (gate, settled, expected) => {
         expect(bankRowState(gate, settled)).toBe(expected)
@@ -43,6 +47,8 @@ describe('verifiedRow', () => {
     it('reads the report entry: on, setting up, terms', () => {
         expect(verifiedRow({ state: 'on' }, none, false).state).toBe('ready')
         expect(verifiedRow({ state: 'setting_up' }, none, true).state).toBe('review')
+        // what the API sends for an account not opened on approval (feature-report.ts: `ready`, `activate`)
+        expect(verifiedRow({ state: 'ready', action: 'activate' }, none, false).state).toBe('open')
         const tos = {
             rails: [],
             nextActions: [{ key: 'bridge-tos', kind: 'accept-tos' }],
@@ -108,6 +114,9 @@ describe('verifiedPageAccess', () => {
             expect(verifiedPageAccess(status, false)).toBe('leave')
         expect(verifiedPageAccess('processing', true)).toBe('leave')
     })
+    it('stops waiting on a missing status once the wait is over', () => {
+        expect(verifiedPageAccess(undefined, true)).toBe('leave')
+    })
     it('waits on a stale read right after this tab saw the approval, then gives up', () => {
         for (const status of ['not_started', 'action_required'] as const) {
             expect(verifiedPageAccess(status, false, true)).toBe('wait')
@@ -126,5 +135,26 @@ describe('the approval signal', () => {
         now.mockReturnValue(1_000_000 + 2 * 60_000)
         expect(identityJustApproved()).toBe(false)
         now.mockRestore()
+    })
+})
+
+describe('one visit', () => {
+    beforeEach(() => window.sessionStorage.clear())
+    const tokenOf = (path: string) => new URL(path, 'https://x').searchParams.get('visit')
+
+    it('treats the way back from a row as the same visit, once', () => {
+        const path = rowReturnPath('verified')
+        expect(path).toMatch(/^\/verified\?visit=\d+$/)
+        expect(returningFromRow(tokenOf(path))).toBe(true)
+        // the same return path opened again is a new visit
+        expect(returningFromRow(tokenOf(path))).toBe(false)
+    })
+    it('counts an opening without the token as a new visit, even after an abandoned row flow', () => {
+        rowReturnPath('verified')
+        // the row's flow was left for Home; the page is then opened directly
+        expect(returningFromRow(null)).toBe(false)
+    })
+    it('keeps the bank-ready variant on the way back', () => {
+        expect(rowReturnPath('bank-ready')).toMatch(/^\/verified\?variant=bank-ready&visit=\d+$/)
     })
 })
