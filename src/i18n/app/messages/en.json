@@ -5641,5 +5641,70 @@
     "brazilPause": {
         "title": "Brazil services paused",
         "body": "BRL deposits and withdrawals are currently unavailable. Pix payments are unavailable for residents of Brazil."
+    },
+    "stuckBuddy": {
+        "prompts": {
+            "addMoney": "Need help with a bank transfer?",
+            "verifyLoop": "Having trouble with this field?",
+            "setupPasskey": "Trouble saving a passkey?",
+            "homeFunded": "Ready for a first payment?",
+            "activeIssue": "Running into an issue?"
+        },
+        "ctas": {
+            "addMoney": "Deposit help",
+            "contactSupport": "Contact support",
+            "homeFunded": "See quick options",
+            "activeIssue": "Report bug or chat"
+        },
+        "a11y": {
+            "dismiss": "Dismiss helper",
+            "openHelper": "Open Peanut helper"
+        },
+        "inline": {
+            "verifyFormatHint": "Enter digits only, no spaces or dashes."
+        },
+        "supportTopics": {
+            "addMoney": "Bank transfer deposit help",
+            "verifyLoop": "Verification field format help",
+            "setupPasskey": "Passkey setup help",
+            "homeFunded": "First payment help",
+            "activeIssue": "Issue in Peanut app"
+        },
+        "bugCategories": {
+            "paymentFailed": "Payment failed",
+            "screenStuck": "Screen stuck",
+            "somethingWrong": "Something looks wrong"
+        },
+        "drawers": {
+            "addMoney": {
+                "title": "Deposit troubleshooting",
+                "description": "Quick bank transfer checks.",
+                "step1": "Alias rejected? Copy the full account number.",
+                "step2": "Sent from another name? Transfers require the same legal name.",
+                "step3": "Over 15 minutes? Share the bank receipt with support.",
+                "primaryCta": "Copy message and contact support",
+                "copyMessage": "Need help with a bank transfer deposit in Peanut."
+            },
+            "homeFunded": {
+                "title": "Pay in seconds",
+                "description": "Pick the fastest way to make a first payment.",
+                "qrCta": "Pay by QR",
+                "cardCta": "Get Peanut Card",
+                "tertiarySupport": "Something blocking a payment? Contact support"
+            },
+            "activeIssue": {
+                "title": "Report an issue",
+                "description": "Sends the current screen, error code, and session trace to the team.",
+                "categoryLabel": "Issue category",
+                "noteLabel": "Optional note",
+                "notePlaceholder": "Short note",
+                "submitCta": "Send bug report",
+                "copyMessage": "Ran into an issue in the Peanut app."
+            },
+            "bugSent": {
+                "title": "Bug report sent",
+                "description": "Thanks for flagging this. The team has the screen and error trace."
+            }
+        }
     }
 }

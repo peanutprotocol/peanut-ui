@@ -6,6 +6,8 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { Icon } from '@/components/Global/Icons/Icon'
 import SetupTitleBlock from '@/components/Setup/components/SetupTitleBlock'
+import { VerifyRepeatErrorCallout } from '@/features/stuck-detector/components/VerifyRepeatErrorCallout'
+import { noteLocalVerifyFieldError } from '@/features/stuck-detector/signalStore'
 import type {
     PaperworkQuestionsFeature,
     PaperworkVerificationStep,
@@ -213,6 +215,8 @@ export function QuestionStepScreen({
     const viewedAt = useRef(Date.now())
     const rejections = useRef(0)
     const flagged = useRef(new Set<string>())
+    const localAttempts = useRef<Record<string, number>>({})
+    const [repeatErrorField, setRepeatErrorField] = useState<string | null>(null)
     const submitting = useRef(false)
     const [handingOff, setHandingOff] = useState(false)
     const [removingLocal, setRemovingLocal] = useState(false)
@@ -332,7 +336,16 @@ export function QuestionStepScreen({
                           ? 'invalid_tax_id'
                           : 'tax_id_warning'
                       : null
-        if (!code || flagged.current.has(`${key}:${code}`)) return
+        if (!code) return
+        // Track repeated client-side invalid blurs independently of analytics dedup (`flagged.current`)
+        // so format-help escalation triggers even when `Continue` stays disabled on client-blocked tax IDs.
+        const nextAttempt = (localAttempts.current[key] ?? 0) + 1
+        localAttempts.current[key] = nextAttempt
+        if (nextAttempt >= 2) {
+            setRepeatErrorField(key)
+            noteLocalVerifyFieldError(nextAttempt)
+        }
+        if (flagged.current.has(`${key}:${code}`)) return
         flagged.current.add(`${key}:${code}`)
         track(ANALYTICS_EVENTS.KYC_PV_FIELD_ERROR, { field: key, code, source: 'typing' })
     }
@@ -475,6 +488,9 @@ export function QuestionStepScreen({
                         <Callout priority="attention" className="w-full text-left" data-testid="verify-tax-warning">
                             {t('taxWarning')}
                         </Callout>
+                    )}
+                    {repeatErrorField && Object.keys(errors).length > 0 && (
+                        <VerifyRepeatErrorCallout fieldKey={repeatErrorField} />
                     )}
                     {hint && (
                         <p className="flex items-start gap-2 text-body-s leading-5 text-foreground-secondary">

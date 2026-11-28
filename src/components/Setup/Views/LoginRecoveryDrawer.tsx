@@ -5,6 +5,7 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { NumberedList } from '@/components/0_Bruddle/NumberedList'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { useSetupSupportClick } from '@/components/Setup/useSetupSupportClick'
 import { useTranslations } from 'next-intl'
 
 interface LoginRecoveryDrawerProps {
@@ -35,6 +36,7 @@ export const LoginRecoveryDrawer = ({
     const t = useTranslations('setup.loginRecovery')
     const tHelp = useTranslations('setup.passkey.help')
     const tCommon = useTranslations('common')
+    const supportLink = useSetupSupportClick('Passkey login recovery', onSupport)
     const step = (id: 'sameAccount' | 'thatPhone') => t(`steps.${platform}.${id}` as Parameters<typeof t>[0])
     // On a phone the account sync comes first; in a browser the other phone does.
     const steps =
@@ -74,7 +76,7 @@ export const LoginRecoveryDrawer = ({
                             )}
                             {/* XL/24 above the tertiary link: its hit area reaches 14px up, the button shadow 4px down */}
                             <div className="mt-2">
-                                <LinkButton href="https://peanut.me/support" onClick={onSupport}>
+                                <LinkButton href={supportLink.href} onClick={() => supportLink.onClick()}>
                                     {tHelp('stillHavingIssues')}
                                 </LinkButton>
                             </div>

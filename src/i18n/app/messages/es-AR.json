@@ -2496,5 +2496,20 @@
     "notifications": {
         "firstDepositTitle": "Enterate cuando se mueva tu dinero",
         "migrationSetupTitle": "Recibí alertas de dinero"
+    },
+    "stuckBuddy": {
+        "inline": {
+            "verifyFormatHint": "Ingresá solo números, sin espacios ni guiones."
+        },
+        "drawers": {
+            "addMoney": {
+                "step1": "¿Rechazaron el alias? Copiá el CVU o número de cuenta completo.",
+                "step3": "¿Más de 15 minutos? Compartí el comprobante bancario con soporte."
+            },
+            "homeFunded": {
+                "title": "Pagá en segundos",
+                "description": "Elegí la forma más rápida de hacer el primer pago."
+            }
+        }
     }
 }

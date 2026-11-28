@@ -14,6 +14,7 @@ import QRScannerOverlay from '@/components/Global/QRScannerOverlay'
 import SecurityVerificationOverlay from '@/components/Global/SecurityVerificationOverlay'
 import SupportDeepLink from '@/components/Global/SupportDeepLink'
 import SupportDrawer from '@/components/Global/SupportDrawer'
+import { StuckBuddyHost } from '@/features/stuck-detector/components/StuckBuddyHost'
 import { BrazilPausedDrawer } from '@/features/brazil-pause/components/BrazilPausedDrawer'
 import SetupNotificationsModal from '@/components/Notifications/SetupNotificationsModal'
 import { useRouter } from 'next/navigation'
@@ -272,6 +273,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                             <GuestLoginModal />
                             <AttentionInterrupt />
                             <SupportDrawer />
+                            <StuckBuddyHost />
                             <BrazilPausedDrawer />
                             {/* Suspense is required: nuqs reads useSearchParams, which triggers
                         a client-side-rendering bailout without a boundary. */}
