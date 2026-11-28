@@ -22,7 +22,7 @@ function Place(props: Props) {
     result = useAddMoneyAction({ place: 'send', ...props })
     return result.drawer
 }
-const short = { targetUsd: 50, spendableUsd: 10, step: 'ana:50' }
+const short = { targetUsd: 50, spendableUsd: 10, step: 'ana:50', urlState: { amount: '50' } }
 
 beforeEach(() => {
     sessionStorage.clear()
@@ -67,10 +67,19 @@ it('drops it when the step changes: another amount or recipient', () => {
     expect(result.bankSent).toBeUndefined()
 })
 
-it('the way back is the URL when a route opens: an amount edited after the tap comes back', () => {
+it('the way back is the URL when a route opens, with the form amount on top', () => {
     window.history.replaceState({}, '', '/send/ana?amount=50')
     render(<Place {...short} />)
     act(() => result.openAddMoney())
-    window.history.replaceState({}, '', '/send/ana?amount=80')
-    expect(returnTo!()).toBe('/send/ana?amount=80')
+    window.history.replaceState({}, '', '/send/ana?amount=50&ref=x')
+    expect(returnTo!()).toBe('/send/ana?amount=50&ref=x')
+})
+
+// chip on ui#4320: nuqs queues its URL write, so a route opened right after an edit still reads the old amount
+it('the way back carries the form amount when the URL write is still queued', () => {
+    window.history.replaceState({}, '', '/send/ana?amount=25')
+    const view = render(<Place {...short} />)
+    act(() => result.openAddMoney())
+    view.rerender(<Place {...short} targetUsd={30} step="ana:30" urlState={{ amount: '30' }} />)
+    expect(returnTo!()).toBe('/send/ana?amount=30')
 })

@@ -20,19 +20,20 @@ import {
  * its own error and button; once the balance covers the target the drawer closes and the place's
  * button turns on. Nothing here ever submits a payment.
  */
-/**
- * Where a bank page or /verify sends the user back to: the place's URL with its step state, read as
- * that route opens, not at the tap, so an amount edited after opening the drawer comes back too.
- */
-const currentUrl = () => window.location.pathname + window.location.search
-
 export function useAddMoneyAction({
     place,
     targetUsd,
     spendableUsd,
     step,
+    urlState,
 }: {
     place: AddMoneyPlace
+    /**
+     * The place's URL state as its form holds it now (Send: `{ amount }`). Where a bank page or /verify
+     * sends the user back to is the URL as that route opens, with these values on top: nuqs may not have
+     * written the last edit yet. Never personal data: it lands in the URL.
+     */
+    urlState: Record<string, string | undefined>
     /**
      * The step's identity, from what its route already holds (Send: recipient and amount): a transfer
      * sent for one step is not shown on another. Never personal data beyond the route.
@@ -48,6 +49,17 @@ export function useAddMoneyAction({
     const userId = user?.user?.userId
     const plan = drawerBankPlan({ ...readiness, identityStatus: user?.identityVerification?.status })
     const gapUsd = addMoneyGapUsd(targetUsd, spendableUsd)
+    const urlStateRef = useRef(urlState)
+    urlStateRef.current = urlState
+    const returnTo = useCallback(() => {
+        const query = new URLSearchParams(window.location.search)
+        for (const [key, value] of Object.entries(urlStateRef.current)) {
+            if (value) query.set(key, value)
+            else query.delete(key)
+        }
+        const search = query.toString()
+        return window.location.pathname + (search ? `?${search}` : '')
+    }, [])
     const funded = gapUsd === 0
 
     // one drawer per opening (`n` remounts it), kept mounted closed through vaul's exit animation
@@ -122,7 +134,7 @@ export function useAddMoneyAction({
                 gapUsd={gapUsd}
                 plan={plan}
                 residenceIso2s={readiness.residenceIso2s}
-                returnTo={currentUrl}
+                returnTo={returnTo}
                 place={place}
                 onShow={onShow}
                 onDismiss={dismiss}
