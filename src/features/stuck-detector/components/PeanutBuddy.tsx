@@ -77,9 +77,9 @@ export function PeanutBuddy({
                 transition={{ duration: 0.2, ease: 'easeOut' }}
                 className="pointer-events-auto"
             >
-                <Card shadowSize="4" className="max-w-[244px] min-w-[200px] gap-2 p-3">
+                <Card shadowSize="4" className="max-w-[244px] min-w-[216px] gap-2 p-3">
                     <div className="flex items-start justify-between gap-2">
-                        <p className="pt-1 text-body-s-semibold text-foreground-primary">{prompt}</p>
+                        <p className="min-w-0 flex-1 pt-1 text-body-s-semibold text-foreground-primary">{prompt}</p>
                         <Button
                             type="button"
                             variant="ghost"
@@ -90,7 +90,7 @@ export function PeanutBuddy({
                             onClick={onDismiss}
                             aria-label={dismissLabel}
                             data-testid="peanut-buddy-dismiss"
-                            className="-mt-1 -mr-1 shrink-0 text-foreground-secondary"
+                            className="-mt-1 -mr-1 w-10 shrink-0 text-foreground-secondary"
                         />
                     </div>
                     <Button
