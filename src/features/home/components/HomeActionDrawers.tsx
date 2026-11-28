@@ -5,7 +5,7 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
-import { Section } from '@/components/0_Bruddle/Section'
+import Badge from '@/components/Global/Badges/Badge'
 import { useHomeDrawer, type HomeDrawer } from '../useHomeDrawer'
 import { homeDrawerOptions } from '../home-drawer-options'
 import { parseAsString, useQueryState } from 'nuqs'
@@ -70,7 +70,7 @@ export function HomeActionDrawers({
     )
     const options =
         content === 'add'
-            ? others.map(addRow)
+            ? (lastUsed ? [lastUsed, ...others] : others).map(addRow)
             : (content ? homeDrawerOptions(content, depositAccounts) : []).map((option) => ({
                   key: option.key,
                   href: origin ? withReturnTo(option.href, origin) : option.href,
@@ -98,6 +98,9 @@ export function HomeActionDrawers({
                 leading={option.leading}
                 title={option.title}
                 body={'body' in option ? option.body : undefined}
+                // the last used row carries a pill instead of its own section (Hugo, via Kush 28 Nov).
+                // neutral: a fact with no tone (design.md, badges)
+                trailing={option.key === lastUsed ? <Badge status="neutral" customText={t('lastUsed')} /> : undefined}
                 // the descriptions are a sentence, and a one-line
                 // cut ate half of it in pt-BR and es-419
                 bodyWrap
@@ -119,18 +122,7 @@ export function HomeActionDrawers({
                         <DrawerTitle className="text-center text-heading-s text-foreground-primary">
                             {tNav(content)}
                         </DrawerTitle>
-                        {lastUsed ? (
-                            <>
-                                <Section title={t('lastUsed')}>
-                                    <ListGroup>{renderRows([addRow(lastUsed)])}</ListGroup>
-                                </Section>
-                                <Section title={t('otherWays')}>
-                                    <ListGroup>{renderRows(options)}</ListGroup>
-                                </Section>
-                            </>
-                        ) : (
-                            <ListGroup>{renderRows(options)}</ListGroup>
-                        )}
+                        <ListGroup>{renderRows(options)}</ListGroup>
                     </div>
                 )}
             </DrawerContent>

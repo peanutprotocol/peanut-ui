@@ -131,10 +131,9 @@ describe('HomeActionDrawers', () => {
     describe('the last used method', () => {
         const ids = () => screen.getAllByTestId(/^home-drawer-add-/).map((row) => row.getAttribute('data-testid'))
 
-        it('shows no Last used section before any deposit completed', () => {
+        it('shows no Last used pill before any deposit completed', () => {
             renderWithUrl('?drawer=add')
             expect(screen.queryByText('lastUsed')).not.toBeInTheDocument()
-            expect(screen.queryByText('otherWays')).not.toBeInTheDocument()
         })
 
         // Kush, 27 Nov: "last used" is the last completed deposit, never a tap
@@ -149,12 +148,14 @@ describe('HomeActionDrawers', () => {
             expect(ids()).toEqual(['home-drawer-add-bank', 'home-drawer-add-crypto'])
         })
 
-        it('leads with the method of the last completed deposit under Last used', () => {
+        // Hugo, via Kush 28 Nov: one list, the Last used pill on its row instead of a section
+        it('leads with the method of the last completed deposit and marks only that row Last used', () => {
             saveLastDepositMethod('crypto')
             renderWithUrl('?drawer=add')
-            expect(screen.getByRole('heading', { name: 'lastUsed' })).toBeInTheDocument()
-            expect(screen.getByRole('heading', { name: 'otherWays' })).toBeInTheDocument()
             expect(ids()).toEqual(['home-drawer-add-crypto', 'home-drawer-add-bank'])
+            expect(screen.getAllByText('lastUsed')).toHaveLength(1)
+            expect(screen.getByTestId('home-drawer-add-crypto')).toHaveTextContent('lastUsed')
+            expect(screen.queryByRole('heading', { name: 'lastUsed' })).not.toBeInTheDocument()
         })
 
         it('ignores a stored method this user no longer has, and keeps every row', () => {
