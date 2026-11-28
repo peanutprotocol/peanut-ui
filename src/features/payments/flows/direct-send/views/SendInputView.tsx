@@ -130,40 +130,42 @@ export function SendInputView() {
                 {/* button and error */}
                 <div className="space-y-4">
                     {addMoney.bankSent && (
-                        <div className="flex flex-col items-center gap-2">
-                            <Callout priority="info" className="w-full" data-testid="send-add-money-bank-sent">
-                                {addMoney.bankSent.usd
-                                    ? tCard('bankSentPending', {
-                                          amount: formatBankAmount(addMoney.bankSent.usd, 'USD'),
-                                      })
-                                    : tCard('bankSentPendingNoAmount')}
-                            </Callout>
+                        <Callout priority="info" className="w-full" data-testid="send-add-money-bank-sent">
+                            {addMoney.bankSent.usd
+                                ? tCard('bankSentPending', {
+                                      amount: formatBankAmount(addMoney.bankSent.usd, 'USD'),
+                                  })
+                                : tCard('bankSentPendingNoAmount')}
+                        </Callout>
+                    )}
+                    {/* the tertiary sits gap-6 under the primary (design.md tertiary CTA) */}
+                    <div className="flex flex-col items-center gap-6">
+                        {/* a transfer on its way: Send waits, off, and turns on once the balance covers it */}
+                        {isInsufficientBalance && !addMoney.bankSent ? (
+                            <Button
+                                variant="primary"
+                                className="w-full"
+                                icon="arrow-down"
+                                onClick={addMoney.openAddMoney}
+                                data-testid="send-add-money"
+                            >
+                                {addMoney.gapUsd
+                                    ? tAdd('addAmount', { amount: formatBankAmount(addMoney.gapUsd, 'USD') })
+                                    : tAdd('title')}
+                            </Button>
+                        ) : (
+                            <SendWithPeanutCta
+                                onClick={handleSubmit}
+                                disabled={isButtonDisabled || (isLoggedIn && !hasSufficientBalance)}
+                                loading={isLoading}
+                            />
+                        )}
+                        {addMoney.bankSent && (
                             <LinkButton onClick={addMoney.openAddMoney} data-testid="send-add-money-another-way">
                                 {tAdd('anotherWay')}
                             </LinkButton>
-                        </div>
-                    )}
-                    {/* a transfer on its way: Send waits, off, and turns on once the balance covers it */}
-                    {isInsufficientBalance && !addMoney.bankSent ? (
-                        <Button
-                            variant="primary"
-                            shadowSize="4"
-                            className="w-full"
-                            icon="arrow-down"
-                            onClick={addMoney.openAddMoney}
-                            data-testid="send-add-money"
-                        >
-                            {addMoney.gapUsd
-                                ? tAdd('addAmount', { amount: formatBankAmount(addMoney.gapUsd, 'USD') })
-                                : tAdd('title')}
-                        </Button>
-                    ) : (
-                        <SendWithPeanutCta
-                            onClick={handleSubmit}
-                            disabled={isButtonDisabled || (isLoggedIn && !hasSufficientBalance)}
-                            loading={isLoading}
-                        />
-                    )}
+                        )}
+                    </div>
                     {addMoney.drawer}
                     {error.showError && (
                         <Callout priority="error">
