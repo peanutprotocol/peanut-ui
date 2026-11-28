@@ -8,9 +8,9 @@ import { twMerge } from '@/utils/tw'
 import type { StuckBuddyPose } from '../types'
 import { PeanutBuddyMascot } from './PeanutBuddyMascot'
 
-const WHIMSY_WAVE_MS = 3_800
-const WHIMSY_EXIT_SLIDE_MS = 680
-const LOAD_FALLBACK_MS = 1_500
+export const WHIMSY_WAVE_MS = 3_800
+export const WHIMSY_EXIT_SLIDE_MS = 680
+export const LOAD_FALLBACK_MS = 1_500
 
 interface PeanutBuddyProps {
     pose: StuckBuddyPose
@@ -63,6 +63,7 @@ export function PeanutBuddy({
     const [bubbleVisible, setBubbleVisible] = useState(reducedMotion && !whimsy)
     const [whimsyLanded, setWhimsyLanded] = useState(false)
     const [whimsyExiting, setWhimsyExiting] = useState(false)
+    const [mascotLoaded, setMascotLoaded] = useState(false)
     const [mascotFailed, setMascotFailed] = useState(false)
     const impressionReportedRef = useRef(false)
 
@@ -71,6 +72,10 @@ export function PeanutBuddy({
         impressionReportedRef.current = true
         onImpression?.()
     }, [onImpression])
+
+    const handleLoaded = useCallback(() => {
+        setMascotLoaded(true)
+    }, [])
 
     const handleLanded = useCallback(() => {
         if (whimsy) {
@@ -98,9 +103,10 @@ export function PeanutBuddy({
         }
     }, [reducedMotion, whimsy, reportImpressionOnce])
 
-    // If the Lottie chunk stalls on a slow network, reveal the stuck bubble after 1.5s (or bail on whimsy).
+    // If the Lottie chunk stalls before assets finish loading, reveal the stuck bubble after 1.5s (or bail on whimsy).
+    // Cleared as soon as mascot assets load (`mascotLoaded`) so walk-in + pose transition time never triggers a false bail.
     useEffect(() => {
-        if (bubbleVisible || whimsyLanded || reducedMotion) return
+        if (mascotLoaded || mascotFailed || bubbleVisible || whimsyLanded || reducedMotion) return
         const timer = window.setTimeout(() => {
             if (whimsy) {
                 onAutoLeave?.()
@@ -110,7 +116,16 @@ export function PeanutBuddy({
             }
         }, LOAD_FALLBACK_MS)
         return () => window.clearTimeout(timer)
-    }, [bubbleVisible, whimsyLanded, reducedMotion, whimsy, onAutoLeave, reportImpressionOnce])
+    }, [
+        mascotLoaded,
+        mascotFailed,
+        bubbleVisible,
+        whimsyLanded,
+        reducedMotion,
+        whimsy,
+        onAutoLeave,
+        reportImpressionOnce,
+    ])
 
     // In playful whimsy mode, auto-turn and walk cheerfully back off-screen after waving.
     useEffect(() => {
@@ -219,6 +234,7 @@ export function PeanutBuddy({
                     <PeanutBuddyMascot
                         targetPose={pose}
                         exiting={whimsyExiting}
+                        onLoaded={handleLoaded}
                         onLanded={handleLanded}
                         onLoadFailed={handleLoadFailed}
                     />
