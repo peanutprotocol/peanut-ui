@@ -145,7 +145,7 @@ const MantecaDepositShareDetails = ({
         )
 
     // an order that ended unpaid (expired) or did not go through (failed, cancelled, refunded):
-    // its CVU no longer works, so the only ways on are support and a new order
+    // its CVU no longer works. expired offers a new order; failed leads to support
     if (arsStatus === 'expired' || arsStatus === 'failed') {
         const expired = arsStatus === 'expired'
         return (
@@ -162,15 +162,23 @@ const MantecaDepositShareDetails = ({
                                 {t(expired ? 'manteca.transferExpiredDescription' : 'manteca.orderFailedDescription')}
                             </p>
                         </div>
-                        {onContactSupport && (
+                        {expired && onContactSupport && (
                             <LinkButton onClick={onContactSupport}>{tCommon('contactSupport')}</LinkButton>
                         )}
                     </Card>
-                    {onStartOver && (
-                        <Button variant="primary" className="w-full" onClick={onStartOver}>
-                            {t('manteca.startNewDeposit')}
-                        </Button>
-                    )}
+                    {/* a failed order may hold pesos that arrived before the cancel: support reconciles
+                        them first, so no new order is offered (a second transfer could follow) */}
+                    {expired
+                        ? onStartOver && (
+                              <Button variant="primary" className="w-full" onClick={onStartOver}>
+                                  {t('manteca.startNewDeposit')}
+                              </Button>
+                          )
+                        : onContactSupport && (
+                              <Button variant="primary" className="w-full" onClick={onContactSupport}>
+                                  {tCommon('contactSupport')}
+                              </Button>
+                          )}
                 </PageStack.Center>
             </PageStack>
         )
