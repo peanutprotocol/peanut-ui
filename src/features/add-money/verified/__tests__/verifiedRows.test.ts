@@ -10,7 +10,7 @@ import {
     identityJustApproved,
     markIdentityApproved,
     returningFromRow,
-    rowReturnPath,
+    rowReturn,
     verifiedPageAccess,
     verifiedRow,
     type BankRowState,
@@ -143,18 +143,19 @@ describe('one visit', () => {
     const tokenOf = (path: string) => new URL(path, 'https://x').searchParams.get('visit')
 
     it('treats the way back from a row as the same visit, once', () => {
-        const path = rowReturnPath('verified')
+        const { path, token } = rowReturn('verified')
+        expect(tokenOf(path)).toBe(token)
         expect(path).toMatch(/^\/verified\?visit=\d+$/)
         expect(returningFromRow(tokenOf(path))).toBe(true)
         // the same return path opened again is a new visit
         expect(returningFromRow(tokenOf(path))).toBe(false)
     })
     it('counts an opening without the token as a new visit, even after an abandoned row flow', () => {
-        rowReturnPath('verified')
+        rowReturn('verified')
         // the row's flow was left for Home; the page is then opened directly
         expect(returningFromRow(null)).toBe(false)
     })
     it('keeps the bank-ready variant on the way back', () => {
-        expect(rowReturnPath('bank-ready')).toMatch(/^\/verified\?variant=bank-ready&visit=\d+$/)
+        expect(rowReturn('bank-ready').path).toMatch(/^\/verified\?variant=bank-ready&visit=\d+$/)
     })
 })

@@ -56,7 +56,10 @@ test('once an account works the chip shows its check and every row opens', async
     await expect(row(page, 'ars')).toContainText('From your Mercado Pago or bank account')
     await expect(row(page, 'bank')).toContainText('From your bank account')
     await row(page, 'crypto').click()
-    await expect(page).toHaveURL(/\/add-money\/crypto\?returnTo=%2Fverified/)
+    await expect(page).toHaveURL(/\/add-money\/crypto\?returnTo=%2Fverified%3Fvisit%3D\d+/)
+    // Back lands on the page's own history entry, which carries the same token: the same visit, no new view
+    await page.goBack()
+    await expect(page).toHaveURL(/\/verified\?.*visit=\d+/)
 })
 
 test('in Brazil Pix leads on the Avenia route', async ({ page }) => {
