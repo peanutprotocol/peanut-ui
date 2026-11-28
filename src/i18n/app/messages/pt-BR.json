@@ -345,7 +345,8 @@
             "shareRequestLink": "Compartilhar um link de cobrança",
             "shareRequestLinkDescription": "Peça um valor com um link para compartilhar",
             "shareBankDetails": "Compartilhar dados bancários",
-            "shareBankDetailsDescription": "Receba pagamentos em EUR, USD e mais com dados bancários."
+            "shareBankDetailsDescription": "Receba pagamentos em EUR, USD e mais com dados bancários.",
+            "lastUsed": "Último usado"
         },
         "postVerification": {
             "title": "Verificação concluída!",
@@ -2364,7 +2365,7 @@
         "methods": {
             "moreWays": "Mais formas de adicionar dinheiro",
             "pixDetails": "Escaneie ou copie o código",
-            "arsDetails": "Da sua conta do Mercado Pago ou do seu banco",
+            "arsDetails": "Mercado Pago ou banco",
             "cryptoDetails": "De carteiras ou corretoras",
             "openAccount": "Abrir uma conta bancária",
             "crypto": "Cripto",

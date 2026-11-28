@@ -3,8 +3,7 @@
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { useAddMoneyReadiness } from './useAddMoneyReadiness'
-import type { AddMoneyPickerMethod } from './addMoneyMethods'
-import { addMoneyMethodHref } from './addMoneyMethods'
+import { addMoneyMethodHref, type AddMoneyPickerMethod } from './addMoneyMethods'
 import { useAddMoneyMethodRows } from './useAddMoneyMethodRows'
 import { useRouter } from 'next/navigation'
 
@@ -24,8 +23,8 @@ export function AddMoneyMethodList({
     bankReturnTo?: string | null
     onSelect?: (method: AddMoneyPickerMethod) => void
 }) {
+    const rows = useAddMoneyMethodRows()
     const router = useRouter()
-    const rowFor = useAddMoneyMethodRows()
     const { pickerMethods, isLoading, residenceIso2s } = useAddMoneyReadiness(false)
     // Hold the rows until the methods resolve: ARS or Pix would otherwise appear above a row the user may
     // already be tapping (Aleks, 26 Nov, TASK-25444)
@@ -50,7 +49,7 @@ export function AddMoneyMethodList({
     return (
         <ListGroup>
             {pickerMethods.map((key) => {
-                const row = rowFor[key]
+                const row = rows[key]
                 return (
                     <ListItem
                         key={key}
