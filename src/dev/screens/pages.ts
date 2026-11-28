@@ -58,7 +58,12 @@ export const PAGE_CAPTURES: PageCapture[] = [
     },
     { id: 'p08-profile-view', name: 'Profile — public view', route: '/profile/view?username=demo' },
     { id: 'p09-profile-about', name: 'Profile — about', route: '/profile/about' },
-    { id: 'p10-exchange-rate', name: 'Exchange rate', route: '/profile/exchange-rate' },
+    {
+        id: 'p10-exchange-rate',
+        name: 'Exchange rate & fees',
+        route: '/profile/exchange-rate',
+        fixture: 'profile-exchange-rate',
+    },
 
     // ids kept from before the 2026-09-25 split, so the screen library keeps each history
     { id: 'p11-identity-verification', name: 'Accounts', route: '/profile/accounts' },
@@ -290,14 +295,6 @@ PAGE_CAPTURES.push(
         expectSelector: '[role="dialog"] [role="button"][aria-current="true"]',
     },
     {
-        id: 'p76-exchange-currency-dropdown',
-        defaultScreen: false,
-        name: 'Exchange rate — open currency dropdown, selected currency',
-        route: '/profile/exchange-rate',
-        actions: [{ clickSelector: 'button[aria-haspopup="listbox"]' }],
-        expectSelector: '[role="listbox"] [role="option"][aria-selected="true"]',
-    },
-    {
         id: 'p77-base-select-dropdown',
         defaultScreen: false,
         name: 'BaseSelect — open dropdown, selected option',
@@ -352,5 +349,14 @@ PAGE_CAPTURES.push(
         fixture: 'pix-manteca-withdraw-review',
         actions: [{ clickSelector: '[data-testid="provider-help"]' }],
         expectSelector: '[role="dialog"][data-state="open"]',
+    },
+    // the list of every currency's buy and sell rate, which replaced the exchange rate page's
+    // currency dropdown (TASK-25349)
+    {
+        id: 'p87-exchange-rate-all-currencies',
+        name: 'Exchange rate & fees — all currencies',
+        route: '/profile/exchange-rate?view=all',
+        fixture: 'profile-exchange-rate',
+        expectSelector: '[data-testid^="currency-row-"]',
     }
 )

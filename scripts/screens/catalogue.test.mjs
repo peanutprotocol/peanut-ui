@@ -21,7 +21,6 @@ test('open selectors are separate checkpoints and require a visible selected opt
         'p73-token-selector-drawer',
         'p74-network-selector-drawer',
         'p75-residence-country-dropdown',
-        'p76-exchange-currency-dropdown',
         'p77-base-select-dropdown',
     ]) {
         const screen = screens.find((screen) => screen.id === id)
