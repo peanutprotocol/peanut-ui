@@ -132,9 +132,10 @@ export const saveToLocalStorage = (key: string, data: unknown, expirySeconds?: n
         } else {
             localStorage.removeItem(`${key}-expiry`)
         }
-        // key is passed as an argument (not interpolated into the format string)
-        // so a user-controlled key can't act as a console format string (CodeQL).
-        console.log('Saved to localStorage:', key, data)
+        // Key only: a stored value can be a bearer secret (a send link with its
+        // password), and console output reaches Sentry breadcrumbs. The key is an
+        // argument, not part of the format string, so it can't act as one (CodeQL).
+        console.log('Saved to localStorage:', key)
         return true
     } catch (error) {
         Sentry.captureException(error)
@@ -366,7 +367,8 @@ export function formatTokenAmount(amount?: number | string, maxFractionDigits?: 
         const m = s.match(/^(\d*)(?:\.(\d*))?$/)
         if (!m) return '' // invalid → empty
         if (s !== '.' && parseFiniteNumber(s) === null) return ''
-        const whole = m[1] ?? ''
+        // "00.1" and "007" are 0.1 and 7: the field shows them that way (TASK-25353)
+        const whole = (m[1] ?? '').replace(/^0+(?=\d)/, '')
         const fracRaw = m[2] // undefined ⇒ no dot; '' ⇒ dot present with no digits
         if (fracRaw === undefined) return whole
         if (maxFractionDigits === 0) return whole

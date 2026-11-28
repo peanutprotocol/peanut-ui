@@ -1118,6 +1118,7 @@ export interface paths {
                         onBehalfOf: string;
                         provider?: string;
                         sendLinkPubKey?: string;
+                        sendLinkSignature?: string;
                         source: {
                             currency: "usdc" | "eurc" | "usdt" | "dai";
                             fromAddress?: string;
@@ -1807,6 +1808,64 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/card/funding-pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark that the user left the card funding step to send a bank transfer */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "ok": true
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            ok: true;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -5534,6 +5593,229 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/fx/fees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Public per-transfer fee schedule for bank rails, Peanut Card, and crypto deposits/withdrawals. Separate from live FX conversion spreads. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "bankTransfers": [
+                         *         {
+                         *           "currency": "USD",
+                         *           "direction": "deposit",
+                         *           "flatFee": "0",
+                         *           "id": "usd-deposit",
+                         *           "payer": "peanut",
+                         *           "rails": [
+                         *             "ach_push",
+                         *             "fednow",
+                         *             "wire"
+                         *           ]
+                         *         },
+                         *         {
+                         *           "currency": "USD",
+                         *           "direction": "withdraw",
+                         *           "flatFee": "0",
+                         *           "id": "usd-ach-out",
+                         *           "payer": "peanut",
+                         *           "rails": [
+                         *             "ach",
+                         *             "ach_same_day"
+                         *           ]
+                         *         },
+                         *         {
+                         *           "currency": "USD",
+                         *           "direction": "withdraw",
+                         *           "flatFee": "20.00",
+                         *           "id": "usd-wire-out",
+                         *           "minAmount": "21.00",
+                         *           "payer": "provider",
+                         *           "rails": [
+                         *             "wire"
+                         *           ]
+                         *         },
+                         *         {
+                         *           "currency": "EUR",
+                         *           "direction": "both",
+                         *           "flatFee": "0",
+                         *           "id": "eur-sepa",
+                         *           "payer": "peanut",
+                         *           "rails": [
+                         *             "sepa"
+                         *           ]
+                         *         },
+                         *         {
+                         *           "currency": "GBP",
+                         *           "direction": "both",
+                         *           "flatFee": "0",
+                         *           "id": "gbp-fps",
+                         *           "payer": "peanut",
+                         *           "rails": [
+                         *             "faster_payments"
+                         *           ]
+                         *         },
+                         *         {
+                         *           "currency": "MXN",
+                         *           "direction": "both",
+                         *           "flatFee": "0",
+                         *           "id": "mxn-spei",
+                         *           "payer": "peanut",
+                         *           "rails": [
+                         *             "spei"
+                         *           ]
+                         *         },
+                         *         {
+                         *           "currency": "COP",
+                         *           "direction": "both",
+                         *           "flatFee": "0",
+                         *           "id": "cop-local",
+                         *           "payer": "peanut",
+                         *           "rails": [
+                         *             "bre_b"
+                         *           ]
+                         *         },
+                         *         {
+                         *           "currency": "ARS",
+                         *           "direction": "both",
+                         *           "flatFee": "0",
+                         *           "id": "ars-local",
+                         *           "payer": "peanut",
+                         *           "rails": [
+                         *             "cbu_cvu",
+                         *             "qr"
+                         *           ]
+                         *         },
+                         *         {
+                         *           "currency": "BRL",
+                         *           "direction": "both",
+                         *           "flatFee": "0.75",
+                         *           "id": "brl-pix-br",
+                         *           "minDeposit": "20",
+                         *           "minPayout": "5",
+                         *           "payer": "provider",
+                         *           "rails": [
+                         *             "pix"
+                         *           ],
+                         *           "residency": "BR"
+                         *         }
+                         *       ],
+                         *       "card": {
+                         *         "issuanceUsd": "0",
+                         *         "monthlyUsd": "0",
+                         *         "peanutPaymentFeePct": "0",
+                         *         "thirdPartyNote": "visa_network",
+                         *         "topUpUsd": "0"
+                         *       },
+                         *       "crypto": {
+                         *         "depositsUsd": "0",
+                         *         "networkFeeWithdrawals": [
+                         *           {
+                         *             "chain": "SOLANA",
+                         *             "flatFeeUsd": "0.50",
+                         *             "minWithdrawalUsd": "1.00",
+                         *             "pctFee": "0.0007"
+                         *           },
+                         *           {
+                         *             "chain": "TRON",
+                         *             "flatFeeUsd": "1.40",
+                         *             "minWithdrawalUsd": "10.10",
+                         *             "pctFee": "0.0007"
+                         *           },
+                         *           {
+                         *             "chain": "ETHEREUM",
+                         *             "flatFeeUsd": "1.50",
+                         *             "minWithdrawalUsd": "5.05",
+                         *             "pctFee": "0.0007"
+                         *           }
+                         *         ],
+                         *         "otherNetworksDeliveryFee": "live_quote",
+                         *         "peanutFeeUsd": "0"
+                         *       },
+                         *       "generatedAt": "2026-01-01T00:00:00.000Z"
+                         *     }
+                         */
+                        "application/json": {
+                            bankTransfers: {
+                                currency: string;
+                                direction: "deposit" | "withdraw" | "both";
+                                flatFee: string;
+                                id: string;
+                                minAmount?: string;
+                                minDeposit?: string;
+                                minPayout?: string;
+                                payer: "peanut" | "provider";
+                                rails: string[];
+                                residency?: string;
+                            }[];
+                            card: {
+                                issuanceUsd: string;
+                                monthlyUsd: string;
+                                peanutPaymentFeePct: string;
+                                /** @enum {string} */
+                                thirdPartyNote: "visa_network";
+                                topUpUsd: string;
+                            };
+                            crypto: {
+                                depositsUsd: string;
+                                networkFeeWithdrawals: {
+                                    chain: string;
+                                    flatFeeUsd: string;
+                                    minWithdrawalUsd: string;
+                                    /** @description Percentage fee expressed as a decimal fraction (for example 0.0007 = 0.07%). */
+                                    pctFee: string;
+                                }[];
+                                /**
+                                 * @description Non-listed cross-chain networks may carry a quote-dependent bridge delivery fee returned in the live quote.
+                                 * @enum {string}
+                                 */
+                                otherNetworksDeliveryFee: "live_quote";
+                                peanutFeeUsd: string;
+                            };
+                            /** Format: date-time */
+                            generatedAt: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/fx/rate": {
         parameters: {
             query?: never;
@@ -5541,7 +5823,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Public indicative display-sell rate for one currency pair. */
+        /** @description Public indicative rates for one currency pair: rate sells one `from`, buyRate buys one `from`, both in `to` units. */
         get: {
             parameters: {
                 query: {
@@ -5565,6 +5847,8 @@ export interface paths {
                         "application/json": {
                             /** @enum {string} */
                             basis: "display_sell";
+                            /** @description `to` units it costs to buy one `from`. */
+                            buyRate: string;
                             effectiveAt: string | null;
                             from: string;
                             fromSource: "identity" | "bridge" | "manteca" | "reference";
@@ -5572,6 +5856,7 @@ export interface paths {
                             generatedAt: string;
                             /** @enum {boolean} */
                             indicative: true;
+                            /** @description `to` units one `from` sells for. */
                             rate: string;
                             selection: "identity" | "provider_pair" | "reference_pair";
                             to: string;
@@ -5662,6 +5947,34 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
+                        /**
+                         * @example {
+                         *       "base": "USD",
+                         *       "basis": "display_sell",
+                         *       "generatedAt": "2026-01-01T00:00:00.000Z",
+                         *       "indicative": true,
+                         *       "rates": [
+                         *         {
+                         *           "baseSource": "identity",
+                         *           "buyUnitsPerBase": "1",
+                         *           "code": "USD",
+                         *           "effectiveAt": null,
+                         *           "quoteSource": "identity",
+                         *           "selection": "identity",
+                         *           "unitsPerBase": "1"
+                         *         },
+                         *         {
+                         *           "baseSource": "identity",
+                         *           "buyUnitsPerBase": "1509.20",
+                         *           "code": "ARS",
+                         *           "effectiveAt": "2026-01-01T00:00:00.000Z",
+                         *           "quoteSource": "manteca",
+                         *           "selection": "provider_pair",
+                         *           "unitsPerBase": "1485.10"
+                         *         }
+                         *       ]
+                         *     }
+                         */
                         "application/json": {
                             base: string;
                             /** @enum {string} */
@@ -5672,12 +5985,156 @@ export interface paths {
                             indicative: true;
                             rates: {
                                 baseSource: "identity" | "bridge" | "manteca" | "reference";
+                                buyUnitsPerBase: string;
                                 code: string;
                                 effectiveAt: string | null;
                                 quoteSource: "identity" | "bridge" | "manteca" | "reference";
                                 selection: "identity" | "provider_pair" | "reference_pair";
                                 unitsPerBase: string;
                             }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fx/reference": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Public, server-cached local-market USD benchmarks (for example Argentine Dólar cripto, MEP, Blue, Tarjeta, Oficial). Informational only. */
+        get: {
+            parameters: {
+                query: {
+                    /** @description ISO-style currency code or supported four-letter internal ticker */
+                    currency: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "base": "USD",
+                         *       "benchmarks": [
+                         *         {
+                         *           "buy": "1490.00",
+                         *           "effectiveAt": "2026-01-01T00:00:00.000Z",
+                         *           "key": "cripto",
+                         *           "sell": "1505.00"
+                         *         },
+                         *         {
+                         *           "buy": "1465.00",
+                         *           "effectiveAt": "2026-01-01T00:00:00.000Z",
+                         *           "key": "mep",
+                         *           "sell": "1475.00"
+                         *         },
+                         *         {
+                         *           "buy": "1480.00",
+                         *           "effectiveAt": "2026-01-01T00:00:00.000Z",
+                         *           "key": "blue",
+                         *           "sell": "1500.00"
+                         *         },
+                         *         {
+                         *           "buy": null,
+                         *           "effectiveAt": "2026-01-01T00:00:00.000Z",
+                         *           "key": "tarjeta",
+                         *           "sell": "1920.00"
+                         *         },
+                         *         {
+                         *           "buy": "1420.00",
+                         *           "effectiveAt": "2026-01-01T00:00:00.000Z",
+                         *           "key": "oficial",
+                         *           "sell": "1460.00"
+                         *         }
+                         *       ],
+                         *       "currency": "ARS",
+                         *       "generatedAt": "2026-01-01T00:00:00.000Z",
+                         *       "indicative": true,
+                         *       "source": "dolarapi"
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {string} */
+                            base: "USD";
+                            benchmarks: {
+                                buy: string | null;
+                                /** Format: date-time */
+                                effectiveAt: string;
+                                key: "cripto" | "mep" | "blue" | "tarjeta" | "oficial";
+                                sell: string;
+                            }[];
+                            currency: string;
+                            /** Format: date-time */
+                            generatedAt: string;
+                            /** @enum {boolean} */
+                            indicative: true;
+                            source: string;
                         };
                     };
                 };
@@ -7033,7 +7490,7 @@ export interface paths {
         put?: never;
         /**
          * Complete QR payment with signed transaction
-         * @description Broadcasts the signed UserOp, or submits the signed Rain withdrawal via the session key, first; the Manteca payment is created only once the USDC mined at the QR deposit address and is claimed for this attempt. A payment that fails after that is recorded and its USDC refunded.
+         * @description Broadcasts the signed UserOp, or submits the signed Rain withdrawal via the session key, first; the Manteca payment is created only once the USDC mined at the QR deposit address and is claimed for this attempt. A payment that fails after that is recorded and its USDC refunded. One payment lock is funded at most once: while another attempt for the lock is unresolved the answer is 409 FUNDING_PENDING_CONFIRMATION, and once that attempt moved money and is final it is 409 QR_PAYMENT_LOCK_USED. Neither sends anything.
          */
         post: {
             parameters: {
@@ -11221,6 +11678,7 @@ export interface paths {
                                 spendingPower: number;
                             };
                             balanceUnavailable: boolean;
+                            cardState: "add-card" | "creating-card" | "pending" | "manual-review" | "requires-info" | "requires-support" | "rejected" | "active";
                             cards: {
                                 expiryMonth: number;
                                 expiryYear: number;
@@ -13719,19 +14177,19 @@ export interface paths {
             requestBody?: never;
             responses: {
                 /** @description Default Response */
-                200: {
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
-                            joinedAt: string;
-                            position: number;
+                            code?: string;
+                            error: string;
                         };
                     };
                 };
                 /** @description Default Response */
-                404: {
+                410: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -15866,7 +16324,7 @@ export interface paths {
                             [key: string]: unknown;
                         };
                         avatarKey?: string | null;
-                        bridgeKycStatus?: "not_started" | "incomplete" | "under_review" | "approved" | "rejected";
+                        bridgeKycStatus?: "not_started" | "under_review" | "incomplete" | "approved" | "rejected";
                         bridge_customer_id?: string;
                         dismissActivationCelebration?: boolean;
                         email?: string;
@@ -16478,13 +16936,13 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody: {
+            requestBody?: {
                 content: {
                     "application/json": {
-                        documents: {
+                        documents?: {
                             hash?: string;
                             slug: string;
-                            version: string;
+                            version?: string;
                         }[];
                     };
                 };
@@ -17081,6 +17539,9 @@ export interface paths {
                             error: string;
                             message: string;
                             userMessage: string;
+                        } | {
+                            code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -22496,68 +22957,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/card/funding-pending": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Mark that the user left the card funding step to send a bank transfer */
-        post: {
-            parameters: {
-                query?: never;
-                header: {
-                    Authorization: string;
-                };
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "ok": true
-                         *     }
-                         */
-                        "application/json": {
-                            /** @enum {boolean} */
-                            ok: true;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                            message: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: never;
+    schemas: {
+        /** @enum {string} */
+        ApiErrorCode: "INSUFFICIENT_COLLATERAL" | "WITHDRAWAL_COOLDOWN_ACTIVE" | "WITHDRAWAL_SIGNATURE_COOLDOWN" | "WITHDRAWAL_SIGNATURE_EXPIRED" | "WITHDRAWAL_SUBMISSION_FAILED" | "WITHDRAWAL_PENDING_CONFIRMATION" | "STALE_CARD_APPROVAL" | "CARD_PERMISSION_MIGRATION_REQUIRED" | "CARD_APP_UPDATE_REQUIRED" | "CARD_PERMISSION_STATE_UNAVAILABLE" | "CARD_APPROVAL_SIGNATURE_REJECTED" | "WITHDRAWAL_PREPARATION_NOT_FOUND" | "WITHDRAWAL_STATUS_UNAVAILABLE" | "RAIN_CONTROLLER_CHANGED" | "NO_APPROVED_CARD" | "NO_ACTIVE_CARD" | "NO_COLLATERAL_CONTRACT" | "CARD_RETURN_BLOCKED" | "CARD_BALANCE_REMAINS" | "CARD_BALANCE_UNREADABLE" | "CARD_SECRETS_RATE_LIMITED" | "CARD_PROVISIONING_BILLING_MISSING" | "CARD_PROVISIONING_RATE_LIMITED" | "CARD_PROVISIONING_CARD_NOT_FOUND" | "CARD_PROVISIONING_UNAVAILABLE" | "CARD_PROVISIONING_FAILED" | "USER_OP_REVERTED" | "USER_OP_REJECTED" | "MANTECA_KYC_REQUIRED" | "MANTECA_SENDER_REJECTED" | "PAYER_BLOCKED" | "MERCHANT_BLOCKED" | "PIX_RESIDENCE_NOT_SUPPORTED" | "PIX_PROVIDER_MOVED" | "MANTECA_ACCOUNT_REJECTED" | "MANTECA_TEMPORARILY_UNAVAILABLE" | "PROVIDER_REJECTED" | "MANTECA_SOURCE_OVER_MONTHLY_CAP" | "MANTECA_MERCHANT_VOLUME_NEAR_CAP" | "MANTECA_MERCHANT_RECENT_REFUND" | "MANTECA_USER_NOT_PROVISIONED" | "PIX_MIN_AMOUNT" | "PIX_RECURRING_NOT_SUPPORTED" | "PAYMENT_DESTINATION_MISSING_AMOUNT" | "PAYMENT_DESTINATION_NOT_FOUND" | "PAYMENT_DESTINATION_EXPIRED" | "PAYMENT_DESTINATION_DECODING_ERROR" | "PROVIDER_UNAVAILABLE" | "QR_PAYMENT_CANCELLED" | "QR_PAYMENT_LOCK_USED" | "FUNDING_PENDING_CONFIRMATION" | "QR_INIT_IN_PROGRESS" | "QR_INIT_KEY_MISMATCH" | "QR_INIT_INVALID_KEY" | "TRANSFER_ALREADY_CONFIRMED" | "BANK_ACCOUNT_NOT_USABLE" | "LINK_ALREADY_CLAIMED" | "CLAIM_RECIPIENT_NOT_ALLOWED" | "DEPOSIT_ACCOUNTS_NOT_AVAILABLE" | "DEPOSIT_ACCOUNT_LIMIT" | "DEPOSIT_ACCOUNT_PROVIDER_REFUSED" | "DEPOSIT_ACCOUNT_NOT_ADOPTED" | "DEPOSIT_ACCOUNT_CLAIM_IN_FLIGHT" | "DEPOSIT_IN_FLIGHT" | "RAIL_PAUSED" | "CHAIN_INFRA_UNAVAILABLE" | "BELOW_MIN_BRIDGE_AMOUNT" | "VERIFIED_ADDRESS_RATE_LIMITED" | "USER_NOT_FOUND" | "REQUEST_CLOSED" | "REQUEST_TOKEN_NOT_STABLECOIN" | "RECIPIENT_NOT_PEANUT_USER" | "ROUTE_NOT_AVAILABLE" | "PIX_QUOTE_CHANGED" | "PIX_LIMIT_EXCEEDED" | "PIX_KEY_BLOCKED" | "PIX_KEY_LOOKUP_THROTTLED" | "PIX_KEY_NOT_FOUND" | "PIX_KEY_IS_QR_CODE" | "WITHDRAWAL_IN_PROGRESS" | "PIX_QUOTE_EXPIRED" | "PIX_QR_AMOUNT_FIXED" | "PIX_PAYMENT_EXISTS";
+        /** @enum {string} */
+        BridgeKycStatus: "not_started" | "under_review" | "incomplete" | "approved" | "rejected";
+        /** @enum {string} */
+        RailStatus: "PENDING" | "ENABLED" | "REQUIRES_INFORMATION" | "REQUIRES_EXTRA_INFORMATION" | "REQUIRES_SUPPORT" | "REJECTED" | "FAILED";
+        /** @enum {string} */
+        RainCardStatus: "NOT_ACTIVATED" | "ACTIVE" | "LOCKED" | "CANCELED";
+        /** @enum {string} */
+        RequestChargeStatus: "COMPLETED" | "EXPIRED" | "FAILED" | "NEW" | "PENDING" | "SIGNED" | "CANCELLED";
+        /** @enum {string} */
+        RequestPaymentStatus: "PENDING" | "SUCCESSFUL" | "FAILED";
+        /** @enum {string} */
+        SendLinkStatus: "creating" | "completed" | "CLAIMING" | "CLAIMED" | "CANCELLED" | "FAILED";
+        /** @enum {string} */
+        TransactionIntentStatus: "PENDING" | "AWAITING_USER_ACTION" | "AWAITING_SETTLEMENT" | "PROCESSING" | "COMPLETED" | "FAILED" | "CANCELLED" | "REFUNDED";
+    };
     responses: never;
     parameters: never;
     requestBodies: never;

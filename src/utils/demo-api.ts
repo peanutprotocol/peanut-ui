@@ -818,6 +818,21 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         pattern: '/fx/rate',
         handler: () => json({ error: 'FX_UNAVAILABLE', message: 'Exchange rates are unavailable.' }, 503),
     },
+    {
+        method: 'GET',
+        pattern: '/fx/rates',
+        handler: () => json({ error: 'FX_UNAVAILABLE', message: 'Exchange rates are unavailable.' }, 503),
+    },
+    {
+        method: 'GET',
+        pattern: '/fx/fees',
+        handler: () => json({ error: 'FX_UNAVAILABLE', message: 'Fee schedule is unavailable.' }, 503),
+    },
+    {
+        method: 'GET',
+        pattern: '/fx/reference',
+        handler: () => json({ error: 'FX_REFERENCE_UNAVAILABLE', message: 'Benchmarks are unavailable.' }, 404),
+    },
 
     // The QR payment form asks for the card-vs-local-rail markup. The demo has
     // no live observations, and 404 is the API's "nothing to compare" answer,

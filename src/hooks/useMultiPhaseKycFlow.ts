@@ -646,6 +646,7 @@ export const useMultiPhaseKycFlow = ({
             crossRegion?: boolean,
             targetCountry?: string,
             corridor?: DepositCorridor,
+            beforeRedirect?: () => Promise<void>,
             qrPool = false
         ) => {
             if (blockIfFinal()) return false
@@ -684,7 +685,7 @@ export const useMultiPhaseKycFlow = ({
             isRealtimeFlowRef.current = false
             clearPreparingTimer()
 
-            if (qrPool) return originalHandleUnlockQr(!resumingRef.current)
+            if (qrPool) return originalHandleUnlockQr(!resumingRef.current, beforeRedirect)
             return originalHandleInitiateKyc(
                 overrideIntent,
                 levelName,
@@ -692,7 +693,8 @@ export const useMultiPhaseKycFlow = ({
                 targetCountry,
                 false,
                 corridor,
-                !resumingRef.current
+                !resumingRef.current,
+                beforeRedirect
             )
         },
         [
@@ -708,24 +710,23 @@ export const useMultiPhaseKycFlow = ({
         () =>
             isLoading || isQrUnlockBlocked
                 ? Promise.resolve(false)
-                : handleInitiateKyc(undefined, undefined, undefined, undefined, undefined, true),
+                : handleInitiateKyc(undefined, undefined, undefined, undefined, undefined, undefined, true),
         [handleInitiateKyc, isLoading, isQrUnlockBlocked]
     )
 
     useSumsubReloadResume(
         showWrapper ? lastInitiateArgsRef.current : null,
-        async (state) => {
+        async (state, { consume }) => {
             resumingRef.current = true
-            const opened =
+            const opened = await handleInitiateKyc(
+                state.intent,
+                state.levelName,
+                state.crossRegion,
+                state.targetCountry,
+                state.corridor,
+                consume,
                 state.feature === 'qr'
-                    ? await handleUnlockQr()
-                    : await handleInitiateKyc(
-                          state.intent,
-                          state.levelName,
-                          state.crossRegion,
-                          state.targetCountry,
-                          state.corridor
-                      )
+            )
             resumingRef.current = false
             return !!opened
         },

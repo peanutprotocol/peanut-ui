@@ -106,7 +106,6 @@ jest.mock('@/services/badge-campaigns', () => ({
     isConfirmedBadgeCampaignClaim: jest.fn(),
     isUnavailableBadgeCampaignClaim: jest.fn(),
 }))
-jest.mock('@/services/consent', () => ({ signupConsentDocuments: () => [] }))
 jest.mock('@/utils/auth.utils', () => ({ clearAuthState: jest.fn() }))
 jest.mock('@/utils/auth-token', () => ({ setAuthToken: (...args: unknown[]) => mockSetAuthToken(...args) }))
 jest.mock('@/utils/walletCredential.utils', () => ({

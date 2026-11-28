@@ -15,7 +15,7 @@ import { useSelfPerson } from '@/lib/person/useSelfPerson'
 import { useTranslations } from 'next-intl'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
-import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { useVerification } from '@/hooks/useVerification'
 
 const REFERRAL_PILL_PROPS = { source: REFERRAL_SOURCES.PROFILE_HEADER, link_type: 'profile' } as const
 // Either segment presses the whole pill.
@@ -58,7 +58,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     // NOT "this person has an enabled payment rail." It reads identityVerification
     // (Sumsub-cleared), matching the counterparty badge logic (`isVerified` on
     // /users/:userId). Rail-approval is unrelated.
-    const { isVerified: selfIsIdentityVerified } = useIdentityVerification()
+    const { identityVerified: selfIsIdentityVerified } = useVerification()
     const self = useSelfPerson()
     const isAuthenticatedUserVerified = selfIsIdentityVerified && authenticatedUser?.user.username === username
     const isSelfProfile = authenticatedUser?.user.username?.toLowerCase() === username.toLowerCase()

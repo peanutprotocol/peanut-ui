@@ -4,9 +4,6 @@ import { isIBAN } from 'validator'
 import { apiFetch } from '@/utils/api-fetch'
 import { type Account } from '@/interfaces/interfaces'
 
-// Re-export from interfaces (defined there to avoid circular dependency)
-export type { BridgeKycStatus } from '@/interfaces/interfaces'
-
 export async function validateIban(iban: string): Promise<boolean> {
     return isIBAN(iban.replace(/\s+/g, ''))
 }

@@ -19,8 +19,8 @@ import { SumsubKycModals } from '../SumsubKycModals'
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn(), setPersonProperties: jest.fn() } }))
 jest.mock('@/app/actions/kyc-workflow', () => ({
-    getKycDocumentPlan: jest.fn(async () => ({ available: false, routes: [] })),
-    findKycDocumentPlan: jest.fn(async () => ({ available: false, routes: [] })),
+    getKycDocumentPlan: jest.fn(async () => ({ available: false, flow: null, routes: [] })),
+    findKycDocumentPlan: jest.fn(async () => ({ available: false, flow: null, routes: [] })),
     getKycDocumentStatus: jest.fn(),
     resumeKycDocumentAttempt: jest.fn(),
     findKycReplacementPlan: jest.fn(async () => null),

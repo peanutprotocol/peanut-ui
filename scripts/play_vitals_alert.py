@@ -16,6 +16,8 @@ import play_vitals_report
 RATE_THRESHOLD = 1.09
 SEVERITY_RANK = {"P3": 1, "P2": 2, "P1": 3}
 STATE_SCHEMA = 2
+# A crash whose last report is older than this is quiet: it drops to a digest line (P3).
+QUIET_AFTER = timedelta(hours=24)
 
 
 def severity(users):
@@ -37,9 +39,16 @@ def assess(snapshot, previous):
         key = issue_key(item["id"])
         prior = old_issues.get(key) or {}
         fresh = not prior or item["last"] > prior.get("last", "") or item["users"] > prior.get("users", 0)
-        level = "P3" if baseline else severity(item["users"]) if fresh else prior.get("severity", "P3")
-        if prior and SEVERITY_RANK[prior.get("severity", "P3")] > SEVERITY_RANK[level]:
-            level = prior["severity"]
+        # The level follows the latest 72 h of users, so a fixed crash falls as its users fall (before
+        # TASK-25474 a level never fell: the Support-chat crash fixed in #4253 paged P1 for days). It rises
+        # only on a new report or more users; a baseline issue that has not changed stays P3.
+        level = severity(item["users"])
+        if baseline:
+            level = "P3"
+        elif not fresh and SEVERITY_RANK[level] > SEVERITY_RANK[prior.get("severity", "P3")]:
+            level = prior.get("severity", "P3")
+        if now - datetime.fromisoformat(item["last"].replace("Z", "+00:00")) >= QUIET_AFTER:
+            level = "P3"
         signals.append({"key": "play-vitals/issue/" + key, "severity": level})
         saved[key] = {"last": max(item["last"], prior.get("last", "")), "users": item["users"],
                       "severity": level, "seen_at": snapshot["checked_at"]}
