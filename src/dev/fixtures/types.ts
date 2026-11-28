@@ -51,6 +51,12 @@ export type Fixture = {
      * So an empty state is `{ entries: [] }` and a renamed user is one line.
      */
     responses?: Record<string, unknown>
+    /**
+     * Complete answers served in turn, one per call, keyed `METHOD /path`; the
+     * last one repeats. For a screen that polls until the state changes, such as
+     * a deposit that completes while its bank details are up.
+     */
+    sequences?: Record<string, unknown[]>
     /** Entries in responses that specify the entire answer, including which fields are absent. */
     completeResponses?: string[]
     /**
