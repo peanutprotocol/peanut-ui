@@ -43,7 +43,7 @@ interface CryptoDepositViewProps {
     // screen that says "send funds" with no address to send them to.
     isError?: boolean
     onRetry?: () => void
-    onSuccess: (amount: number, statusData?: DepositAddressStatusResponse) => void
+    onSuccess: (amount: number, statusData?: DepositAddressStatusResponse, seenOpen?: boolean) => void
     onBack: () => void
 }
 

@@ -345,7 +345,8 @@
             "shareRequestLink": "Compartir un enlace de solicitud",
             "shareRequestLinkDescription": "Solicita un monto con un enlace para compartir",
             "shareBankDetails": "Compartir datos bancarios",
-            "shareBankDetailsDescription": "Recibe pagos en EUR, USD y más con datos bancarios."
+            "shareBankDetailsDescription": "Recibe pagos en EUR, USD y más con datos bancarios.",
+            "lastUsed": "Último usado"
         },
         "postVerification": {
             "title": "¡Verificación completa!",
@@ -2364,7 +2365,7 @@
         "methods": {
             "moreWays": "Más formas de agregar dinero",
             "pixDetails": "Escanea o copia el código",
-            "arsDetails": "Desde tu cuenta de Mercado Pago o de tu banco",
+            "arsDetails": "Mercado Pago o tu banco",
             "cryptoDetails": "Desde billeteras o exchanges",
             "openAccount": "Abrir una cuenta bancaria",
             "crypto": "Cripto",
@@ -2532,7 +2533,7 @@
         "verified": {
             "title": "Identidad verificada",
             "titleBankReady": "Cuenta bancaria lista",
-            "sub": "Agrega dinero para empezar a pagar con Peanut.",
+            "sub": "{variant, select, bankReady {{count, plural, one {Tu cuenta en {accounts} está abierta.} other {Tus cuentas en {accounts} están abiertas.}} Agrega dinero.} other {Agrega dinero para empezar a pagar con Peanut.}}",
             "underReview": "En revisión por {provider}, te avisaremos",
             "notApproved": "No aprobado por {provider}",
             "actionTerms": "términos de {provider} para {currencies}",
