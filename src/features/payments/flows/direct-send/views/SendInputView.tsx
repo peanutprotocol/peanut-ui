@@ -63,6 +63,7 @@ export function SendInputView() {
         targetUsd: parseFloat(amount) || 0,
         spendableUsd: liveSpendableUsd,
         step: `${recipient?.username ?? ''}:${amount}`,
+        urlState: { amount },
     })
 
     // handle submit - directly execute payment
