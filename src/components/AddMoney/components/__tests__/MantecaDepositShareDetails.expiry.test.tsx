@@ -148,8 +148,7 @@ it('"I\'ve sent the transfer" hands control back to the flow', () => {
 
 // the poll maps FAILED, REFUNDED and a CANCELLED that was not an unpaid expiry to 'failed':
 // that order's CVU is dead, so nothing may invite a transfer to it
-it('a failed order shows the ended card, never the dead CVU, Share or "I\'ve sent the transfer"', () => {
-    const onStartOver = jest.fn()
+it('a failed order shows the ended card with Contact support as the one action', () => {
     const onContactSupport = jest.fn()
     renderWithIntl(
         <MantecaDepositShareDetails
@@ -158,7 +157,7 @@ it('a failed order shows the ended card, never the dead CVU, Share or "I\'ve sen
             onBack={jest.fn()}
             onDone={jest.fn()}
             onSent={jest.fn()}
-            onStartOver={onStartOver}
+            onStartOver={jest.fn()}
             onContactSupport={onContactSupport}
         />
     )
@@ -170,8 +169,27 @@ it('a failed order shows the ended card, never the dead CVU, Share or "I\'ve sen
     expect(screen.queryByText('Share details')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: "I've sent the transfer" })).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
+    const support = screen.getAllByRole('button', { name: 'Contact support' })
+    expect(support).toHaveLength(1)
+    fireEvent.click(support[0])
     expect(onContactSupport).toHaveBeenCalledTimes(1)
-    fireEvent.click(screen.getByRole('button', { name: 'Start a new deposit' }))
-    expect(onStartOver).toHaveBeenCalledTimes(1)
+})
+
+// pesos may have reached Manteca before the cancel: a new order could lead to a second transfer
+// before support reconciles the first
+it('a failed order offers no new deposit', () => {
+    const onStartOver = jest.fn()
+    renderWithIntl(
+        <MantecaDepositShareDetails
+            depositDetails={order}
+            arsStatus="failed"
+            onBack={jest.fn()}
+            onDone={jest.fn()}
+            onStartOver={onStartOver}
+            onContactSupport={jest.fn()}
+        />
+    )
+    expect(screen.queryByRole('button', { name: 'Start a new deposit' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Start a new deposit')).not.toBeInTheDocument()
+    expect(onStartOver).not.toHaveBeenCalled()
 })
