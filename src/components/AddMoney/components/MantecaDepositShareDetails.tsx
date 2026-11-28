@@ -13,6 +13,7 @@ import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import ShareButton from '@/components/Global/ShareButton'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
+import { Section } from '@/components/0_Bruddle/Section'
 import { Icon } from '@/components/Global/Icons/Icon'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { Card } from '@/components/0_Bruddle/Card'
@@ -238,32 +239,34 @@ const MantecaDepositShareDetails = ({
                         </div>
                     </div>
                 </Card>
-                <h2 className="text-label-l text-foreground-primary">{t('manteca.sendTo')}</h2>
-                {/* compact label-left rows, the card draws the dashed dividers */}
-                <Card className="divide-y divide-dashed divide-border-default px-4 py-0">
-                    {depositAddress && (
-                        <DataRow
-                            label={depositAddressLabel}
-                            value={shortenedAddress}
-                            copyValue={depositAddress}
-                            allowCopy
-                        />
-                    )}
-                    {depositAlias && <DataRow label={t('manteca.alias')} value={depositAlias} allowCopy />}
-                    {currentCountryDetails?.id === 'AR' && (
-                        <>
-                            <DataRow label={t('manteca.razonSocial')} value={MANTECA_ARG_DEPOSIT_NAME} />
-                            <DataRow label={t('manteca.cuit')} value={MANTECA_ARG_DEPOSIT_CUIT} />
-                        </>
-                    )}
-                    {/* something waits on the user: the pending badge, as on the Pix code */}
-                    {countdown.timeLeft && (
-                        <DataRow
-                            label={t('manteca.validFor')}
-                            value={<Badge status="pending" customText={countdown.timeLeft} />}
-                        />
-                    )}
-                </Card>
+                {/* the section title sits 8px over its card (design.md, list title to list) */}
+                <Section title={t('manteca.sendTo')}>
+                    {/* compact label-left rows, the card draws the dashed dividers */}
+                    <Card className="divide-y divide-dashed divide-border-default px-4 py-0">
+                        {depositAddress && (
+                            <DataRow
+                                label={depositAddressLabel}
+                                value={shortenedAddress}
+                                copyValue={depositAddress}
+                                allowCopy
+                            />
+                        )}
+                        {depositAlias && <DataRow label={t('manteca.alias')} value={depositAlias} allowCopy />}
+                        {currentCountryDetails?.id === 'AR' && (
+                            <>
+                                <DataRow label={t('manteca.razonSocial')} value={MANTECA_ARG_DEPOSIT_NAME} />
+                                <DataRow label={t('manteca.cuit')} value={MANTECA_ARG_DEPOSIT_CUIT} />
+                            </>
+                        )}
+                        {/* something waits on the user: the pending badge, as on the Pix code */}
+                        {countdown.timeLeft && (
+                            <DataRow
+                                label={t('manteca.validFor')}
+                                value={<Badge status="pending" customText={countdown.timeLeft} />}
+                            />
+                        )}
+                    </Card>
+                </Section>
                 {/* rate, fees and arrival keep today's values, folded so the details lead */}
                 <Accordion type="single" collapsible>
                     <Accordion.Item value="rate-fees">
@@ -297,21 +300,24 @@ const MantecaDepositShareDetails = ({
                 </Callout>
             </div>
 
-            <ShareButton
-                generateText={async () => generateShareText()}
-                title={t('manteca.shareTitle')}
-                variant="primary"
-                className="w-full"
-            >
-                {t('manteca.shareDetails')}
-            </ShareButton>
-            {onSent && (
-                <Button variant="secondary" className="w-full" onClick={onSent}>
-                    {t('bankDetails.sentTransfer')}
-                </Button>
-            )}
-            {/* money goes to the provider from this screen, so it stays named outside the fold (Resolution 520) */}
-            <ProviderFinePrint providerId={providerId} />
+            {/* the CTA stack: 12px between the buttons, as every pinned footer (PageStack.Footer) */}
+            <PageStack.Footer>
+                <ShareButton
+                    generateText={async () => generateShareText()}
+                    title={t('manteca.shareTitle')}
+                    variant="primary"
+                    className="w-full"
+                >
+                    {t('manteca.shareDetails')}
+                </ShareButton>
+                {onSent && (
+                    <Button variant="secondary" className="w-full" onClick={onSent}>
+                        {t('bankDetails.sentTransfer')}
+                    </Button>
+                )}
+                {/* money goes to the provider from this screen, so it stays named outside the fold (Resolution 520) */}
+                <ProviderFinePrint providerId={providerId} />
+            </PageStack.Footer>
         </div>
     )
 }
