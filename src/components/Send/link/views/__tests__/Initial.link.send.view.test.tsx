@@ -69,6 +69,7 @@ type DrawerProps = {
     open: boolean
     targetUsd: number
     gapUsd?: number
+    funded: boolean
     returnTo: () => string
     place: string
     onShow: (method: 'bank' | 'crypto' | null, view: string) => void
@@ -140,8 +141,9 @@ import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 const usdc = (dollars: number) => BigInt(Math.round(dollars * 1e6))
 
 // the displayed total (held while a refetch settles, or the persisted cache before the first read) and
-// the raw live sum: the same unless a test splits them, null while the live one is not read yet
-const walletState = (spendableDollars: number | undefined, live?: number | null) => {
+// the raw live sum the gates read: the same unless a test splits them, null while the live one is not
+// read yet. `settled` false is a refetch in flight.
+const walletState = (spendableDollars: number | undefined, live?: number | null, settled = true) => {
     const liveDollars = live === undefined ? spendableDollars : (live ?? undefined)
     return {
         fetchBalance: jest.fn(),
@@ -150,6 +152,7 @@ const walletState = (spendableDollars: number | undefined, live?: number | null)
         spendableBalanceDecimal: spendableDollars,
         availableSpendableBalance: liveDollars === undefined ? undefined : usdc(liveDollars),
         isSpendableBalanceReady: liveDollars !== undefined,
+        isSpendableBalanceSettled: liveDollars !== undefined && settled,
     }
 }
 
@@ -442,15 +445,30 @@ describe('LinkSendInitialView add money', () => {
         expect(screen.getByTestId('drawer')).toBeInTheDocument()
         expect(drawerProps!.gapUsd).toBeUndefined()
         // Chip on ui#4320: money moving from Rain to the wallet can count twice for a moment in the raw
-        // sum; useWallet holds the settled total on screen, and the drawer reads that one
-        mockUseWallet.mockReturnValue(walletState(10, 20))
+        // sum; nothing reads as funded until both reads settle
+        mockUseWallet.mockReturnValue(walletState(10, 20, false))
         rerenderView(utils, '20')
         expect(screen.getByTestId('drawer')).toBeInTheDocument()
-        expect(drawerProps!.gapUsd).toBe(10)
+        expect(drawerProps!.funded).toBe(false)
         expect(mockCapture).not.toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SEND_LINK_ADD_MONEY_CAME_BACK_FUNDED,
             expect.anything()
         )
+    })
+
+    // Kush, 2026-11-28: the gate follows the live balance as the user types, not the display cache
+    test('a live shortfall shows "Add $X" as the user types, even when the cached total covers it', async () => {
+        mockUseWallet.mockReturnValue(walletState(100, 10))
+        renderView('20')
+        expect(await screen.findByText('Add $10')).toBeInTheDocument()
+        expect(screen.getByTestId('error-alert')).toHaveTextContent(en.errors.notEnoughBalanceAddFunds)
+    })
+
+    test('no shortfall is shown before the live balance reads', async () => {
+        mockUseWallet.mockReturnValue(walletState(5, null))
+        renderView('20')
+        await waitFor(() => expect(screen.getByText('Create link')).toBeInTheDocument())
+        expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument()
     })
 
     test('rounds the gap up to the cent', async () => {

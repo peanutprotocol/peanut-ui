@@ -20,7 +20,7 @@ import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
-import { parseUnits } from 'viem'
+import { formatUnits, parseUnits } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import AmountInput from '../../../Global/AmountInput'
@@ -68,8 +68,14 @@ const LinkSendInitialView = () => {
         spendableBalance: balance,
         formattedSpendableBalance,
         spendableBalanceDecimal,
+        availableSpendableBalance,
         isSpendableBalanceReady,
+        isSpendableBalanceSettled,
     } = useWallet()
+    // the live total (smart + Rain), what the spend can route now; undefined until both terms read, so
+    // the display cache never passes or blocks an amount. Both gates and the add-money gap read it, as
+    // on Send (TASK-25467)
+    const liveBalance = isSpendableBalanceReady ? availableSpendableBalance : undefined
     const queryClient = useQueryClient()
     const { hasPendingTransactions } = usePendingTransactions()
 
@@ -101,10 +107,9 @@ const LinkSendInitialView = () => {
 
             // Re-check affordability at submit too: the Retry button isn't disabled
             // on a balance error (unlike the other flows), so without this a blocked
-            // amount could reach createLink. Only when the balance has loaded — else
-            // a tap before the query resolves would false-reject. Gates on the
-            // displayed total; an in-transit shortfall fails late with the settling copy.
-            if (balance !== undefined && !isAmountWithinBalance(tokenValue, balance)) {
+            // amount could reach createLink. Only once the live balance has read — else
+            // a tap before the queries resolve would false-reject.
+            if (liveBalance !== undefined && !isAmountWithinBalance(tokenValue, liveBalance)) {
                 setErrorState({
                     showError: true,
                     errorMessage: tErrors('notEnoughBalanceAddFunds'),
@@ -203,7 +208,7 @@ const LinkSendInitialView = () => {
         setLink,
         setView,
         setErrorState,
-        balance,
+        liveBalance,
         tErrors,
         toFriendlyError,
     ])
@@ -216,7 +221,7 @@ const LinkSendInitialView = () => {
             return
         }
 
-        if (!peanutWalletBalance || !tokenValue) {
+        if (liveBalance === undefined || !tokenValue) {
             // An emptied amount is user input — clear everything (a Retry with no
             // amount would be a dead button). A momentarily-unavailable balance is
             // NOT a user action: release only the gate's own error, never a
@@ -226,10 +231,9 @@ const LinkSendInitialView = () => {
             }
             return
         }
-        // Gate on the displayed total: block only a true shortfall. An in-transit
-        // amount passes and fails late (settling message + refetch) — the FE balance
-        // is ~30s-polled, so blocking it here would over-reject routable funds.
-        if (!isAmountWithinBalance(tokenValue, balance)) {
+        // Gate on the live total as the user types, as Send does (TASK-25467): "Add $X" shows the real
+        // gap before Create link is tapped. Money still in transit fails late with the settling copy.
+        if (!isAmountWithinBalance(tokenValue, liveBalance)) {
             // Claim the error slot only when it's free or already ours. A submit-time
             // failure (cooldown / settling copy) must stay until the user retries or
             // edits — right after a collateral spend the polled balance oscillates
@@ -249,8 +253,7 @@ const LinkSendInitialView = () => {
             setErrorState({ showError: false, errorMessage: '' })
         }
     }, [
-        peanutWalletBalance,
-        balance,
+        liveBalance,
         tokenValue,
         setErrorState,
         hasPendingTransactions,
@@ -285,12 +288,13 @@ const LinkSendInitialView = () => {
     // a short balance adds the gap in place (TASK-25467), as on Send: the drawer comes back to this URL,
     // amount in it. The gate's own error clears once the balance covers the amount, which turns Create link on.
     const isShort = !!errorState?.showError && errorState.errorCode === 'notEnoughBalanceAddFunds'
-    // the drawer's gap and "funded" read the settled live total, never the persisted display cache, as on Send
-    const liveSpendableUsd = isSpendableBalanceReady ? spendableBalanceDecimal : undefined
+    const liveSpendableUsd =
+        liveBalance === undefined ? undefined : Number(formatUnits(liveBalance, PEANUT_WALLET_TOKEN_DECIMALS))
     const addMoney = useAddMoneyAction({
         place: 'send_link',
         targetUsd: enteredAmount || 0,
         spendableUsd: liveSpendableUsd,
+        balanceSettled: isSpendableBalanceSettled,
         step: `link:${tokenValue ?? ''}`,
         urlState: { amount: tokenValue },
     })
