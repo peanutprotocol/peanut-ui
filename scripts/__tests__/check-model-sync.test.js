@@ -66,18 +66,39 @@ describe('check-model-sync', () => {
         write('src/owner.ts', 'export const pay = 2\n')
         write(
             'verification/tla/Payout_Buggy.cfg',
-            '\\* Replay: src/owner.test.ts › updated replay\nSPECIFICATION Spec\n'
+            '\\* Replay: src/owner.test.ts › replays bug\n\\* updated\nSPECIFICATION Spec\n'
         )
         commit('change the payout and its config')
         expect(check('--base-ref', 'base').status).toBe(0)
     })
 
-    it('passes with a Model-unchanged trailer', () => {
+    it('passes with a Model-unchanged trailer on the commit touching that file', () => {
         write('src/owner.ts', 'export const pay = 2\n')
         commit('rename a local\n\nModel-unchanged: a rename, no behaviour change')
         const result = check('--base-ref', 'base')
         expect(result.status).toBe(0)
         expect(result.stdout).toContain('a rename, no behaviour change')
+    })
+
+    it('does NOT let a Model-unchanged trailer on an unrelated commit excuse a later modelled file', () => {
+        write('src/other.ts', 'export const other = 2\n')
+        commit('unrelated edit\n\nModel-unchanged: unrelated')
+        write('src/owner.ts', 'export const pay = 2\n')
+        commit('real change without trailer')
+        const result = check('--base-ref', 'base')
+        expect(result.status).toBe(1)
+        expect(result.stderr).toContain('src/owner.ts is modelled by verification/tla/Payout.tla')
+    })
+
+    it('fails when a Buggy config names a Replay test title not present in the test file', () => {
+        write(
+            'verification/tla/Payout_Buggy.cfg',
+            '\\* Replay: src/owner.test.ts › missing title\nSPECIFICATION Spec\n'
+        )
+        commit('break replay title')
+        const result = check('--base-ref', 'base')
+        expect(result.status).toBe(1)
+        expect(result.stderr).toContain('Replay test title "missing title" was not found')
     })
 
     it('ignores a changed file no spec models', () => {

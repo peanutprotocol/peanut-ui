@@ -12,6 +12,7 @@
  * A copy that is a deliberate subset (for example the statuses one screen handles) may stay: count
  * it in the baseline, or type it as a subset of the generated type so it is no longer a literal list.
  */
+import { execFileSync } from 'node:child_process'
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join, relative, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -130,6 +131,30 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
         }
         const lowered = Object.entries(baseline).filter(([file, n]) => (counts[file] ?? 0) < n)
         if (lowered.length) console.log('fewer copies than the baseline: run with --write-baseline to lock the gain in')
-        if (over.length) process.exit(1)
+        const baseRefAt = process.argv.indexOf('--base-ref')
+        const baseRef = baseRefAt > 0 ? process.argv[baseRefAt + 1] : undefined
+        let raised = false
+        if (baseRef) {
+            try {
+                const prev = JSON.parse(
+                    execFileSync('git', ['show', `${baseRef}:scripts/api-enum-copies-baseline.json`], {
+                        cwd: ROOT,
+                        encoding: 'utf8',
+                        stdio: ['ignore', 'pipe', 'ignore'],
+                    })
+                )
+                for (const [file, n] of Object.entries(baseline)) {
+                    if (n > (prev[file] ?? 0)) {
+                        console.error(
+                            `::error file=scripts/api-enum-copies-baseline.json::${file} rose from ${prev[file] ?? 0} to ${n} against ${baseRef}. The enum-copy baseline only shrinks.`
+                        )
+                        raised = true
+                    }
+                }
+            } catch {
+                // Base branch does not carry api-enum-copies-baseline.json yet.
+            }
+        }
+        if (over.length || raised) process.exit(1)
     }
 }

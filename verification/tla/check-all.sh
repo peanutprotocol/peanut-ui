@@ -27,8 +27,24 @@ for cfg in "${cfgs[@]}"; do
 	start=$SECONDS
 	out=$(java -XX:+UseParallelGC -Xmx2g -cp "$JAR" tlc2.TLC -workers "${TLC_WORKERS:-auto}" -deadlock -cleanup \
 		-metadir "$meta/${cfg%.cfg}" -config "$cfg" "$spec" 2>&1)
-	if grep -q "No error has been found" <<<"$out"; then result=holds
-	elif grep -qE "is violated|properties were violated" <<<"$out"; then result=breaks
+	if grep -q "No error has been found" <<<"$out"; then
+		distinct=$(sed -nE 's/.* ([0-9]+) distinct states found.*/\1/p' <<<"$out" | tail -1)
+		if [ -z "$distinct" ] || [ "$distinct" -le 1 ]; then
+			result="vacuous(${distinct:-0}_states)"
+		else
+			result=holds
+		fi
+	elif grep -qE "is violated|properties were violated" <<<"$out"; then
+		expected=$(sed -nE 's/^\\\*[[:space:]]*Expect:[[:space:]]*(.+)$/\1/p' "$cfg" | head -1 | tr -d '\r')
+		if [ -n "$expected" ]; then
+			if grep -qE "(Invariant|Action property|Property) ${expected} is violated|Temporal properties were violated" <<<"$out"; then
+				result=breaks
+			else
+				result="wrong_violation(expected_${expected})"
+			fi
+		else
+			result=breaks
+		fi
 	else result=error; fi
 	case "$cfg" in *_Buggy*) want=breaks ;; *) want=holds ;; esac
 	if [ "$result" = "$want" ]; then

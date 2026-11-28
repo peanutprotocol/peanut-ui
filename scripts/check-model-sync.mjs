@@ -10,13 +10,24 @@
 // usage: node scripts/check-model-sync.mjs --base-ref <ref>   (CI: the tla job, on a pull request)
 // What TLA+ checks and how to add a model: mono engineering/api/state-machines/README.md.
 import { execFileSync } from 'node:child_process'
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { appendFileSync, existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const SPEC_DIR = 'verification/tla'
 const TRAILER = 'Model-unchanged'
 
 const git = (root, args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' })
+
+function replayTitleExists(testText, title) {
+    const trimmed = title.trim()
+    if (!trimmed) return false
+    if (testText.includes(trimmed)) return true
+    if (/%[sdifjoO]/.test(trimmed)) {
+        const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/%[sdifjoO]/g, '.+')
+        return new RegExp(escaped).test(testText)
+    }
+    return false
+}
 
 /** spec name -> the repo paths its `Models:` lines name. */
 function readModels(root) {
@@ -73,14 +84,31 @@ function main() {
             const replay = cfgText.match(/^\s*\\\*\s*Replay:\s*(.+)$/m)
             if (!replay) {
                 console.error(
-                    `::error file=${SPEC_DIR}/${cfg}::${cfg} needs a "\\* Replay: <test-path>" (or OPEN_GAP / ARCHITECTURAL) line.`
+                    `::error file=${SPEC_DIR}/${cfg}::${cfg} needs a "\\* Replay: <test-path> › <test-title>" (or OPEN_GAP(TASK-...) / ARCHITECTURAL(...)) line.`
                 )
                 failed = true
             } else {
-                const target = replay[1].trim().split(/\s+/)[0]
-                if (target !== 'OPEN_GAP' && target !== 'ARCHITECTURAL' && !existsSync(join(root, target))) {
-                    console.error(`::error file=${SPEC_DIR}/${cfg}::${cfg} Replay target "${target}" does not exist.`)
+                const rawTarget = replay[1].trim()
+                if (/^(OPEN_GAP\(TASK-\d+\)|ARCHITECTURAL\()/.test(rawTarget)) continue
+                const segments = rawTarget
+                    .split(/[›>]/)
+                    .map((s) => s.trim())
+                    .filter(Boolean)
+                const testFile = segments[0]?.split(/\s+/)[0]
+                if (!testFile || !existsSync(join(root, testFile))) {
+                    console.error(
+                        `::error file=${SPEC_DIR}/${cfg}::${cfg} Replay target "${testFile ?? rawTarget}" does not exist.`
+                    )
                     failed = true
+                } else if (segments.length >= 2) {
+                    const testTitle = segments[segments.length - 1]
+                    const testText = readFileSync(join(root, testFile), 'utf8')
+                    if (!replayTitleExists(testText, testTitle)) {
+                        console.error(
+                            `::error file=${SPEC_DIR}/${cfg}::${cfg} Replay test title "${testTitle}" was not found in ${testFile}.`
+                        )
+                        failed = true
+                    }
                 }
             }
         }
@@ -112,19 +140,39 @@ function main() {
         return
     }
 
-    const reasons = git(root, ['log', `--format=%(trailers:key=${TRAILER},valueonly)`, `${mergeBase}..HEAD`])
-        .split('\n')
-        .map((l) => l.trim())
-        .filter(Boolean)
+    // Scope Model-unchanged trailers strictly to commits that actually touched each unsynced file.
+    let missingTrailer = false
+    const summaryLines = []
     for (const { file, specs } of unsynced) {
         const where = specs.map((s) => `${SPEC_DIR}/${s}.tla`).join(', ')
-        if (reasons.length > 0)
-            console.log(`check-model-sync: ${file} changed without ${where}; ${TRAILER}: ${reasons.join(' | ')}`)
-        else console.error(`::error file=${file}::${file} is modelled by ${where}, which this branch does not change.`)
+        const fileReasons = git(root, [
+            'log',
+            `--format=%(trailers:key=${TRAILER},valueonly)`,
+            `${mergeBase}..HEAD`,
+            '--',
+            file,
+        ])
+            .split('\n')
+            .map((l) => l.trim())
+            .filter(Boolean)
+        if (fileReasons.length > 0) {
+            const joined = fileReasons.join(' | ')
+            console.log(`check-model-sync: ${file} changed without ${where}; ${TRAILER}: ${joined}`)
+            summaryLines.push(`- \`${file}\` (without \`${where}\`): ${joined}`)
+        } else {
+            console.error(`::error file=${file}::${file} is modelled by ${where}, which this branch does not change.`)
+            missingTrailer = true
+        }
     }
-    if (reasons.length > 0) return
+    if (summaryLines.length > 0 && process.env.GITHUB_STEP_SUMMARY) {
+        appendFileSync(
+            process.env.GITHUB_STEP_SUMMARY,
+            `\n### Model-unchanged declarations (verify in review)\n${summaryLines.join('\n')}\n`
+        )
+    }
+    if (!missingTrailer) return
     console.error(
-        `Update the spec and run verification/tla/check-all.sh, or, if the change leaves the modelled behaviour as it is, add a commit trailer "${TRAILER}: <why>".`
+        `Update the spec and run verification/tla/check-all.sh, or, if the change leaves the modelled behaviour as it is, add a commit trailer "${TRAILER}: <why>" on the commit touching that file.`
     )
     process.exit(1)
 }
