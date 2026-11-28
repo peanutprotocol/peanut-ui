@@ -60,6 +60,7 @@ const flow = (overrides: Record<string, unknown>) => ({
     formattedBalance: '10',
     balanceFillAmount: 10,
     liveSpendableUsd: 10,
+    isSpendableBalanceSettled: true,
     canProceed: true,
     hasSufficientBalance: false,
     isInsufficientBalance: true,

@@ -47,6 +47,7 @@ export function SendInputView() {
         formattedBalance,
         balanceFillAmount,
         liveSpendableUsd,
+        isSpendableBalanceSettled,
         canProceed,
         hasSufficientBalance,
         isInsufficientBalance,
@@ -62,6 +63,7 @@ export function SendInputView() {
         place: 'send',
         targetUsd: parseFloat(amount) || 0,
         spendableUsd: liveSpendableUsd,
+        balanceSettled: isSpendableBalanceSettled,
         step: `${recipient?.username ?? ''}:${amount}`,
         urlState: { amount },
     })

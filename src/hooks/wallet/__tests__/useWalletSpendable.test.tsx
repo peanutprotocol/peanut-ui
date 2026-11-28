@@ -236,6 +236,19 @@ describe('useWallet spendable balance', () => {
         expect(result.current.hasSufficientSpendableBalance('100')).toBe(false)
     })
 
+    // TASK-25467: a refetch can read one term new and one old, counting a move twice for a moment
+    it('is ready but not settled while either read refetches, settled once both are idle', () => {
+        mockSmartBalance = usd(5)
+        mockRainOverview = { balance: { spendingPower: 500 } }
+        mockAnyFetching = true
+        const { result, rerender } = renderHook(() => useWallet())
+        expect(result.current.isSpendableBalanceReady).toBe(true)
+        expect(result.current.isSpendableBalanceSettled).toBe(false)
+        mockAnyFetching = false
+        rerender()
+        expect(result.current.isSpendableBalanceSettled).toBe(true)
+    })
+
     describe('isSpendableBalanceReady — the live terms, never the display cache', () => {
         it.each([
             ['$3.90', 3.9],
