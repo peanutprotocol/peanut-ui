@@ -101,7 +101,8 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent, canUseQrPay, canUseCard
 
     const surface = useMemo(() => surfaceForPath(effectiveRoute, hasSpent), [effectiveRoute, hasSpent])
     const journey = useMemo(() => journeyForPath(effectiveRoute), [effectiveRoute])
-    const uiEnabled = Boolean(demoSurface) || isFlagEnabled('stuck-buddy-interventions')
+    // nonProdBypass: staging/preview/local run the buddy at 100% for QA; production (peanut.me) strictly obeys PostHog (default false).
+    const uiEnabled = Boolean(demoSurface) || isFlagEnabled('stuck-buddy-interventions', { nonProdBypass: true })
 
     // Run keyboard guard identically in BOTH control and treatment arms so holdout eligibility is apples-to-apples.
     const isKeyboardOpen = useKeyboardOpen(Boolean(surface || demoSurface))

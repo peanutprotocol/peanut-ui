@@ -21,7 +21,8 @@ export const FLAGS: Record<string, { values: ReadonlyArray<FlagValue>; baseline:
     // Read with nonProdBypass, which turns it on in every non-production build.
     'user-interviews-invite': { values: [true, false], baseline: true },
     'signup-rollout-inviter-suggestions': { values: [true, false], baseline: false },
-    'stuck-buddy-interventions': { values: [true, false], baseline: false },
+    // Read with nonProdBypass, which turns it on in every non-production build.
+    'stuck-buddy-interventions': { values: [true, false], baseline: true },
 }
 
 /** Flags no capture can show, and why. */
