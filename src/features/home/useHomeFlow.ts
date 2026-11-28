@@ -15,7 +15,8 @@ import { useBalanceVisibility } from './useBalanceVisibility'
  * stay dumb (same model as features/payments/flows/semantic-request).
  */
 export function useHomeFlow() {
-    const { address, spendableBalance, isFetchingSpendableBalance, isSpendableBalanceStale } = useWallet()
+    const { address, spendableBalance, isFetchingSpendableBalance, isSpendableBalanceStale, isSpendableBalanceReady } =
+        useWallet()
     const { user, isFetchingUser, fetchUser } = useAuth()
     const { isActivated, onboarding, isOnboardingComplete } = useActivationStatus()
     const { identityVerified: isIdentityVerified } = useVerification()
@@ -62,6 +63,7 @@ export function useHomeFlow() {
         spendableBalance,
         isFetchingSpendableBalance,
         isSpendableBalanceStale,
+        isSpendableBalanceReady,
         isBalanceHidden,
         toggleBalanceVisibility,
     }

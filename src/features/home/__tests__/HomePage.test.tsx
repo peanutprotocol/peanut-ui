@@ -17,6 +17,8 @@ jest.mock('../useHomeFlow', () => ({
         isPageLoading: false,
         username: 'demo',
         spendableBalance: 0n,
+        onboarding: { addMoneyDone: false },
+        isSpendableBalanceReady: true,
         isFetchingSpendableBalance: false,
         isSpendableBalanceStale: false,
         isIdentityVerified: false,
@@ -29,6 +31,7 @@ jest.mock('@/features/add-money/useAddMoneyReadiness', () => ({
     useAddMoneyReadiness: () => ({ entry: 'picker', drawerMethods: [] }),
 }))
 jest.mock('../useHomeViewAnalytics', () => ({ useHomeViewAnalytics: () => {} }))
+jest.mock('@/features/add-money/verified/useBankReadyReminder', () => ({ useBankReadyReminder: () => {} }))
 jest.mock('@/features/attention/AttentionZone', () => ({ HomeAttention: () => <div>attention-zone</div> }))
 const mockHistory = jest.fn()
 jest.mock('@/components/Home/HomeHistory', () => ({

@@ -26,6 +26,7 @@ import { addMoneyMethodHref } from '../addMoneyMethods'
 import { useAddMoneyMethodRows } from '../useAddMoneyMethodRows'
 import { useAddMoneyReadiness } from '../useAddMoneyReadiness'
 import Loading from '@/components/Global/Loading'
+import { markBankReadyShown, readyAccountIds, rowAccountIds, takeReshowing } from './bankReadyReminder'
 import { VerifiedArt } from './VerifiedArt'
 import {
     actionStep,
@@ -75,6 +76,7 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
     }, [])
 
     const report = capabilities.features
+    const userId = user?.user.userId
     const pixRoute = findPixRoute(capabilities.routes, 'deposit')
     const bank: Record<BankMethod, ReturnType<typeof verifiedRow>> = {
         ars: verifiedRow(report && accountEntry(report, 'local', 'ARS'), capabilities, settled),
@@ -91,6 +93,9 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
     }
     const methods = readiness.pickerMethods
     const shownBank = methods.filter((method): method is BankMethod => method !== 'crypto')
+    // the open accounts this page has a row for: named in "Your USD and EUR accounts are open", recorded as shown
+    const rowReady = readiness.isLoading ? [] : rowAccountIds(readyAccountIds(report), methods)
+    const readyCurrencies = rowReady.map((id) => id.split('.')[1])
     const states = shownBank.map((method) => bank[method].state)
     const stateProps = Object.fromEntries(shownBank.map((method) => [method, bank[method].state]))
     const resolved = !readiness.isLoading && !states.includes('loading')
@@ -98,6 +103,12 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
     // a direct visit must not claim a verification it does not have (Chip on #4317), nor count as a view
     const justApproved = useRef(identityJustApproved()).current
     const access = verifiedPageAccess(user ? user.identityVerification?.status : undefined, settled, justApproved)
+    // the visit Home's reminder opened takes its accounts on mount (before the shown effect below runs), so a
+    // visit left before it shows ends the hand-off; in an effect, not render, so a discarded render takes nothing
+    const reshown = useRef<string[] | null>(null)
+    useEffect(() => {
+        reshown.current = takeReshowing()
+    }, [])
     // a return from a row's flow is the same visit: no second shown or resolved event
     const sameVisit = useRef<boolean | null>(null)
     if (sameVisit.current === null) sameVisit.current = returningFromRow(visitToken)
@@ -106,6 +117,9 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
         if (shown.current || readiness.isLoading || access !== 'show') return
         shown.current = true
         trackAddMoney(ANALYTICS_EVENTS.VERIFIED_PAGE_SHOWN, { entry: entry.current, variant, ...stateProps })
+        // Home's reminder opened it: the re-show counts only now that the page shows
+        if (reshown.current)
+            trackAddMoney(ANALYTICS_EVENTS.VERIFIED_PAGE_RESHOWN, { accounts: reshown.current, variant })
         // once per view, with the rows as they first read
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [readiness.isLoading, access])
@@ -188,6 +202,12 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
     useEffect(() => {
         if (access === 'leave') router.replace('/home')
     }, [access, router])
+    // an account seen ready here, or from the bank_ready push, never opens the reminder again
+    useEffect(() => {
+        if (userId && access === 'show' && !readiness.isLoading) markBankReadyShown(userId, rowReady)
+        // rowReady by value: a new array on every render
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userId, access, readiness.isLoading, rowReady.join()])
     if (access !== 'show') return <Loading />
     const bankReady = variant === 'bank-ready' && anyBankReady(states)
 
@@ -211,7 +231,14 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
                                 <NameChip username={username} verified={anyBankReady(states)} className="mt-3" />
                             )}
                             <p className="mt-3 text-body-m text-foreground-primary signup-sm:mt-2 signup-sm:text-body-s">
-                                {t('sub')}
+                                {/* one key with a bank-ready branch: the screen's word budget counts its longest branch */}
+                                {t('sub', {
+                                    variant: bankReady && readyCurrencies.length ? 'bankReady' : 'other',
+                                    count: readyCurrencies.length,
+                                    accounts: new Intl.ListFormat(locale, { type: 'conjunction' }).format(
+                                        readyCurrencies
+                                    ),
+                                })}
                             </p>
                         </div>
                     }

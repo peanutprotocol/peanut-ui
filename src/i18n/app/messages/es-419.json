@@ -2527,7 +2527,7 @@
         "verified": {
             "title": "Identidad verificada",
             "titleBankReady": "Cuenta bancaria lista",
-            "sub": "Agrega dinero para empezar a pagar con Peanut.",
+            "sub": "{variant, select, bankReady {{count, plural, one {Tu cuenta en {accounts} está abierta.} other {Tus cuentas en {accounts} están abiertas.}} Agrega dinero.} other {Agrega dinero para empezar a pagar con Peanut.}}",
             "underReview": "En revisión por {provider}, te avisaremos",
             "notApproved": "No aprobado por {provider}",
             "actionTerms": "términos de {provider} para {currencies}",

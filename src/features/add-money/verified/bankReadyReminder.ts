@@ -1,0 +1,67 @@
+import type { FeatureReport } from '@/types/capabilities'
+import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
+
+/** the page the reminder and the kyc.bank_ready push open (add-money proposal, rule 4) */
+export const BANK_READY_PAGE = '/verified?variant=bank-ready'
+
+/** the bank and local accounts that take money now, by id: `bank.USD`, `local.ARS` */
+export function readyAccountIds(report: FeatureReport | undefined): string[] {
+    if (!report) return []
+    return (['bank', 'local'] as const).flatMap((feature) =>
+        Object.entries(report[feature].accounts)
+            .filter(([, account]) => account.state === 'on')
+            .map(([currency]) => `${feature}.${currency}`)
+    )
+}
+
+/**
+ * The ready accounts the page has a row for (`methods` are its picker rows): bank accounts under Bank transfer,
+ * ARS under its row, BRL under Pix. An account with no row (Pix paused) stays unannounced and unrecorded until its
+ * row shows.
+ */
+export function rowAccountIds(ready: readonly string[], methods: readonly string[]): string[] {
+    return ready.filter((id) =>
+        id.startsWith('bank.')
+            ? methods.includes('bank')
+            : (id === 'local.ARS' && methods.includes('ars')) || (id === 'local.BRL' && methods.includes('pix'))
+    )
+}
+
+/**
+ * The accounts the reminder announces: ready, not shown on this device before, for a person who never added
+ * money and is not in a task. Empty: no reminder. `shown` undefined is the first load since this shipped: the
+ * accounts ready then are recorded, not announced (Kush: no wave for accounts that opened long ago).
+ */
+export function bankReadyReminder(input: {
+    ready: readonly string[]
+    shown: readonly string[] | undefined
+    addedMoney: boolean
+    inTask: boolean
+}): string[] {
+    if (!input.shown || input.addedMoney || input.inTask) return []
+    return input.ready.filter((id) => !input.shown!.includes(id))
+}
+
+/** undefined: nothing recorded for this person on this device yet */
+export const shownBankReady = (userId: string): string[] | undefined => getUserPreferences(userId)?.bankReadyShown
+
+/** records the ids; the first call writes even an empty list, so a later account counts as new */
+export function markBankReadyShown(userId: string, ids: readonly string[]): void {
+    const shown = shownBankReady(userId)
+    const added = ids.filter((id) => !shown?.includes(id))
+    if (!shown || added.length) updateUserPreferences(userId, { bankReadyShown: [...(shown ?? []), ...added] })
+}
+
+// the accounts Home just opened the page for, in this app load (module state: it relies on reactStrictMode being
+// false in next.config.js, as the reminder's one chance per load does). The page reports the re-show and records the
+// accounts only once it shows, as its other events do; a page that leaves before that keeps the reminder.
+let reshowing: string[] | null = null
+export function markReshowing(ids: readonly string[]): void {
+    reshowing = [...ids]
+}
+/** the accounts Home opened the page for, once; null when the page was opened another way */
+export function takeReshowing(): string[] | null {
+    const ids = reshowing
+    reshowing = null
+    return ids
+}

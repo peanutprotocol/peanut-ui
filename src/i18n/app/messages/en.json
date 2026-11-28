@@ -2527,7 +2527,7 @@
         "verified": {
             "title": "ID verified",
             "titleBankReady": "Bank account ready",
-            "sub": "Add money to start paying with Peanut.",
+            "sub": "{variant, select, bankReady {{count, plural, one {Your {accounts} account is open.} other {Your {accounts} accounts are open.}} Add money.} other {Add money to start paying with Peanut.}}",
             "underReview": "Under review by {provider}, we’ll notify you",
             "notApproved": "Not approved by {provider}",
             "actionTerms": "{provider}’s terms for {currencies}",
