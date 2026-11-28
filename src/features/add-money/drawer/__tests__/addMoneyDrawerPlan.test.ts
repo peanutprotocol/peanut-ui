@@ -1,4 +1,5 @@
-import { cardBankPageHref, cardBankPlan, cardCryptoAskUsd, cardGapUsd, CARD_MIN_BALANCE_USD } from '../cardAddMoney'
+import { CARD_FUNDING_RETURN_TO, CARD_MIN_BALANCE_USD } from '@/features/card/cardAddMoney'
+import { addMoneyGapUsd, bankPageHref, cryptoAskUsd, drawerBankPlan } from '../addMoneyDrawerPlan'
 import type { GateState } from '@/utils/capability-gate'
 import type { AddMoneyPickerMethod } from '@/features/add-money/addMoneyMethods'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
@@ -11,7 +12,10 @@ const gates = (kind: GateState['kind'], overrides: Partial<Record<DepositCorrido
 
 const noneReady = { account: [], transfer: [], pix: [], ars: [] }
 
-describe('cardGapUsd', () => {
+// the card's $10 target is the first place the drawer serves
+const cardGapUsd = (spendableUsd: number | undefined) => addMoneyGapUsd(CARD_MIN_BALANCE_USD, spendableUsd)
+
+describe('addMoneyGapUsd', () => {
     it('is the missing amount to the card minimum, rounded up to the cent', () => {
         expect(CARD_MIN_BALANCE_USD).toBe(10)
         expect(cardGapUsd(3.2)).toBe(6.8)
@@ -29,25 +33,25 @@ describe('cardGapUsd', () => {
     })
 })
 
-describe('cardCryptoAskUsd', () => {
+describe('cryptoAskUsd', () => {
     it('asks for the gap when the network minimum is lower', () => {
-        expect(cardCryptoAskUsd(6.8, 1)).toEqual({ askUsd: 6.8, raisedToMinimum: false })
+        expect(cryptoAskUsd(6.8, 1)).toEqual({ askUsd: 6.8, raisedToMinimum: false })
     })
 
     it('asks for the network minimum when the gap is below it (Rhino never bridges a deposit under it)', () => {
-        expect(cardCryptoAskUsd(6.8, 10)).toEqual({ askUsd: 10, raisedToMinimum: true })
+        expect(cryptoAskUsd(6.8, 10)).toEqual({ askUsd: 10, raisedToMinimum: true })
     })
 
     it('rounds a fractional minimum up to the cent, so the ask shown is never below it', () => {
-        expect(cardCryptoAskUsd(2, 4.004)).toEqual({ askUsd: 4.01, raisedToMinimum: true })
+        expect(cryptoAskUsd(2, 4.004)).toEqual({ askUsd: 4.01, raisedToMinimum: true })
     })
 
     it('treats an equal gap and minimum as the gap', () => {
-        expect(cardCryptoAskUsd(10, 10)).toEqual({ askUsd: 10, raisedToMinimum: false })
+        expect(cryptoAskUsd(10, 10)).toEqual({ askUsd: 10, raisedToMinimum: false })
     })
 })
 
-describe('cardBankPlan', () => {
+describe('drawerBankPlan', () => {
     const base = {
         isLoading: false,
         residenceIso2s: ['US'],
@@ -57,20 +61,20 @@ describe('cardBankPlan', () => {
     }
 
     it('waits while readiness loads', () => {
-        expect(cardBankPlan({ ...base, isLoading: true })).toEqual({ kind: 'loading' })
-        expect(cardBankPlan({ ...base, topUpGates: gates('loading') })).toEqual({ kind: 'loading' })
+        expect(drawerBankPlan({ ...base, isLoading: true })).toEqual({ kind: 'loading' })
+        expect(drawerBankPlan({ ...base, topUpGates: gates('loading') })).toEqual({ kind: 'loading' })
     })
 
     it('lists one held account as one row: the drawer shows its details', () => {
         expect(
-            cardBankPlan({ ...base, ready: { ...noneReady, account: ['USD'] }, topUpGates: gates('ready') })
+            drawerBankPlan({ ...base, ready: { ...noneReady, account: ['USD'] }, topUpGates: gates('ready') })
         ).toEqual({ kind: 'rows', rows: [{ kind: 'account', corridor: 'ACH_US' }] })
     })
 
     it('follows the Add money picker: ARS, leading Pix, accounts, transfers, then other Pix', () => {
         const ready = { account: ['USD', 'EUR'], transfer: ['EUR', 'MXN'], pix: ['BRL'], ars: ['ARS'] }
         const input = { ...base, residenceIso2s: ['AR'], ready, topUpGates: gates('ready') }
-        expect(cardBankPlan({ ...input, pickerMethods: ['ars', 'pix', 'bank', 'crypto'] })).toEqual({
+        expect(drawerBankPlan({ ...input, pickerMethods: ['ars', 'pix', 'bank', 'crypto'] })).toEqual({
             kind: 'rows',
             rows: [
                 { kind: 'page', corridor: 'BANK_TRANSFER_AR' },
@@ -80,7 +84,7 @@ describe('cardBankPlan', () => {
                 { kind: 'page', corridor: 'SPEI_MX' },
             ],
         })
-        expect(cardBankPlan({ ...input, pickerMethods: ['ars', 'bank', 'pix', 'crypto'] })).toEqual({
+        expect(drawerBankPlan({ ...input, pickerMethods: ['ars', 'bank', 'pix', 'crypto'] })).toEqual({
             kind: 'rows',
             rows: [
                 { kind: 'page', corridor: 'BANK_TRANSFER_AR' },
@@ -95,11 +99,11 @@ describe('cardBankPlan', () => {
     // TASK-25444: the picker shows ARS to a resident of Argentina, and Pix where the route offers it, before
     // a top-up is ready (their page takes the user through the step left), so the drawer does too
     it('lists ARS and Pix wherever the picker shows them, ready or not', () => {
-        expect(cardBankPlan({ ...base, residenceIso2s: ['AR'], pickerMethods: ['ars', 'bank', 'crypto'] })).toEqual({
+        expect(drawerBankPlan({ ...base, residenceIso2s: ['AR'], pickerMethods: ['ars', 'bank', 'crypto'] })).toEqual({
             kind: 'rows',
             rows: [{ kind: 'page', corridor: 'BANK_TRANSFER_AR' }],
         })
-        expect(cardBankPlan({ ...base, residenceIso2s: ['BR'], pickerMethods: ['pix', 'bank', 'crypto'] })).toEqual({
+        expect(drawerBankPlan({ ...base, residenceIso2s: ['BR'], pickerMethods: ['pix', 'bank', 'crypto'] })).toEqual({
             kind: 'rows',
             rows: [{ kind: 'page', corridor: 'PIX_BR' }],
         })
@@ -109,7 +113,7 @@ describe('cardBankPlan', () => {
     it('leads with Pix when it leads the picker', () => {
         const ready = { ...noneReady, transfer: ['USD'], pix: ['BRL'] }
         expect(
-            cardBankPlan({ ...base, ready, topUpGates: gates('ready'), pickerMethods: ['pix', 'bank', 'crypto'] })
+            drawerBankPlan({ ...base, ready, topUpGates: gates('ready'), pickerMethods: ['pix', 'bank', 'crypto'] })
         ).toEqual({
             kind: 'rows',
             rows: [
@@ -121,7 +125,7 @@ describe('cardBankPlan', () => {
 
     it('lists a held account before a one-time transfer of an earlier rail', () => {
         expect(
-            cardBankPlan({
+            drawerBankPlan({
                 ...base,
                 ready: { ...noneReady, account: ['USD'], transfer: ['EUR'] },
                 topUpGates: gates('ready'),
@@ -137,7 +141,7 @@ describe('cardBankPlan', () => {
 
     it('says setting up when a rail is being opened and nothing is ready', () => {
         expect(
-            cardBankPlan({
+            drawerBankPlan({
                 ...base,
                 residenceIso2s: ['AR'],
                 topUpGates: gates('needs-enrollment', { BANK_TRANSFER_AR: { kind: 'pending' } }),
@@ -147,7 +151,7 @@ describe('cardBankPlan', () => {
 
     it('says under review when a provider reviews the user', () => {
         expect(
-            cardBankPlan({
+            drawerBankPlan({
                 ...base,
                 topUpGates: gates('needs-identity', {
                     ACH_US: { kind: 'waiting-on-provider', userMessage: null },
@@ -157,21 +161,24 @@ describe('cardBankPlan', () => {
     })
 
     it('says under review, never "verify again", while the identity check is in review', () => {
-        expect(cardBankPlan({ ...base, identityStatus: 'processing' })).toEqual({ kind: 'under-review' })
+        expect(drawerBankPlan({ ...base, identityStatus: 'processing' })).toEqual({ kind: 'under-review' })
     })
 
     it('offers verification to a user who is not verified', () => {
-        expect(cardBankPlan(base)).toEqual({ kind: 'not-verified' })
+        expect(drawerBankPlan(base)).toEqual({ kind: 'not-verified' })
     })
 
     it('sends a verified user with a step left (terms, enrollment, a fix) to the bank page', () => {
         expect(
-            cardBankPlan({ ...base, topUpGates: gates('blocked-rejection', { ACH_US: { kind: 'needs-enrollment' } }) })
+            drawerBankPlan({
+                ...base,
+                topUpGates: gates('blocked-rejection', { ACH_US: { kind: 'needs-enrollment' } }),
+            })
         ).toEqual({
             kind: 'finish-setup',
         })
         expect(
-            cardBankPlan({
+            drawerBankPlan({
                 ...base,
                 topUpGates: gates('blocked-rejection', { SEPA_EU: { kind: 'accept-tos', userMessage: null } }),
             })
@@ -179,13 +186,13 @@ describe('cardBankPlan', () => {
     })
 
     it('says not offered when every rail is refused', () => {
-        expect(cardBankPlan({ ...base, topUpGates: gates('blocked-rejection') })).toEqual({ kind: 'not-offered' })
+        expect(drawerBankPlan({ ...base, topUpGates: gates('blocked-rejection') })).toEqual({ kind: 'not-offered' })
     })
 
     it('ignores a rail the residence rules out', () => {
         // a US resident's Argentine rail being set up says nothing about their bank options
         expect(
-            cardBankPlan({
+            drawerBankPlan({
                 ...base,
                 topUpGates: gates('blocked-rejection', { BANK_TRANSFER_AR: { kind: 'pending' } }),
             })
@@ -193,33 +200,35 @@ describe('cardBankPlan', () => {
     })
 
     it('prefers setting up over verification, and review over verification', () => {
-        expect(cardBankPlan({ ...base, topUpGates: gates('needs-identity', { ACH_US: { kind: 'pending' } }) })).toEqual(
-            { kind: 'setting-up', corridor: 'ACH_US' }
-        )
+        expect(
+            drawerBankPlan({ ...base, topUpGates: gates('needs-identity', { ACH_US: { kind: 'pending' } }) })
+        ).toEqual({ kind: 'setting-up', corridor: 'ACH_US' })
     })
 })
 
-describe('cardBankPageHref', () => {
+describe('bankPageHref', () => {
     const back = 'returnTo=%2Fcard%3Fcard_step%3Dfunding'
 
     it('prefills the ARS flow with the dollar gap', () => {
-        expect(cardBankPageHref('BANK_TRANSFER_AR', 7.5, ['AR'])).toBe(
+        expect(bankPageHref('BANK_TRANSFER_AR', 7.5, ['AR'], CARD_FUNDING_RETURN_TO)).toBe(
             `/add-money/argentina/manteca?step=inputAmount&amount=7.50&currency=USD&${back}`
         )
     })
 
     it('opens Pix, which reads no amount, with only the way back', () => {
-        expect(cardBankPageHref('PIX_BR', 7.5, ['BR'])).toBe(`/add-money/pix?${back}`)
+        expect(bankPageHref('PIX_BR', 7.5, ['BR'], CARD_FUNDING_RETURN_TO)).toBe(`/add-money/pix?${back}`)
     })
 
     it('prefills a dollar top-up, never a top-up that takes another currency', () => {
-        expect(cardBankPageHref('ACH_US', 7.5, ['US'])).toMatch(
+        expect(bankPageHref('ACH_US', 7.5, ['US'], CARD_FUNDING_RETURN_TO)).toMatch(
             new RegExp(`^/add-money/[a-z-]+/bank\\?amount=7\\.50&${back}$`)
         )
-        expect(cardBankPageHref('SEPA_EU', 7.5, ['DE'])).toBe(`/add-money/germany/bank?${back}`)
+        expect(bankPageHref('SEPA_EU', 7.5, ['DE'], CARD_FUNDING_RETURN_TO)).toBe(`/add-money/germany/bank?${back}`)
     })
 
     it('prefills nothing while the gap is unknown', () => {
-        expect(cardBankPageHref('BANK_TRANSFER_AR', undefined, ['AR'])).toBe(`/add-money/argentina/manteca?${back}`)
+        expect(bankPageHref('BANK_TRANSFER_AR', undefined, ['AR'], CARD_FUNDING_RETURN_TO)).toBe(
+            `/add-money/argentina/manteca?${back}`
+        )
     })
 })

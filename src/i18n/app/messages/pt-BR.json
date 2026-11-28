@@ -5659,5 +5659,68 @@
     "brazilPause": {
         "title": "Serviços no Brasil pausados",
         "body": "Depósitos e saques em BRL estão indisponíveis no momento. Pagamentos com Pix estão indisponíveis para residentes do Brasil."
+    },
+    "stuckBuddy": {
+        "prompts": {
+            "addMoney": "Ajuda com a transferência?",
+            "verifyLoop": "Ajuda com a verificação?",
+            "setupPasskey": "Problema ao salvar a passkey?",
+            "homeFunded": "Hora do primeiro pagamento?",
+            "activeIssue": "Encontrou um problema?"
+        },
+        "ctas": {
+            "addMoney": "Ajuda com depósito",
+            "contactSupport": "Falar com o suporte",
+            "homeFunded": "Ver opções rápidas",
+            "activeIssue": "Reportar erro ou chat"
+        },
+        "a11y": {
+            "dismiss": "Fechar ajuda",
+            "openHelper": "Abrir ajuda do Peanut"
+        },
+        "supportTopics": {
+            "addMoney": "Ajuda com depósito por transferência bancária",
+            "verifyLoop": "Ajuda com a verificação",
+            "setupPasskey": "Ajuda para configurar a passkey",
+            "loginRecovery": "Recuperação de acesso com passkey",
+            "passkeyError": "Ajuda com passkey ({errorName})",
+            "usernameCheck": "Falha ao verificar o nome de usuário",
+            "homeFunded": "Ajuda com o primeiro pagamento",
+            "activeIssue": "Problema no app do Peanut",
+            "bugReport": "Relato de problema ({category}) em {route}",
+            "bugReportWithNote": "Relato de problema ({category}) em {route}: {note}"
+        },
+        "bugCategories": {
+            "paymentFailed": "Pagamento falhou",
+            "screenStuck": "Tela travada",
+            "somethingWrong": "Algo parece errado"
+        },
+        "drawers": {
+            "addMoney": {
+                "title": "Ajuda com depósitos",
+                "description": "Checagens rápidas para transferências bancárias.",
+                "step1": "Dados recusados? Copie o número completo da conta ou IBAN.",
+                "step2": "Enviado de outro nome? Algumas transferências exigem conta no mesmo nome.",
+                "step3": "Passou o prazo mostrado na tela? Envie o comprovante para o suporte.",
+                "primaryCta": "Copiar mensagem e falar com o suporte",
+                "copyMessage": "Preciso de ajuda com um depósito por transferência bancária no Peanut."
+            },
+            "homeFunded": {
+                "title": "Pague em segundos",
+                "description": "Escolha a forma mais rápida de fazer o primeiro pagamento.",
+                "qrCta": "Pagar com QR",
+                "cardCta": "Pedir o Peanut Card",
+                "sendCta": "Enviar dinheiro",
+                "tertiarySupport": "Problemas para pagar? Falar com o suporte"
+            },
+            "activeIssue": {
+                "title": "Reportar um problema",
+                "description": "Abre o chat de suporte no app com os detalhes para ajudar.",
+                "categoryLabel": "Tipo de problema",
+                "noteLabel": "Observação opcional",
+                "notePlaceholder": "Breve descrição",
+                "submitCta": "Enviar para o suporte"
+            }
+        }
     }
 }

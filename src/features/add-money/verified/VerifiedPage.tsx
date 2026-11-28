@@ -37,7 +37,7 @@ import {
     type VerifiedPageVariant,
     identityJustApproved,
     returningFromRow,
-    rowReturnPath,
+    rowReturn,
     VISIT_PARAM,
     verifiedPageAccess,
     verifiedRow,
@@ -58,7 +58,7 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
     const tCommon = useTranslations('common')
     const locale = useLocale()
     const router = useRouter()
-    const [visitToken] = useQueryState(VISIT_PARAM)
+    const [visitToken, setVisitToken] = useQueryState(VISIT_PARAM)
     const { user } = useAuth()
     const { capabilities } = useCapabilities()
     const readiness = useAddMoneyReadiness(true)
@@ -193,8 +193,9 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
             remediation.resolveGate(bank[method].gate, corridorOf(method))
             return
         }
-        const back = rowReturnPath(variant)
-        router.push(addMoneyMethodHref(method, back, back))
+        // Back returns to this history entry, not to the return path: give both the token first
+        const back = rowReturn(variant)
+        void setVisitToken(back.token).then(() => router.push(addMoneyMethodHref(method, back.path, back.path)))
     }
 
     const username = user?.user.username

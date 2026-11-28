@@ -113,7 +113,7 @@ jest.mock('@/features/deposit-accounts/useDepositAccounts', () => ({
 let mockLive = 2.5
 let mockLiveFails = false
 const mockLiveReads = jest.fn()
-jest.mock('@/features/card/readLiveSpendableUsd', () => ({
+jest.mock('@/features/add-money/drawer/readLiveSpendableUsd', () => ({
     canReadLiveSpendable: (address: string | undefined) => !!address,
     readLiveSpendableUsd: async () => {
         mockLiveReads()
@@ -222,6 +222,18 @@ describe('funding step', () => {
         expect(screen.getByText('fundingBodyGap($10|$2.50|$7.50)')).toBeInTheDocument()
         rerenderWith({ spendableUsd: undefined })
         expect(screen.getByText('fundingBody')).toBeInTheDocument()
+    })
+
+    // kush on ui#4312: the note is a callout under the method rows, not text at the top or above the CTA
+    it('shows the gap as one callout under the rows, and the transfer note takes its place', async () => {
+        readiness = { ...readiness, ready: { ...noneReady, account: ['USD'] } }
+        renderFunding()
+        const rows = () => screen.getByTestId('card-add-money-crypto')
+        expect(screen.getByTestId('card-add-money-gap').previousElementSibling).toContainElement(rows())
+        fireEvent.click(screen.getByTestId('card-add-money-bank'))
+        fireEvent.click(within(drawer()).getByText('sentTransfer'))
+        expect((await screen.findByTestId('card-add-money-bank-sent')).previousElementSibling).toContainElement(rows())
+        expect(screen.queryByTestId('card-add-money-gap')).not.toBeInTheDocument()
     })
 
     it('shows a balance and a gap that add up to the minimum (0.29 * 100 is 28.999…)', () => {

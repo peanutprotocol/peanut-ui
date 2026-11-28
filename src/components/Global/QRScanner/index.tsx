@@ -19,6 +19,7 @@ import { isAddress } from 'viem'
 import { readClipboard } from '@/utils/clipboard-extract.utils'
 import { isAndroidNative } from '@/utils/capacitor'
 import { isPixEmvcoQr } from '@/utils/withdraw.utils'
+import { useOverlayVisibility } from '@/utils/overlay-visibility'
 import { reportQrScanError } from './utils'
 
 // ============================================================================
@@ -312,6 +313,7 @@ function ErrorView({
 export default function QRScanner({ onScan, onClose, onPermissionDenied, isOpen = true, hidePix }: QRScannerProps) {
     const { error, isPermissionDenied, isScanning, isCameraReady, videoRef, close, toggleCamera, retryCamera } =
         useQRScanner(onScan, onClose, isOpen)
+    useOverlayVisibility(isScanning)
     // The scanner is an overlay, not a route: unhandled, Android back falls through to minimizeApp on Home.
     useBackHandler(() => {
         close()

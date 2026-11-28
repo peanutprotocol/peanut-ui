@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import { ToastProvider } from '@/components/0_Bruddle/Toast'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import type { RhinoChainType } from '@/services/services.types'
-import { CardCryptoDepositView } from '../components/CardCryptoDepositView'
+import { DrawerCryptoDepositView } from '../DrawerCryptoDepositView'
 
 const mockCapture = jest.fn()
 jest.mock('posthog-js', () => ({
@@ -46,7 +46,7 @@ const mockReadLive = jest.fn(async () => {
     if (liveFails) throw new Error('read failed')
     return live
 })
-jest.mock('@/features/card/readLiveSpendableUsd', () => ({ readLiveSpendableUsd: () => mockReadLive() }))
+jest.mock('@/features/add-money/drawer/readLiveSpendableUsd', () => ({ readLiveSpendableUsd: () => mockReadLive() }))
 
 // The Rhino status poll: `pollRead` is the API's own answer (a clear's "not started" is not one);
 // `pollError`: the read failed with no answer known. The test drives status and the success callback.
@@ -127,7 +127,12 @@ function renderView(network: RhinoChainType = 'TRON') {
         </QueryClientProvider>
     )
     const element = () => (
-        <CardCryptoDepositView network={network} onDone={onDone} onProcessingChange={onProcessingChange} />
+        <DrawerCryptoDepositView
+            network={network}
+            targetUsd={10}
+            onDone={onDone}
+            onProcessingChange={onProcessingChange}
+        />
     )
     const view = render(element(), { wrapper })
     return { ...view, rerender: () => view.rerender(element()) }

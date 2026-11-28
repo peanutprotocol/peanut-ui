@@ -24,6 +24,7 @@ import { useOnrampQuote } from '@/hooks/useOnrampQuote'
 import { currencyToAccountType } from '@/utils/bridge.utils'
 import { useQueryState, parseAsString } from 'nuqs'
 import { useTranslations } from 'next-intl'
+import { setDepositDetailsStepActive } from '@/features/stuck-detector/signalStore'
 import { useHistoryEntry } from '@/hooks/useHistoryEntry'
 import { useDepositSuccessEntry } from '@/features/add-money/useDepositSuccessEntry'
 import { BankDepositSuccessView } from '@/features/add-money/components/BankDepositSuccessView'
@@ -69,6 +70,11 @@ export default function AddMoneyBankDetails({ onBack }: AddMoneyBankDetailsProps
     const transferId = onrampData?.transferId
     const { data: transferEntry } = useHistoryEntry(transferId, 'ONRAMP')
     const depositSuccess = useDepositSuccessEntry(transferEntry, transferId)
+
+    useEffect(() => {
+        setDepositDetailsStepActive(!depositSuccess)
+        return () => setDepositDetailsStepActive(false)
+    }, [depositSuccess])
 
     // routing and country context
     const router = useRouter()

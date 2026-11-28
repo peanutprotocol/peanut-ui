@@ -17,19 +17,19 @@ import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
 import { captureCryptoDepositCompleted } from '@/features/add-money/captureCryptoDepositCompleted'
 import { useRhinoDepositAddress } from '@/features/add-money/useRhinoDepositAddress'
-import { cardCryptoAskUsd, cardGapUsd } from '@/features/card/cardAddMoney'
-import { cardDepositView, type DepositStatus } from '@/features/card/cardDepositView'
+import { useWallet } from '@/hooks/wallet/useWallet'
+import type { DepositAddressStatusResponse, RhinoChainType } from '@/services/services.types'
+import { formatBankAmount } from '@/utils/currency'
+import { addMoneyGapUsd, cryptoAskUsd } from './addMoneyDrawerPlan'
+import { depositAddressView, type DepositStatus } from './depositAddressView'
 import {
     forgetDepositLanding,
     readDepositLanding,
     rememberDepositLanding,
     rememberEarlyLanding,
-} from '@/features/card/depositLanding'
-import { readLiveSpendableUsd } from '@/features/card/readLiveSpendableUsd'
-import { useWallet } from '@/hooks/wallet/useWallet'
-import type { DepositAddressStatusResponse, RhinoChainType } from '@/services/services.types'
-import { formatBankAmount } from '@/utils/currency'
-import { CardDrawerStatus } from './CardDrawerStatus'
+} from './depositLanding'
+import { DrawerStatus } from './DrawerStatus'
+import { readLiveSpendableUsd } from './readLiveSpendableUsd'
 
 const usd = (amount: number) => formatBankAmount(amount, 'USD')
 const cents = (amount: number) => Math.round(amount * 100) / 100
@@ -60,17 +60,19 @@ type Hold = {
 }
 
 /**
- * The deposit address for one network, asking for the card gap (RhinoDepositView's states, sized for
- * the drawer). The address and the ask come only through `cardDepositView`'s rule: the API's own "not
- * started" and a fresh balance read. Every money decision here reads the balance fresh
- * (`readLiveSpendableUsd`), never the step's cached value.
+ * The deposit address for one network, asking for the gap to the target (RhinoDepositView's states,
+ * sized for the drawer). The address and the ask come only through `depositAddressView`'s rule: the
+ * API's own "not started" and a fresh balance read. Every money decision here reads the balance fresh
+ * (`readLiveSpendableUsd`), never the place's cached value.
  */
-export function CardCryptoDepositView({
+export function DrawerCryptoDepositView({
     network,
+    targetUsd,
     onDone,
     onProcessingChange,
 }: {
     network: RhinoChainType
+    targetUsd: number
     onDone: () => void
     /** a deposit is settling: the drawer hides its back, so a second address is never one tap away */
     onProcessingChange: (processing: boolean) => void
@@ -287,7 +289,7 @@ export function CardCryptoDepositView({
                 setHold((current) => current && { ...current, reads: current.reads + 1 })
                 return
             }
-            const gap = cardGapUsd(value) ?? 0
+            const gap = addMoneyGapUsd(targetUsd, value) ?? 0
             if (roseAbove(hold.from, value) || gap <= 0) {
                 // a short landing is forgotten (or kept as an early one) with its notice, below
                 if (gap <= 0 && depositAddressRef.current) forgetDepositLanding(userId, depositAddressRef.current)
@@ -315,7 +317,7 @@ export function CardCryptoDepositView({
             )
         }, holdReadDelay(hold.reads))
         return () => clearTimeout(timer)
-    }, [hold, readLive, userId])
+    }, [hold, readLive, userId, targetUsd])
 
     // Rhino reports one deposit per address until the status is cleared: after a short deposit the
     // clear re-arms the poll for the rest, and the address waits for its fresh read. A deposit that
@@ -333,7 +335,7 @@ export function CardCryptoDepositView({
         if (statusRef.current === 'completed') void clearRef.current()
     }, [shortDeposit, userId])
 
-    const view = cardDepositView({
+    const view = depositAddressView({
         addressLoading: isLoading,
         addressError: isError || (!isLoading && !data),
         statusRead: isStatusRead,
@@ -381,13 +383,13 @@ export function CardCryptoDepositView({
             () =>
                 void readLive().then(
                     // the earlier deposit covered the gap: done, as on the main path
-                    (value) => (cardGapUsd(value) ?? 1) <= 0 && setDone(true),
+                    (value) => (addMoneyGapUsd(targetUsd, value) ?? 1) <= 0 && setDone(true),
                     () => undefined
                 ),
             15_000
         )
         return () => clearInterval(timer)
-    }, [sentMore, view, readLive])
+    }, [sentMore, view, readLive, targetUsd])
 
     const retry = () => {
         if (clearFailed) return void clear()
@@ -433,7 +435,7 @@ export function CardCryptoDepositView({
 
     if (view === 'address-error' || !data) {
         return (
-            <CardDrawerStatus
+            <DrawerStatus
                 icon={<IconBubble icon="alert" color="red" />}
                 name={tCrypto('addressErrorTitle')}
                 body={tCrypto('addressErrorDescription')}
@@ -441,7 +443,7 @@ export function CardCryptoDepositView({
                 <Button variant="primary" className="w-full" onClick={() => void refetch()}>
                     {tCommon('retry')}
                 </Button>
-            </CardDrawerStatus>
+            </DrawerStatus>
         )
     }
 
@@ -472,7 +474,7 @@ export function CardCryptoDepositView({
     if (processing) {
         return (
             <div className="py-6">
-                <CardDrawerStatus
+                <DrawerStatus
                     icon={<Loading variant="mascot" />}
                     name={tAdd('processingDepositTitle')}
                     body={hold?.waited ? t('stillLandingBody') : tAdd('processingDepositBody')}
@@ -502,14 +504,14 @@ export function CardCryptoDepositView({
                             </Button>
                         </div>
                     )}
-                </CardDrawerStatus>
+                </DrawerStatus>
             </div>
         )
     }
 
     if (view === 'done') {
         return (
-            <CardDrawerStatus
+            <DrawerStatus
                 icon={<IconBubble icon="check" color="green" />}
                 name={t('doneTitle')}
                 testId="card-add-money-done"
@@ -517,13 +519,13 @@ export function CardCryptoDepositView({
                 <Button variant="primary" className="w-full" onClick={onDone}>
                     {tCommon('done')}
                 </Button>
-            </CardDrawerStatus>
+            </DrawerStatus>
         )
     }
 
     // the ask comes from the fresh read: the live gap, or the network minimum when that is higher
-    const gapUsd = live === undefined ? undefined : cardGapUsd(live)
-    const ask = gapUsd ? cardCryptoAskUsd(gapUsd, data.minDepositLimitUsd) : undefined
+    const gapUsd = live === undefined ? undefined : addMoneyGapUsd(targetUsd, live)
+    const ask = gapUsd ? cryptoAskUsd(gapUsd, data.minDepositLimitUsd) : undefined
     return (
         <div className="flex flex-col items-center gap-4" data-testid="card-add-money-address">
             {/* what is missing, never what to send: the ask below names that, raised to the minimum */}

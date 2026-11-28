@@ -8,9 +8,8 @@ import Loading from '@/components/Global/Loading'
 import { useSetupShell } from '@/components/Setup/redesign/shell/SetupShellContext'
 import { USERNAME_MAX } from '@/features/setup/username-suggestions'
 import { twMerge } from '@/utils/tw'
+import { SETUP_SUPPORT_FALLBACK_URL, useSetupSupportClick } from '@/components/Setup/useSetupSupportClick'
 import type { UsernameKind } from './username-state'
-
-const SUPPORT_URL = 'https://peanut.me/support'
 
 const Spinner = ({ size }: { size: 'size-3' | 'size-3.5' }) => (
     <span aria-hidden="true" className="inline-flex">
@@ -35,6 +34,7 @@ export function UsernameHelpRow({
 }) {
     const t = useTranslations('setupRedesign.username')
     const { reducedMotion } = useSetupShell()
+    const supportLink = useSetupSupportClick({ key: 'usernameCheck' }, onSupport)
     const available = (
         <>
             <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-background-icon-bubble-green text-foreground-inverse">
@@ -93,10 +93,10 @@ export function UsernameHelpRow({
                     {t.rich('checkFailed', {
                         link: (chunks) => (
                             <a
-                                href={SUPPORT_URL}
+                                href={SETUP_SUPPORT_FALLBACK_URL}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                onClick={onSupport}
+                                onClick={supportLink.onClick}
                                 className="relative whitespace-nowrap underline after:absolute after:inset-x-0 after:-inset-y-3.5"
                             >
                                 {chunks}
