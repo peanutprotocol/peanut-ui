@@ -23,6 +23,8 @@ export type BuddyMotionPhase = 'loading' | 'walking' | 'transitioning' | 'idle'
 
 interface PeanutBuddyMascotProps {
     targetPose: StuckBuddyPose
+    /** Fired once the Lottie runtime and animation JSON finish loading (phase leaves `'loading'`). */
+    onLoaded?: () => void
     /** Fired right on touchdown so the speech bubble springs open with Peanut's landing impact. */
     onLanded?: () => void
     /** Fired if the Lottie chunk fails to load so the parent can fall back cleanly. */
@@ -42,10 +44,18 @@ interface PeanutBuddyMascotProps {
  *
  * Under `prefers-reduced-motion: reduce`, renders `targetPose` frozen at frame 0 immediately.
  */
-export function PeanutBuddyMascot({ targetPose, onLanded, onLoadFailed, exiting = false }: PeanutBuddyMascotProps) {
+export function PeanutBuddyMascot({
+    targetPose,
+    onLoaded,
+    onLanded,
+    onLoadFailed,
+    exiting = false,
+}: PeanutBuddyMascotProps) {
     const walkContainerRef = useRef<HTMLDivElement>(null)
     const targetContainerRef = useRef<HTMLDivElement>(null)
     const stageRef = useRef<HTMLDivElement>(null)
+    const onLoadedRef = useRef(onLoaded)
+    onLoadedRef.current = onLoaded
     const onLandedRef = useRef(onLanded)
     onLandedRef.current = onLanded
     const onLoadFailedRef = useRef(onLoadFailed)
@@ -96,6 +106,7 @@ export function PeanutBuddyMascot({ targetPose, onLanded, onLoadFailed, exiting 
 
                 walkAnim.goToAndStop(0, true)
                 targetAnim.goToAndStop(0, true)
+                onLoadedRef.current?.()
 
                 if (reducedMotion) {
                     walkHost.style.opacity = '0'
