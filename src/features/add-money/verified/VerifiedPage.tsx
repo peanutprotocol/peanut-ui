@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
+import { useQueryState } from 'nuqs'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
@@ -31,12 +32,12 @@ import {
     anyBankReady,
     type BankRowState,
     cryptoWorksNow,
-    VERIFIED_PAGE_PATH,
     VERIFIED_ROWS_SETTLE_MS,
     type VerifiedPageVariant,
     identityJustApproved,
-    markLeftThroughRow,
     returningFromRow,
+    rowReturnPath,
+    VISIT_PARAM,
     verifiedPageAccess,
     verifiedRow,
 } from './verifiedRows'
@@ -56,6 +57,7 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
     const tCommon = useTranslations('common')
     const locale = useLocale()
     const router = useRouter()
+    const [visitToken] = useQueryState(VISIT_PARAM)
     const { user } = useAuth()
     const { capabilities } = useCapabilities()
     const readiness = useAddMoneyReadiness(true)
@@ -98,7 +100,7 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
     const access = verifiedPageAccess(user ? user.identityVerification?.status : undefined, settled, justApproved)
     // a return from a row's flow is the same visit: no second shown or resolved event
     const sameVisit = useRef<boolean | null>(null)
-    if (sameVisit.current === null) sameVisit.current = returningFromRow()
+    if (sameVisit.current === null) sameVisit.current = returningFromRow(visitToken)
     const shown = useRef(sameVisit.current)
     useEffect(() => {
         if (shown.current || readiness.isLoading || access !== 'show') return
@@ -177,8 +179,8 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
             remediation.resolveGate(bank[method].gate, corridorOf(method))
             return
         }
-        markLeftThroughRow()
-        router.push(addMoneyMethodHref(method, VERIFIED_PAGE_PATH, VERIFIED_PAGE_PATH))
+        const back = rowReturnPath(variant)
+        router.push(addMoneyMethodHref(method, back, back))
     }
 
     const username = user?.user.username

@@ -9,8 +9,8 @@ import {
     isSelfStartedVerification,
     identityJustApproved,
     markIdentityApproved,
-    markLeftThroughRow,
     returningFromRow,
+    rowReturnPath,
     verifiedPageAccess,
     verifiedRow,
     type BankRowState,
@@ -140,18 +140,21 @@ describe('the approval signal', () => {
 
 describe('one visit', () => {
     beforeEach(() => window.sessionStorage.clear())
+    const tokenOf = (path: string) => new URL(path, 'https://x').searchParams.get('visit')
+
     it('treats the way back from a row as the same visit, once', () => {
-        expect(returningFromRow()).toBe(false)
-        markLeftThroughRow()
-        expect(returningFromRow()).toBe(true)
-        // the next opening, from anywhere else, is a new visit
-        expect(returningFromRow()).toBe(false)
+        const path = rowReturnPath('verified')
+        expect(path).toMatch(/^\/verified\?visit=\d+$/)
+        expect(returningFromRow(tokenOf(path))).toBe(true)
+        // the same return path opened again is a new visit
+        expect(returningFromRow(tokenOf(path))).toBe(false)
     })
-    it('counts a much later opening as a new visit even if the row never came back', () => {
-        const now = jest.spyOn(Date, 'now').mockReturnValue(5_000_000)
-        markLeftThroughRow()
-        now.mockReturnValue(5_000_000 + 30 * 60_000)
-        expect(returningFromRow()).toBe(false)
-        now.mockRestore()
+    it('counts an opening without the token as a new visit, even after an abandoned row flow', () => {
+        rowReturnPath('verified')
+        // the row's flow was left for Home; the page is then opened directly
+        expect(returningFromRow(null)).toBe(false)
+    })
+    it('keeps the bank-ready variant on the way back', () => {
+        expect(rowReturnPath('bank-ready')).toMatch(/^\/verified\?variant=bank-ready&visit=\d+$/)
     })
 })

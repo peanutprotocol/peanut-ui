@@ -123,27 +123,32 @@ export function verifiedPageAccess(
     return 'leave'
 }
 
-// One visit: from opening the page until leaving it any way but a row. A row's flow comes back with
-// `returnTo=/verified` within half an hour, and that return is the same visit, so it is no new view. A later
-// opening (the bank-ready reminder days on) is a new visit even if the row's flow never came back.
-const LEFT_THROUGH_ROW_KEY = 'peanut:verified-left-through-row'
-const SAME_VISIT_MS = 30 * 60_000
+// One visit: from opening the page until leaving it any way but a row. A row's flow comes back to a return path
+// that carries a one-time token; only that way back is the same visit. Any other opening (Home, a link, the
+// bank-ready reminder) has no token, so it is a new visit even if a row's flow was abandoned (Chip on #4317).
+const ROW_RETURN_KEY = 'peanut:verified-row-return'
+export const VISIT_PARAM = 'visit'
 
-/** a row was tapped: its flow's way back to the page continues this visit */
-export function markLeftThroughRow() {
+/** the path a row's flow returns to, with a fresh one-time token for this visit */
+export function rowReturnPath(variant: VerifiedPageVariant): string {
+    const token = String(Date.now())
     try {
-        window.sessionStorage.setItem(LEFT_THROUGH_ROW_KEY, String(Date.now()))
+        window.sessionStorage.setItem(ROW_RETURN_KEY, token)
     } catch {
-        // private mode: a return counts as a new visit
+        // private mode: the return counts as a new visit
     }
+    const params = new URLSearchParams(variant === 'bank-ready' ? { variant } : {})
+    params.set(VISIT_PARAM, token)
+    return `${VERIFIED_PAGE_PATH}?${params}`
 }
 
-/** whether this mount is the way back from a row; reading it ends the mark */
-export function returningFromRow(): boolean {
+/** whether this opening is a row's way back (its token matches the one stored); a token works once */
+export function returningFromRow(token: string | null): boolean {
     try {
-        const at = Number(window.sessionStorage.getItem(LEFT_THROUGH_ROW_KEY))
-        window.sessionStorage.removeItem(LEFT_THROUGH_ROW_KEY)
-        return !!at && Date.now() - at < SAME_VISIT_MS
+        const stored = window.sessionStorage.getItem(ROW_RETURN_KEY)
+        if (!token || token !== stored) return false
+        window.sessionStorage.removeItem(ROW_RETURN_KEY)
+        return true
     } catch {
         return false
     }
