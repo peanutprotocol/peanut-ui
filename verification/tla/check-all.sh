@@ -37,7 +37,9 @@ for cfg in "${cfgs[@]}"; do
 	elif grep -qE "is violated|properties were violated" <<<"$out"; then
 		expected=$(sed -nE 's/^\\\*[[:space:]]*Expect:[[:space:]]*(.+)$/\1/p' "$cfg" | head -1 | tr -d '\r')
 		if [ -n "$expected" ]; then
-			if grep -qE "(Invariant|Action property|Property) ${expected} is violated|Temporal properties were violated" <<<"$out"; then
+			if grep -qE "(Invariant|Action property|Property) ${expected} is violated" <<<"$out"; then
+				result=breaks
+			elif grep -q "Temporal properties were violated" <<<"$out" && grep -qE "^PROPERT(Y|IES)[[:space:]].*\b${expected}\b" "$cfg"; then
 				result=breaks
 			else
 				result="wrong_violation(expected_${expected})"
