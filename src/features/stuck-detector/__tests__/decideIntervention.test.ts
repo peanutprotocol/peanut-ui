@@ -1,5 +1,5 @@
 import { decideStuckIntervention } from '../decideIntervention'
-import { isBankDepositPath, isNonBankDepositRailPath, surfaceForPath } from '../routeJourney'
+import { canonicalStuckRoute, isBankDepositPath, isNonBankDepositRailPath, surfaceForPath } from '../routeJourney'
 import type { StuckDecisionInput } from '../types'
 
 const BASE_INPUT: StuckDecisionInput = {
@@ -116,12 +116,25 @@ describe('decideStuckIntervention', () => {
         expect(isBankDepositPath('/add-money/spain/bank')).toBe(true)
         expect(isBankDepositPath('/add-money/argentina/manteca')).toBe(true)
 
+        // Native Capacitor static-export query-param deposit routes
+        expect(canonicalStuckRoute('/add-money', 'germany', 'bank')).toBe('/add-money/germany/bank')
+        expect(canonicalStuckRoute('/add-money', 'argentina', 'manteca')).toBe('/add-money/argentina/manteca')
+        expect(canonicalStuckRoute('/add-money', 'austria', null)).toBe('/add-money')
+        expect(isBankDepositPath('/add-money?country=germany&view=bank')).toBe(true)
+        expect(isBankDepositPath('/add-money?country=argentina&view=manteca')).toBe(true)
+        expect(isBankDepositPath('/add-money?country=brazil&view=manteca')).toBe(false)
+        expect(isBankDepositPath('/add-money?country=austria')).toBe(false)
+        expect(isBankDepositPath('/add-money?method=bank')).toBe(false)
+
         expect(surfaceForPath('/add-money/crypto', false)).toBe('active_issue')
         expect(surfaceForPath('/add-money/pix', false)).toBe('active_issue')
         expect(surfaceForPath('/add-money/options', false)).toBeNull()
         expect(surfaceForPath('/add-money', false)).toBeNull()
         expect(surfaceForPath('/add-money/us/bank', false)).toBe('add_money')
         expect(surfaceForPath('/add-money/argentina/manteca', false)).toBe('add_money')
+        expect(surfaceForPath('/add-money?country=germany&view=bank', false)).toBe('add_money')
+        expect(surfaceForPath('/add-money?country=argentina&view=manteca', false)).toBe('add_money')
+        expect(surfaceForPath('/add-money?country=brazil&view=manteca', false)).toBeNull()
     })
 
     it('triggers verify buddy on 3rd local field error regardless of PostHog dedup', () => {

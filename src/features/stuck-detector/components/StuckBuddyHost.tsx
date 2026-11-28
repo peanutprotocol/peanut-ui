@@ -3,6 +3,7 @@
 import { AnimatePresence } from 'framer-motion'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { parseAsString, useQueryStates } from 'nuqs'
 import posthog from 'posthog-js'
 import * as Sentry from '@sentry/nextjs'
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
@@ -25,6 +26,7 @@ import {
     recordSurfaceDismissal,
 } from '../memory'
 import {
+    canonicalStuckRoute,
     isBankDepositPath,
     isStuckExcludedPath,
     journeyForPath,
@@ -74,6 +76,15 @@ function resolvePlatform(): 'ios-native' | 'android-native' | 'web' {
 
 function StuckBuddyCore({ variant, balanceUsd, hasSpent }: StuckBuddyCoreProps) {
     const pathname = usePathname() || ''
+    const [urlParams] = useQueryStates({
+        country: parseAsString,
+        view: parseAsString,
+        stuck_demo: parseAsString,
+    })
+    const effectiveRoute = useMemo(
+        () => canonicalStuckRoute(pathname, urlParams.country, urlParams.view),
+        [pathname, urlParams.country, urlParams.view]
+    )
     const router = useRouter()
     const t = useTranslations('stuckBuddy')
     const { user } = useAuth()
@@ -99,18 +110,18 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent }: StuckBuddyCoreProps) 
         setMemory(analyticsOptedOut ? createDefaultStuckMemory() : readStuckMemory(userId))
     }, [userId, analyticsOptedOut])
 
-    // Sync pathname into the signal store and reset per-screen dismiss state.
+    // Sync canonical route (including Capacitor ?country=...&view=bank|manteca) into signal store.
     useEffect(() => {
-        setStuckRoute(pathname)
+        setStuckRoute(effectiveRoute)
         setDismissedThisVisit(false)
-        if (!analyticsOptedOut && isBankDepositPath(pathname) && (balanceUsd ?? 0) <= 0) {
+        if (!analyticsOptedOut && isBankDepositPath(effectiveRoute) && (balanceUsd ?? 0) <= 0) {
             setMemory(markSeenAddMoneyUnfunded(userId))
         }
-    }, [pathname, userId, balanceUsd, analyticsOptedOut])
+    }, [effectiveRoute, userId, balanceUsd, analyticsOptedOut])
 
     // Lightweight global tap listener for rage-tap detection (honors `data-stuck-ignore`).
     useEffect(() => {
-        if (typeof window === 'undefined' || isStuckExcludedPath(pathname)) return
+        if (typeof window === 'undefined' || isStuckExcludedPath(effectiveRoute)) return
         const onPointerDown = (event: PointerEvent) => {
             const target = event.target as HTMLElement | null
             const ignored = Boolean(target?.closest?.('[data-stuck-ignore="true"], [data-mood-ignore]'))
@@ -118,27 +129,30 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent }: StuckBuddyCoreProps) 
         }
         window.addEventListener('pointerdown', onPointerDown, { passive: true })
         return () => window.removeEventListener('pointerdown', onPointerDown)
-    }, [pathname])
+    }, [effectiveRoute])
 
     // Periodic idle & dwell tick (5s cadence — negligible CPU).
     useEffect(() => {
-        if (isStuckExcludedPath(pathname)) return
+        if (isStuckExcludedPath(effectiveRoute)) return
         const interval = window.setInterval(() => {
             const now = Date.now()
             evaluateIdleTick(now)
             setNowMs(now)
         }, IDLE_POLL_MS)
         return () => window.clearInterval(interval)
-    }, [pathname])
+    }, [effectiveRoute])
 
-    const [demoSurface, setDemoSurface] = useState<StuckSurface | null>(null)
-    useEffect(() => {
-        if (typeof window === 'undefined') return
-        setDemoSurface(parseDemoSurface(window.location.search, !IS_PROD_DOMAIN))
-    }, [pathname])
+    const demoSurface = useMemo(
+        () =>
+            parseDemoSurface(
+                urlParams.stuck_demo ? `?stuck_demo=${encodeURIComponent(urlParams.stuck_demo)}` : '',
+                !IS_PROD_DOMAIN
+            ),
+        [urlParams.stuck_demo]
+    )
 
-    const surface = useMemo(() => surfaceForPath(pathname, hasSpent), [pathname, hasSpent])
-    const journey = useMemo(() => journeyForPath(pathname), [pathname])
+    const surface = useMemo(() => surfaceForPath(effectiveRoute, hasSpent), [effectiveRoute, hasSpent])
+    const journey = useMemo(() => journeyForPath(effectiveRoute), [effectiveRoute])
 
     const scoreResult = useMemo(() => {
         const durationSeconds = Math.max(0, (nowMs - runtime.sessionStartedAt) / 1000)
@@ -160,7 +174,7 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent }: StuckBuddyCoreProps) 
     // Shadow-mode telemetry: log once per session when the trained GBDT crosses 0.60,
     // even while the UI rollout flag is OFF so we validate live precision before flipping 50/50.
     useEffect(() => {
-        if (runtime.shadowLoggedForSession || isStuckExcludedPath(pathname)) return
+        if (runtime.shadowLoggedForSession || isStuckExcludedPath(effectiveRoute)) return
         const peak = Math.max(scoreResult.rawScore, scoreResult.smoothedScore)
         if (peak < STUCK_MODEL.defaultThreshold) return
         markShadowLogged()
@@ -193,7 +207,7 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent }: StuckBuddyCoreProps) 
     }, [
         runtime.shadowLoggedForSession,
         runtime.flags,
-        pathname,
+        effectiveRoute,
         scoreResult,
         journey,
         surface,
@@ -209,7 +223,7 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent }: StuckBuddyCoreProps) 
             return { show: false as const, suppressedBy: 'below_threshold' as const }
         }
         return decideStuckIntervention({
-            pathname,
+            pathname: effectiveRoute,
             surface,
             rawScore: scoreResult.rawScore,
             smoothedScore: scoreResult.smoothedScore,
@@ -233,7 +247,7 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent }: StuckBuddyCoreProps) 
     }, [
         uiEnabled,
         dismissedThisVisit,
-        pathname,
+        effectiveRoute,
         surface,
         scoreResult.rawScore,
         scoreResult.smoothedScore,
@@ -322,7 +336,7 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent }: StuckBuddyCoreProps) 
             posthog.capture(ANALYTICS_EVENTS.STUCK_BUG_REPORT_SUBMITTED, {
                 category,
                 has_note: Boolean(note),
-                route: pathname,
+                route: effectiveRoute,
                 error_code: runtime.lastErrorCode,
                 raw_score: Number(scoreResult.rawScore.toFixed(4)),
                 model_version: scoreResult.modelVersion,
@@ -333,7 +347,7 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent }: StuckBuddyCoreProps) 
                 tags: {
                     feature: 'stuck-detector',
                     category,
-                    route: pathname,
+                    route: effectiveRoute,
                 },
                 extra: {
                     note: note || undefined,
@@ -343,13 +357,13 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent }: StuckBuddyCoreProps) 
                 },
             })
         },
-        [pathname, runtime.lastErrorCode, scoreResult.rawScore, scoreResult.modelVersion]
+        [effectiveRoute, runtime.lastErrorCode, scoreResult.rawScore, scoreResult.modelVersion]
     )
 
     const clearance =
         variant === 'setup'
             ? 'setup-footer'
-            : pathname.startsWith('/add-money') || pathname.startsWith('/verify')
+            : effectiveRoute.startsWith('/add-money') || effectiveRoute.startsWith('/verify')
               ? 'footer'
               : 'bottom-nav'
 

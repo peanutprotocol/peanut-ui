@@ -21,24 +21,49 @@ export function journeyForPath(pathname: string): StuckJourney {
     return 'other'
 }
 
+/**
+ * Normalize Capacitor native static-export query-param deposit routes
+ * (`/add-money?country=germany&view=bank`, `/add-money?country=argentina&view=manteca`)
+ * into their canonical path form (`/add-money/germany/bank`, `/add-money/argentina/manteca`).
+ * Pickers (`/add-money`, `/add-money?country=austria`, `/add-money?method=bank`) stay `/add-money`.
+ */
+export function canonicalStuckRoute(pathname: string, country?: string | null, view?: string | null): string {
+    const [rawPath, rawQuery] = pathname.split('?')
+    const cleanPath = rawPath.replace(/\/+$/, '') || '/'
+    if (cleanPath === '/add-money') {
+        let resolvedCountry = country?.trim().toLowerCase() || ''
+        let resolvedView = view?.trim().toLowerCase() || ''
+        if ((!resolvedCountry || !resolvedView) && rawQuery) {
+            const params = new URLSearchParams(rawQuery)
+            resolvedCountry = resolvedCountry || params.get('country')?.trim().toLowerCase() || ''
+            resolvedView = resolvedView || params.get('view')?.trim().toLowerCase() || ''
+        }
+        if (resolvedCountry && (resolvedView === 'bank' || resolvedView === 'manteca')) {
+            return `/add-money/${resolvedCountry}/${resolvedView}`
+        }
+    }
+    return cleanPath
+}
+
 /** Whether a path is a non-bank direct deposit rail (crypto or Pix). */
 export function isNonBankDepositRailPath(pathname: string): boolean {
+    const clean = canonicalStuckRoute(pathname)
     return (
-        pathname === '/add-money/crypto' ||
-        pathname.startsWith('/add-money/crypto/') ||
-        pathname === '/add-money/pix' ||
-        pathname.startsWith('/add-money/pix/')
+        clean === '/add-money/crypto' ||
+        clean.startsWith('/add-money/crypto/') ||
+        clean === '/add-money/pix' ||
+        clean.startsWith('/add-money/pix/')
     )
 }
 
 /**
- * Whether a path is an actual bank-transfer deposit flow (`/add-money/<country>/bank`
- * or non-BRL `/add-money/<country>/manteca`, e.g. Argentina CVU/CBU).
+ * Whether a path is an actual bank-transfer deposit flow (`/add-money/<country>/bank`,
+ * non-BRL `/add-money/<country>/manteca`, or their native `?country=...&view=bank|manteca` equivalents).
  * Excludes method/country pickers (`/add-money`, `/add-money/options`, `/add-money/<country>`),
  * crypto (`/add-money/crypto`), and Pix (`/add-money/pix`, `/add-money/brazil/manteca`).
  */
 export function isBankDepositPath(pathname: string): boolean {
-    const clean = pathname.split('?')[0].replace(/\/+$/, '')
+    const clean = canonicalStuckRoute(pathname)
     const parts = clean.split('/').filter(Boolean)
     if (parts.length !== 3 || parts[0] !== 'add-money') return false
     const [, country, rail] = parts
