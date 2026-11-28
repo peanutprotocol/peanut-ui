@@ -13,10 +13,10 @@ import { cardApi, type CardInfoResponse } from '@/services/card'
 import { useAuth } from '@/context/authContext'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { computeCardState, type CardTopLevelState } from '@/components/Card/cardState.utils'
+import { servedCardState } from '@/components/Card/servedCardState'
 import { pollUntilApplyAdvances, pollUntilReady } from '@/components/Card/cardApply.utils'
 import { initiateSelfHealResubmission, startKycAction } from '@/app/actions/sumsub'
 import { rainApi, type ApplyForCardResponse, type RainFundingAccess } from '@/services/rain'
-import { cardConsentDocuments } from '@/services/consent'
 import { useRainFunding } from '@/hooks/wallet/useRainFunding'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { fundingAccessQueryKey, useCardFundingAccess } from '@/hooks/useCardFundingAccess'
@@ -38,6 +38,10 @@ import { useKycFeatureActivation } from '@/features/paperwork-verification/useKy
 import { RESIDENCE_ADDRESS_ACTION_KEY } from '@/constants/kyc.consts'
 import { residenceAddressEntry } from '@/features/kyc-features/residenceAddressEntry'
 import { API_ERROR_CODES, ApiError, wireErrorCode } from '@/services/api-error'
+import {
+    identityStartRefusalPath,
+    paperworkVerificationEntryRoute,
+} from '@/features/paperwork-verification/paperworkVerificationEntry'
 import { markVerifySource } from '@/features/paperwork-verification/verifySource'
 import { currentReverificationDestination, featureReverificationPath } from '@/utils/kyc-reverification'
 import { CARD_MIN_BALANCE_USD } from '@/features/card/cardAddMoney'
@@ -201,9 +205,7 @@ export function useCardFlow() {
     }, [])
     // Smart Paperwork Verification: POST /rain/cards answered `questions-required` with the step to ask; the card questions come first.
     const [pendingQuestions, setPendingQuestions] = useState<string | null>(null)
-    const [supportRequired, setSupportRequired] = useState<{ userId: string; reason: 'verified-name-missing' } | null>(
-        null
-    )
+    const [supportRequired, setSupportRequired] = useState<{ userId: string; reason: string } | null>(null)
     const supportRequiredReason = supportRequired && supportRequired.userId === userId ? supportRequired.reason : null
     useEffect(() => {
         setPendingApplication(null)
@@ -443,13 +445,14 @@ export function useCardFlow() {
                 router.push(featureReverificationPath(res.reverification.entry, currentReverificationDestination()))
                 return false
             }
-            if (res.status === 'requires-support' && 'reason' in res && res.reason === 'verified-name-missing') {
+            if (res.status === 'requires-support') {
                 setPendingApplication(null)
                 setPendingTerms(null)
                 setPendingCountryConfirmation(null)
                 setPendingQuestions(null)
                 setApplyError(null)
-                if (userId) setSupportRequired({ userId, reason: 'verified-name-missing' })
+                const reason = 'reason' in res && typeof res.reason === 'string' ? res.reason : 'requires-support'
+                if (userId) setSupportRequired({ userId, reason })
                 return false
             }
             setSupportRequired(null)
@@ -597,6 +600,7 @@ export function useCardFlow() {
         if (
             baseState !== 'loading' &&
             baseState !== 'add-card' &&
+            baseState !== 'creating-card' &&
             baseState !== 'pending' &&
             baseState !== 'manual-review'
         ) {
@@ -609,17 +613,22 @@ export function useCardFlow() {
     refreshIssuanceRef.current = refetchOverview
     const translateIssuanceRef = useRef(t)
     translateIssuanceRef.current = t
-    const finishIssuanceWait = useCallback((data: typeof overview) => {
-        if (
-            data?.status.hasApplication &&
-            data.status.railStatus === 'ENABLED' &&
-            data.cards.every((card) => card.status === 'CANCELED')
-        ) {
+    // The served state decides: the API still issuing reads as still creating; an application with
+    // nothing held and nothing issuing reads as a failed issue. Returns whether the card is still on its way.
+    const finishIssuanceWait = useCallback((data: typeof overview): boolean => {
+        if (!data) return false
+        const served = servedCardState(data)
+        if (served === 'creating-card') {
+            setIssuanceStillCreating(true)
+            return true
+        }
+        if (served === 'add-card' && data.status.hasApplication) {
             awaitingIssuanceRef.current = false
             issuanceOwnerRef.current = null
             setIssuanceExpired(true)
             setApplyError(translateIssuanceRef.current('page.issueFailed'))
         }
+        return false
     }, [])
 
     useEffect(() => {
@@ -631,14 +640,15 @@ export function useCardFlow() {
             !refreshIssuanceRef.current
         )
             return
+        // A served creating-card the user did not start here has no wait to bound: the overview poll ends it.
+        const owner = issuanceOwnerRef.current
+        if (!owner) return
         const deadline = issuanceDeadlineRef.current ?? Date.now() + CARD_ISSUANCE_WAIT_MS
         issuanceDeadlineRef.current = deadline
         if (Date.now() >= deadline) {
             setIssuanceReadError(true)
             return
         }
-        const owner = issuanceOwnerRef.current
-        if (!owner) return
         const ownsAttempt = () => issuanceOwnerRef.current === owner && sameIdentity(owner, identityRef.current)
         let stopped = false
         let busy = false
@@ -695,12 +705,35 @@ export function useCardFlow() {
         if (!owner || !sameIdentity(owner, identityRef.current) || !refreshIssuanceRef.current) return
         const result = await refreshIssuanceRef.current({ cancelRefetch: false })
         if (issuanceOwnerRef.current !== owner || !sameIdentity(owner, identityRef.current) || result.isError) return
-        if (issuanceDeadlineRef.current && Date.now() >= issuanceDeadlineRef.current) {
+        const stillCreating =
+            !!issuanceDeadlineRef.current &&
+            Date.now() >= issuanceDeadlineRef.current &&
             finishIssuanceWait(result.data)
-        }
         setIssuanceReadError(false)
-        setIssuanceStillCreating(false)
+        setIssuanceStillCreating(stillCreating)
     }, [finishIssuanceWait])
+
+    const identityStatus = user?.identityVerification?.status
+    const needsIdentityPlan = !identityStatus || identityStatus === 'not_started'
+
+    const openVerification = useCallback(
+        (path: string) => {
+            setSumsubToken(null)
+            if (path === '/verify') markVerifySource('card')
+            router.push(path)
+        },
+        [router]
+    )
+
+    const followIdentityStartRefusal = useCallback(
+        (error: unknown) => {
+            const path = error instanceof ApiError ? identityStartRefusalPath(error.code) : null
+            if (!path) return false
+            openVerification(path)
+            return true
+        },
+        [openVerification]
+    )
 
     // The user picked their residence country on the confirmation screen.
     // Re-apply with the pick — the backend validates it against its own
@@ -732,14 +765,22 @@ export function useCardFlow() {
                 }
                 advanceFromApplyResponse(res)
             } catch (e) {
-                if (changed()) return
+                if (changed() || followIdentityStartRefusal(e)) return
                 const message = e instanceof Error ? e.message : t('page.confirmCountryFailed')
                 console.error('[card apply] country confirm error:', e)
                 setApplyError(message)
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
             }
         },
-        [advanceFromApplyResponse, userId, connectedAddress, t, activation.activate, blockIfFinal]
+        [
+            advanceFromApplyResponse,
+            userId,
+            connectedAddress,
+            t,
+            activation.activate,
+            blockIfFinal,
+            followIdentityStartRefusal,
+        ]
     )
 
     // Returns the response only when the application went through to a state
@@ -788,15 +829,17 @@ export function useCardFlow() {
                     with_session_key: !!serializedApproval,
                 })
                 try {
-                    // Consent-ledger echo: on acceptance, send the exact documents
-                    // CardTermsScreen displayed for this region (version + hash).
-                    const acceptedDocuments = termsAccepted
-                        ? cardConsentDocuments(pendingTerms?.isUsResident ?? false)
-                        : undefined
+                    if (needsIdentityPlan) {
+                        const path = await paperworkVerificationEntryRoute({})
+                        if (changed()) return undefined
+                        if (path) {
+                            openVerification(path)
+                            return undefined
+                        }
+                    }
                     if (!(await activation.activate()) || changed() || addressBlockedRef.current) return undefined
                     const res = await rainApi.applyForCard({
                         termsAccepted,
-                        acceptedDocuments,
                         ...(serializedApproval ? { serializedApproval } : {}),
                     })
                     if (changed()) return undefined
@@ -814,13 +857,7 @@ export function useCardFlow() {
                     }
                     return res
                 } catch (e) {
-                    if (changed()) return undefined
-                    // A Smart Paperwork Verification user's identity check starts on /verify, never as a legacy applicant here.
-                    if (e instanceof ApiError && e.code === 'paperwork_verification_required') {
-                        markVerifySource('card')
-                        router.push('/verify')
-                        return undefined
-                    }
+                    if (changed() || followIdentityStartRefusal(e)) return undefined
                     // A re-issue whose card permission signature the chain would refuse.
                     const message =
                         wireErrorCode(e) === API_ERROR_CODES.CARD_APPROVAL_SIGNATURE_REJECTED
@@ -841,15 +878,16 @@ export function useCardFlow() {
             advanceFromApplyResponse,
             residenceAddressStep,
             startFlowAction,
-            pendingTerms,
             needsFundingBeforeApply,
             userId,
             connectedAddress,
             t,
-            router,
             activation.activate,
             user?.identityVerification?.oneShot,
+            needsIdentityPlan,
+            openVerification,
             blockIfFinal,
+            followIdentityStartRefusal,
         ]
     )
 
@@ -1036,7 +1074,7 @@ export function useCardFlow() {
             if (advanceFromApplyResponse(res))
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
         } catch (e) {
-            if (controller.signal.aborted || changed()) return
+            if (controller.signal.aborted || changed() || followIdentityStartRefusal(e)) return
             const message = e instanceof Error ? e.message : t('page.applyFailed')
             console.error('[card apply] post-sumsub poll error:', e)
             setApplyError(message)
@@ -1051,7 +1089,7 @@ export function useCardFlow() {
             // successor now owns.
             if (isMountedRef.current && pollAbortRef.current === controller) setIsIssuing(false)
         }
-    }, [advanceFromApplyResponse, t, activation.activate, userId, connectedAddress])
+    }, [advanceFromApplyResponse, t, activation.activate, userId, connectedAddress, followIdentityStartRefusal])
 
     const handleSumsubClose = useCallback(() => {
         if (!sumsubCompletedRef.current) {
@@ -1070,8 +1108,19 @@ export function useCardFlow() {
             addressBlockedRef.current
         )
             return ''
-        const res = await rainApi.applyForCard({ termsAccepted: false })
-        if (!sameIdentity(identityRef.current, startedFor)) return ''
+        if (needsIdentityPlan) {
+            const path = await paperworkVerificationEntryRoute({})
+            if (!sameIdentity(identityRef.current, startedFor)) return ''
+            if (path) {
+                openVerification(path)
+                return ''
+            }
+        }
+        const res = await rainApi.applyForCard({ termsAccepted: false }).catch((error: unknown) => {
+            if (!sameIdentity(identityRef.current, startedFor) || followIdentityStartRefusal(error)) return null
+            throw error
+        })
+        if (!res || !sameIdentity(identityRef.current, startedFor)) return ''
         if ((res.status === 'incomplete' || res.status === 'main-kyc-required') && 'sumsubAccessToken' in res) {
             return res.sumsubAccessToken
         }
@@ -1080,7 +1129,15 @@ export function useCardFlow() {
         setSumsubToken(null)
         advanceFromApplyResponse(res)
         return ''
-    }, [advanceFromApplyResponse, activation.activate, userId, connectedAddress])
+    }, [
+        advanceFromApplyResponse,
+        activation.activate,
+        userId,
+        connectedAddress,
+        followIdentityStartRefusal,
+        needsIdentityPlan,
+        openVerification,
+    ])
 
     // Preserve an interrupted Sumsub session for installed Android PWAs that
     // remain reachable until the native migration cutoff.
@@ -1093,8 +1150,27 @@ export function useCardFlow() {
             addressBlockedRef.current
         )
             return false
-        const res = await rainApi.applyForCard({ termsAccepted: false })
-        if (!sameIdentity(identityRef.current, startedFor)) return false
+        const current = () => sameIdentity(identityRef.current, startedFor)
+        const redirect = async (path: string) => {
+            await consume()
+            if (current()) openVerification(path)
+        }
+        if (needsIdentityPlan) {
+            const path = await paperworkVerificationEntryRoute({})
+            if (!current()) return false
+            if (path) {
+                await redirect(path)
+                return false
+            }
+        }
+        const res = await rainApi.applyForCard({ termsAccepted: false }).catch(async (error: unknown) => {
+            if (!current()) return null
+            const path = error instanceof ApiError ? identityStartRefusalPath(error.code) : null
+            if (!path) throw error
+            await redirect(path)
+            return null
+        })
+        if (!res || !current()) return false
         if ((res.status === 'incomplete' || res.status === 'main-kyc-required') && 'sumsubAccessToken' in res) {
             if (blockIfFinal()) return false
             setSumsubToken(res.sumsubAccessToken)

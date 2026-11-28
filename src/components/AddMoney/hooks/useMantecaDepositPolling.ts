@@ -1,5 +1,6 @@
 'use client'
 
+import { TransactionIntentStatus } from '@/constants/api-enums.generated'
 import { mantecaApi } from '@/services/manteca'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef } from 'react'
@@ -7,7 +8,12 @@ import { useEffect, useMemo, useRef } from 'react'
 const POLLING_INTERVAL = 5000
 
 // Terminal TransactionIntentStatus values returned by GET /manteca/deposit/:id/status.
-const TERMINAL_STATUSES = ['COMPLETED', 'FAILED', 'CANCELLED', 'REFUNDED']
+const TERMINAL_STATUSES: ReadonlySet<string> = new Set([
+    TransactionIntentStatus.COMPLETED,
+    TransactionIntentStatus.FAILED,
+    TransactionIntentStatus.CANCELLED,
+    TransactionIntentStatus.REFUNDED,
+])
 // "Payment detected" is signalled by the synthetic's stage, NOT the intent status:
 // Manteca flips a ramp-on to ACTIVE (→ intent PROCESSING) seconds after creation,
 // while the user hasn't paid — stage 1 is DEPOSIT (QR live, awaiting fiat), and
@@ -32,16 +38,16 @@ export function useMantecaDepositPolling(depositId: string | undefined, onComple
         gcTime: 0, // don't carry a settled status across navigations
         refetchInterval: (query) => {
             const status = (query.state.data as { data?: { status?: string } } | undefined)?.data?.status
-            return status && TERMINAL_STATUSES.includes(status) ? false : POLLING_INTERVAL
+            return status && TERMINAL_STATUSES.has(status) ? false : POLLING_INTERVAL
         },
     })
 
     const status: MantecaDepositPollStatus = useMemo(() => {
         const s = data?.data?.status
         const stage = data?.data?.stage
-        if (s === 'COMPLETED') return 'completed'
-        if (s === 'CANCELLED' && data?.data?.expired === true) return 'expired'
-        if (s && TERMINAL_STATUSES.includes(s)) return 'failed'
+        if (s === TransactionIntentStatus.COMPLETED) return 'completed'
+        if (s === TransactionIntentStatus.CANCELLED && data?.data?.expired === true) return 'expired'
+        if (s && TERMINAL_STATUSES.has(s)) return 'failed'
         // stage may be null/absent (older BE, legacy row) — then stay 'pending'
         // so the QR keeps showing rather than stranding the user on a loader.
         if (typeof stage === 'number' && stage >= PAID_STAGE) return 'processing'

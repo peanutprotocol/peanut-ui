@@ -33,6 +33,7 @@ type Driver = {
     reserveUnprepared(): void
     finishPreparation(): Promise<void>
     setNoEntry(state: 'on' | 'refused' | 'pending' | 'ready'): void
+    setResidenceUnsupported(): void
     resolveStartError(status: number, body: unknown, retryAfter?: string): Promise<void>
     resolveTerminal(status: 'APPROVED' | 'REJECTED' | 'SUPERSEDED'): Promise<void>
     relaunchNative(): Promise<void>
@@ -105,6 +106,22 @@ it('reuses one key across double taps and an uncertain retry, then follows the r
     expect(driver.currentCandidate()).toEqual(expected)
     expect(driver.currentPath()).not.toBe(destination)
     expect(driver.postRequests()).toHaveLength(2)
+})
+
+it('stops re-verification when the residence becomes unsupported', async () => {
+    driver = await mountFeatureGate(fixture)
+    await driver.openInvitation()
+    await driver.doubleTapStart()
+    await driver.resolvePendingStart()
+    expect(driver.currentCandidate()).toEqual(expect.objectContaining({ attemptId: active.attemptId }))
+
+    driver.setResidenceUnsupported()
+    await driver.reload()
+
+    expect(await screen.findByRole('heading', { name: 'residenceNotSupported' })).toBeVisible()
+    expect(driver.currentCandidate()).toBeNull()
+    expect(screen.queryByTestId('verify-reverification-start')).not.toBeInTheDocument()
+    expect(driver.postRequests()).toHaveLength(1)
 })
 
 it('discards a start response delivered after the account changes', async () => {

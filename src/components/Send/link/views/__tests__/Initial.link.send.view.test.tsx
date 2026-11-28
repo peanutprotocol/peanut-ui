@@ -10,7 +10,7 @@
  * (PostHog session 019f8f8c-d4d5-775c-97ab-3e47c532a694, 2026-07-23.)
  */
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { LinkSendFlowProvider, useLinkSendFlow } from '@/context/LinkSendFlowContext'
@@ -33,8 +33,16 @@ jest.mock('@/context/loadingStates.context', () => {
 })
 
 const mockCreateLink = jest.fn()
+const mockSendLinkFromFoundDeposit = jest.fn()
 jest.mock('@/components/Create/useCreateLink', () => ({
     useCreateLink: () => ({ createLink: mockCreateLink }),
+    sendLinkFromFoundDeposit: (...args: unknown[]) => mockSendLinkFromFoundDeposit(...args),
+}))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'u1' } } }) }))
+// where the link's deposit stands on chain, as the double-send recovery reads it
+const mockReadUserOpOutcome = jest.fn()
+jest.mock('@/utils/userop-outcome', () => ({
+    readUserOpOutcome: (...args: unknown[]) => mockReadUserOpOutcome(...args),
 }))
 
 const mockUseWallet = jest.fn()
@@ -107,12 +115,15 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
 // Callout with data-testid="error-alert" / "info-card"
 import LinkSendInitialView from '../Initial.link.send.view'
 import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
+import { markSpendMayHaveBroadcast } from '@/hooks/wallet/spendBroadcast'
+import { sendLinksApi } from '@/services/sendLinks'
 
 // ---------- helpers ----------
 
 const usdc = (dollars: number) => BigInt(Math.round(dollars * 1e6))
 
 const walletState = (spendableDollars: number | undefined) => ({
+    address: '0x2222222222222222222222222222222222222222',
     fetchBalance: jest.fn(),
     spendableBalance: spendableDollars === undefined ? undefined : usdc(spendableDollars),
     formattedSpendableBalance: spendableDollars === undefined ? '0.00' : spendableDollars.toFixed(2),
@@ -154,6 +165,8 @@ const rerenderView = (utils: ReturnType<typeof render>, amount: string) => {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    window.localStorage.clear()
+    mockReadUserOpOutcome.mockReset().mockResolvedValue('unknown')
 })
 
 // ---------- tests ----------
@@ -354,5 +367,93 @@ describe('LinkSendInitialView balance fill', () => {
 
         const input = await screen.findByTestId('amount-input')
         expect(input).not.toHaveAttribute('data-balance-fill')
+    })
+})
+
+/**
+ * Replays the ChargeSendFlow.tla counterexamples on the send link
+ * (verification/tla/ChargeSendFlow.tla). Before the shared guard,
+ * a failure after the deposit left showed Retry, and Retry deposited again.
+ */
+describe('LinkSendInitialView — a lost answer is read back, never deposited again', () => {
+    const OP = { userOpHash: `0x${'ab'.repeat(32)}`, nonce: '7' }
+    const FOUND_LINK = {
+        link: 'https://peanut.test/claim?c=42161&v=v4.4&i=12#p=secret',
+        pubKey: '0xlinkkey',
+        chainId: '42161',
+        contractVersion: 'v4.4',
+        depositIdx: 12,
+        txHash: '0xfound',
+        amount: usdc(20),
+        tokenAddress: '0xusdc',
+    }
+    const depositLosesItsAnswer = () =>
+        mockCreateLink.mockImplementation(
+            async (_amount: bigint, opts: { onBegin: (pubKey: string) => void; onBroadcast: (b: unknown) => void }) => {
+                opts.onBegin('0xlinkkey')
+                opts.onBroadcast({ via: 'wallet', userOp: OP })
+                throw markSpendMayHaveBroadcast(new Error('bundler request timed out'))
+            }
+        )
+
+    test('a deposit whose answer was lost is found on chain and its link shown: one deposit', async () => {
+        mockUseWallet.mockReturnValue(walletState(100))
+        depositLosesItsAnswer()
+        mockReadUserOpOutcome.mockResolvedValue({ executed: '0xfound' })
+        mockSendLinkFromFoundDeposit.mockResolvedValue(FOUND_LINK)
+
+        renderView('20')
+        fireEvent.click(screen.getByText('Create link'))
+
+        await waitFor(() =>
+            expect(mockSendLinkFromFoundDeposit).toHaveBeenCalledWith(
+                expect.objectContaining({ pubKey: '0xlinkkey', txHash: '0xfound' })
+            )
+        )
+        await waitFor(() =>
+            expect(sendLinksApi.create).toHaveBeenCalledWith(
+                expect.objectContaining({ pubKey: '0xlinkkey', depositIdx: 12, txHash: '0xfound' })
+            )
+        )
+        expect(screen.queryByText('Retry')).toBeNull()
+        expect(mockCreateLink).toHaveBeenCalledTimes(1)
+    })
+
+    test('while the deposit may still land, Retry stays off and deposits nothing', async () => {
+        jest.useFakeTimers()
+        try {
+            mockUseWallet.mockReturnValue(walletState(100))
+            depositLosesItsAnswer()
+            renderView('20')
+            fireEvent.click(screen.getByText('Create link'))
+            await act(async () => {
+                await jest.advanceTimersByTimeAsync(65_000)
+            })
+
+            expect(screen.getByTestId('error-alert')).toHaveTextContent(en.payment.confirmingPayment.description)
+            const retry = screen.getByText('Retry')
+            expect(retry).toBeDisabled()
+            fireEvent.click(retry)
+            await act(async () => {
+                await jest.advanceTimersByTimeAsync(0)
+            })
+            expect(mockCreateLink).toHaveBeenCalledTimes(1)
+        } finally {
+            jest.clearAllTimers()
+            jest.useRealTimers()
+        }
+    })
+
+    test('two taps in one tick make one deposit', async () => {
+        mockUseWallet.mockReturnValue(walletState(100))
+        mockCreateLink.mockImplementation(() => new Promise(() => {}))
+        renderView('20')
+
+        act(() => {
+            fireEvent.click(screen.getByText('Create link'))
+            fireEvent.click(screen.getByText('Create link'))
+        })
+
+        expect(mockCreateLink).toHaveBeenCalledTimes(1)
     })
 })

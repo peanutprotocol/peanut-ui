@@ -12,7 +12,7 @@ jest.mock('@/utils/session-fence', () => ({
 }))
 
 jest.mock('@/app/actions/kyc-workflow', () => {
-    const getKycDocumentPlan = jest.fn(async () => ({ available: false, routes: [] }))
+    const getKycDocumentPlan = jest.fn(async () => ({ available: false, flow: null, routes: [] }))
     return {
         getKycDocumentStatus: jest.fn(async () => 'IN_REVIEW'),
         getKycDocumentPlan,

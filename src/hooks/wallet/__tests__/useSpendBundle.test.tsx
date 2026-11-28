@@ -27,6 +27,7 @@ import { tryMixedEphemeralSpend } from '../mixedEphemeralSpend'
 import { rainApi, RainCooldownError } from '@/services/rain'
 import { API_ERROR_CODES, ApiError } from '@/services/api-error'
 import { userOpRevertedError } from '@/utils/userop-rescue.utils'
+import { spendMayHaveBroadcast } from '../spendBroadcast'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const ACCOUNT = '0xc97fffbf8768ca90cd62fae2e313b084fe13e553'
@@ -1207,6 +1208,130 @@ describe('useSpendBundle — cached-controller repair', () => {
                 await result.current.spend(spendInput())
             })
             expect(mockRefreshController).not.toHaveBeenCalled()
+        })
+    })
+})
+
+/**
+ * The spend engine's half of the double-send guard
+ * (verification/tla/ChargeSendFlow.tla): every send that leaves
+ * this device is reported before it goes, and only a failure that may hide a
+ * landed send carries the may-have-broadcast tag.
+ */
+describe('useSpendBundle — broadcast reports and the may-have-broadcast tag', () => {
+    const OP = { userOpHash: `0x${'ab'.repeat(32)}`, nonce: '7' }
+    const run = async (input: Record<string, unknown>) => {
+        const { result } = renderHook(() => useSpendBundle(), { wrapper })
+        let caught: unknown
+        await act(async () => {
+            await result.current.spend(spendInput(input)).catch((error: unknown) => {
+                caught = error
+            })
+        })
+        return caught
+    }
+
+    describe('smart-only', () => {
+        beforeEach(() => {
+            mockResolveSpendStrategy.mockResolvedValue({ strategy: 'smart-only', smartBalance: 200_000_000n })
+        })
+
+        it('reports the signed op, then tags a transport failure after it as may-have-broadcast', async () => {
+            const onBroadcast = jest.fn()
+            const timeout = Object.assign(new Error('The request took too long to respond.'), { name: 'TimeoutError' })
+            mockHandleSendUserOpEncoded.mockImplementationOnce(async (_calls, _chain, opts) => {
+                opts?.onBroadcastAttempt?.(OP)
+                throw timeout
+            })
+            const error = await run({ onBroadcast })
+            expect(onBroadcast).toHaveBeenCalledWith({ via: 'wallet', userOp: OP })
+            expect(error).toBe(timeout)
+            expect(spendMayHaveBroadcast(error)).toBe(true)
+        })
+
+        it('does not tag a bundler refusal: the op was never accepted', async () => {
+            const refusal = Object.assign(new Error('UserOperation reverted during simulation with reason: AA21'), {
+                name: 'UserOperationExecutionError',
+                cause: Object.assign(new Error('AA21 did not pay prefund'), { name: 'RpcRequestError', code: -32500 }),
+            })
+            mockHandleSendUserOpEncoded.mockImplementationOnce(async (_calls, _chain, opts) => {
+                opts?.onBroadcastAttempt?.(OP)
+                throw refusal
+            })
+            expect(spendMayHaveBroadcast(await run({}))).toBe(false)
+        })
+
+        it('does not tag a failure before the broadcast', async () => {
+            mockHandleSendUserOpEncoded.mockRejectedValueOnce(new Error('estimation failed'))
+            const onBroadcast = jest.fn()
+            expect(spendMayHaveBroadcast(await run({ onBroadcast }))).toBe(false)
+            expect(onBroadcast).not.toHaveBeenCalled()
+        })
+
+        it('an onBroadcast that throws stops the op before it leaves, untagged', async () => {
+            const notHeld = new Error('This payment is no longer held on this device')
+            const transport = jest.fn()
+            mockHandleSendUserOpEncoded.mockImplementationOnce(async (_calls, _chain, opts) => {
+                opts?.onBroadcastAttempt?.(OP)
+                transport()
+                return { userOpHash: OP.userOpHash, receipt: null }
+            })
+            const error = await run({
+                onBroadcast: () => {
+                    throw notHeld
+                },
+            })
+            expect(error).toBe(notHeld)
+            expect(transport).not.toHaveBeenCalled()
+            expect(spendMayHaveBroadcast(error)).toBe(false)
+        })
+
+        it('does not tag a mined revert: its batch moved nothing', async () => {
+            mockHandleSendUserOpEncoded.mockImplementationOnce(async (_calls, _chain, opts) => {
+                opts?.onBroadcastAttempt?.(OP)
+                throw userOpRevertedError(OP.userOpHash as `0x${string}`, false)
+            })
+            expect(spendMayHaveBroadcast(await run({}))).toBe(false)
+        })
+    })
+
+    describe('collateral-only (the backend broadcasts)', () => {
+        it('reports the backend broadcast and tags a lost /submit answer', async () => {
+            const onBroadcast = jest.fn()
+            mockSubmitWithdrawal.mockRejectedValueOnce(new ApiError('gateway timeout', { status: 504 }))
+            const error = await run({ onBroadcast, chargeId: 'charge-1' })
+            expect(onBroadcast).toHaveBeenCalledWith({ via: 'backend' })
+            expect(spendMayHaveBroadcast(error)).toBe(true)
+        })
+
+        it('does not tag a 4xx refusal of /submit', async () => {
+            mockSubmitWithdrawal.mockRejectedValueOnce(new ApiError('invalid signature', { status: 400 }))
+            expect(spendMayHaveBroadcast(await run({ chargeId: 'charge-1' }))).toBe(false)
+        })
+
+        // Chip on ui#4198: these 4xx answers can follow a send the backend accepted
+        it.each([
+            ['a 408 timeout', new ApiError('request timeout', { status: 408 })],
+            [
+                'a 409 WITHDRAWAL_PENDING_CONFIRMATION',
+                new ApiError('still confirming', { status: 409, code: 'WITHDRAWAL_PENDING_CONFIRMATION' }),
+            ],
+        ])('tags %s from /submit as may-have-broadcast', async (_label, answer) => {
+            mockSubmitWithdrawal.mockRejectedValueOnce(answer)
+            expect(spendMayHaveBroadcast(await run({ chargeId: 'charge-1' }))).toBe(true)
+        })
+
+        it('an onBroadcast that throws stops /submit, untagged', async () => {
+            const notHeld = new Error('This payment is no longer held on this device')
+            const error = await run({
+                chargeId: 'charge-1',
+                onBroadcast: () => {
+                    throw notHeld
+                },
+            })
+            expect(error).toBe(notHeld)
+            expect(mockSubmitWithdrawal).not.toHaveBeenCalled()
+            expect(spendMayHaveBroadcast(error)).toBe(false)
         })
     })
 })
