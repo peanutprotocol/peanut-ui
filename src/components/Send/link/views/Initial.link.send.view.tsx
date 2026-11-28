@@ -330,46 +330,58 @@ const LinkSendInitialView = () => {
 
             <div className="flex flex-col gap-4">
                 {bankSent && (
-                    <div className="flex flex-col items-center gap-2">
-                        <Callout priority="info" className="w-full" data-testid="send-link-add-money-bank-sent">
-                            {bankSent.usd
-                                ? tCard('bankSentPending', { amount: formatBankAmount(bankSent.usd, 'USD') })
-                                : tCard('bankSentPendingNoAmount')}
-                        </Callout>
-                        <LinkButton onClick={addMoney.openAddMoney} data-testid="send-link-add-money-another-way">
+                    <Callout priority="info" className="w-full" data-testid="send-link-add-money-bank-sent">
+                        {bankSent.usd
+                            ? tCard('bankSentPending', { amount: formatBankAmount(bankSent.usd, 'USD') })
+                            : tCard('bankSentPendingNoAmount')}
+                    </Callout>
+                )}
+                {/* the tertiary sits gap-6 under the primary (design.md tertiary CTA) */}
+                <div className="flex flex-col gap-6">
+                    {/* only a flow (submit-time) error flips the CTA to retry — a
+                        validation error keeps the primary Create link button, and a short
+                        balance turns it into "Add $X" until a bank transfer is on its way */}
+                    {isFlowError ? (
+                        <Button
+                            shadowSize="4"
+                            icon="retry"
+                            onClick={handleOnNext}
+                            loading={isLoading}
+                            disabled={isLoading}
+                        >
+                            {tCommon('retry')}
+                        </Button>
+                    ) : isShort && !bankSent ? (
+                        <Button
+                            variant="primary"
+                            icon="arrow-down"
+                            onClick={addMoney.openAddMoney}
+                            data-testid="send-link-add-money"
+                        >
+                            {addMoney.gapUsd
+                                ? tAdd('addAmount', { amount: formatBankAmount(addMoney.gapUsd, 'USD') })
+                                : tAdd('title')}
+                        </Button>
+                    ) : (
+                        <Button
+                            shadowSize="4"
+                            onClick={handleOnNext}
+                            loading={isLoading}
+                            disabled={isLoading || !isValidSendAmount(tokenValue) || !!errorState?.showError}
+                        >
+                            {isLoading ? tLoading('creatingLink') : t('link.createLink')}
+                        </Button>
+                    )}
+                    {bankSent && (
+                        <LinkButton
+                            className="self-center"
+                            onClick={addMoney.openAddMoney}
+                            data-testid="send-link-add-money-another-way"
+                        >
                             {tAdd('anotherWay')}
                         </LinkButton>
-                    </div>
-                )}
-                {/* only a flow (submit-time) error flips the CTA to retry — a
-                    validation error keeps the primary Create link button, and a short
-                    balance turns it into "Add $X" until a bank transfer is on its way */}
-                {isFlowError ? (
-                    <Button shadowSize="4" icon="retry" onClick={handleOnNext} loading={isLoading} disabled={isLoading}>
-                        {tCommon('retry')}
-                    </Button>
-                ) : isShort && !bankSent ? (
-                    <Button
-                        variant="primary"
-                        shadowSize="4"
-                        icon="arrow-down"
-                        onClick={addMoney.openAddMoney}
-                        data-testid="send-link-add-money"
-                    >
-                        {addMoney.gapUsd
-                            ? tAdd('addAmount', { amount: formatBankAmount(addMoney.gapUsd, 'USD') })
-                            : tAdd('title')}
-                    </Button>
-                ) : (
-                    <Button
-                        shadowSize="4"
-                        onClick={handleOnNext}
-                        loading={isLoading}
-                        disabled={isLoading || !isValidSendAmount(tokenValue) || !!errorState?.showError}
-                    >
-                        {isLoading ? tLoading('creatingLink') : t('link.createLink')}
-                    </Button>
-                )}
+                    )}
+                </div>
                 {addMoney.drawer}
                 {isFlowError && (
                     <Callout priority="error" data-testid="error-alert">
