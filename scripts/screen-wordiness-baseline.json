@@ -51,7 +51,7 @@
         "components/Provider/ProviderSheet.tsx": 68,
         "components/Request/direct-request/views/Initial.direct.request.view.tsx": 187,
         "components/Request/link/views/RequestCreatedView.tsx": 220,
-        "components/Send/link/views/Initial.link.send.view.tsx": 68,
+        "components/Send/link/views/Initial.link.send.view.tsx": 136,
         "components/Send/views/Contacts.view.tsx": 96,
         "components/Send/views/SendRouter.view.tsx": 75,
         "components/Setup/redesign/Celebration/CelebrationScreen.tsx": 102,
