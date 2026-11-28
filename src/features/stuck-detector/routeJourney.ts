@@ -21,26 +21,42 @@ export function journeyForPath(pathname: string): StuckJourney {
     return 'other'
 }
 
-/** Whether a path is the crypto deposit screen (never bank-transfer help). */
-export function isCryptoDepositPath(pathname: string): boolean {
-    return pathname === '/add-money/crypto' || pathname.startsWith('/add-money/crypto/')
+/** Whether a path is a non-bank direct deposit rail (crypto or Pix). */
+export function isNonBankDepositRailPath(pathname: string): boolean {
+    return (
+        pathname === '/add-money/crypto' ||
+        pathname.startsWith('/add-money/crypto/') ||
+        pathname === '/add-money/pix' ||
+        pathname.startsWith('/add-money/pix/')
+    )
 }
 
-/** Whether a path is a fiat / bank-transfer add-money screen. */
+/**
+ * Whether a path is an actual bank-transfer deposit flow (`/add-money/<country>/bank`
+ * or non-BRL `/add-money/<country>/manteca`, e.g. Argentina CVU/CBU).
+ * Excludes method/country pickers (`/add-money`, `/add-money/options`, `/add-money/<country>`),
+ * crypto (`/add-money/crypto`), and Pix (`/add-money/pix`, `/add-money/brazil/manteca`).
+ */
 export function isBankDepositPath(pathname: string): boolean {
-    return (pathname === '/add-money' || pathname.startsWith('/add-money/')) && !isCryptoDepositPath(pathname)
+    const clean = pathname.split('?')[0].replace(/\/+$/, '')
+    const parts = clean.split('/').filter(Boolean)
+    if (parts.length !== 3 || parts[0] !== 'add-money') return false
+    const [, country, rail] = parts
+    if (rail === 'bank') return true
+    if (rail === 'manteca' && country !== 'brazil' && country !== 'br') return true
+    return false
 }
 
 /**
  * Map a pathname + activation state to one of the 5 eligible intervention surfaces.
- * Card terms and marketing pages are deliberately excluded; crypto deposits use active_issue.
+ * Card terms, marketing pages, and add-money pickers are excluded; crypto and Pix use active_issue.
  */
 export function surfaceForPath(pathname: string, hasSpent: boolean): StuckSurface | null {
     if (isStuckExcludedPath(pathname)) return null
     if (pathname.startsWith('/setup')) return 'setup_passkey'
     if (pathname.startsWith('/verify')) return 'verify_loop'
-    if (isCryptoDepositPath(pathname)) return 'active_issue'
     if (isBankDepositPath(pathname)) return hasSpent ? 'active_issue' : 'add_money'
+    if (isNonBankDepositRailPath(pathname)) return 'active_issue'
     if (pathname === '/home') return hasSpent ? null : 'home_funded'
     if (pathname.startsWith('/qr-pay') || pathname.startsWith('/withdraw') || pathname.startsWith('/card')) {
         return 'active_issue'

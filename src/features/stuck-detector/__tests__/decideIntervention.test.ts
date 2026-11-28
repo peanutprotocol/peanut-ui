@@ -1,5 +1,5 @@
 import { decideStuckIntervention } from '../decideIntervention'
-import { isBankDepositPath, isCryptoDepositPath, surfaceForPath } from '../routeJourney'
+import { isBankDepositPath, isNonBankDepositRailPath, surfaceForPath } from '../routeJourney'
 import type { StuckDecisionInput } from '../types'
 
 const BASE_INPUT: StuckDecisionInput = {
@@ -101,12 +101,27 @@ describe('decideStuckIntervention', () => {
         expect(silentStall).toMatchObject({ show: true, surface: 'setup_passkey', pose: 'waving-hello' })
     })
 
-    it('never routes /add-money/crypto into bank-transfer deposit help', () => {
-        expect(isCryptoDepositPath('/add-money/crypto')).toBe(true)
+    it('restricts bank-transfer deposit help to actual bank detail routes (excludes crypto, Pix, and pickers)', () => {
+        expect(isNonBankDepositRailPath('/add-money/crypto')).toBe(true)
+        expect(isNonBankDepositRailPath('/add-money/pix')).toBe(true)
+
         expect(isBankDepositPath('/add-money/crypto')).toBe(false)
-        expect(isBankDepositPath('/add-money/ar/bank')).toBe(true)
+        expect(isBankDepositPath('/add-money/pix')).toBe(false)
+        expect(isBankDepositPath('/add-money/brazil/manteca')).toBe(false)
+        expect(isBankDepositPath('/add-money')).toBe(false)
+        expect(isBankDepositPath('/add-money/options')).toBe(false)
+        expect(isBankDepositPath('/add-money/spain')).toBe(false)
+
+        expect(isBankDepositPath('/add-money/us/bank')).toBe(true)
+        expect(isBankDepositPath('/add-money/spain/bank')).toBe(true)
+        expect(isBankDepositPath('/add-money/argentina/manteca')).toBe(true)
+
         expect(surfaceForPath('/add-money/crypto', false)).toBe('active_issue')
+        expect(surfaceForPath('/add-money/pix', false)).toBe('active_issue')
+        expect(surfaceForPath('/add-money/options', false)).toBeNull()
+        expect(surfaceForPath('/add-money', false)).toBeNull()
         expect(surfaceForPath('/add-money/us/bank', false)).toBe('add_money')
+        expect(surfaceForPath('/add-money/argentina/manteca', false)).toBe('add_money')
     })
 
     it('triggers verify buddy on 3rd local field error regardless of PostHog dedup', () => {
