@@ -52,16 +52,15 @@ export function PeanutBuddy({
             data-stuck-ignore="true"
             data-testid="peanut-buddy"
             aria-live="polite"
-            initial={reducedMotion ? { opacity: 0 } : { x: 180, opacity: 0, rotate: -3 }}
-            animate={reducedMotion ? { opacity: 1 } : { x: 0, opacity: 1, rotate: 0 }}
-            exit={reducedMotion ? { opacity: 0 } : { x: 180, opacity: 0 }}
+            initial={reducedMotion ? { opacity: 0 } : { x: 148, opacity: 0 }}
+            animate={reducedMotion ? { opacity: 1 } : { x: 0, opacity: 1 }}
+            exit={reducedMotion ? { opacity: 0 } : { x: 148, opacity: 0 }}
             transition={
                 reducedMotion
                     ? { duration: 0.2 }
                     : {
-                          x: { duration: 0.82, ease: [0.22, 1, 0.36, 1] },
-                          rotate: { duration: 0.82, ease: [0.22, 1, 0.36, 1] },
-                          opacity: { duration: 0.2 },
+                          x: { duration: 0.72, ease: [0.22, 1, 0.36, 1] },
+                          opacity: { duration: 0.18 },
                       }
             }
             className={twMerge(

@@ -1,173 +1,216 @@
-/**
- * Cross-animation Lottie rig morphing (ported from `mono/assets/mascot/lottie-lab/interactive.html`).
- *
- * Every approved Peanut mascot Lottie shares the same 13 named body-part layers (`Body`,
- * `L Arm`, `L Hand`, `R Arm`, `R Hand`, `Eye 1/2`, `Nose`, `Wrinkles`, `L/R Leg`, `L/R Shoe`).
- * Rather than hard-swapping SVGs or cross-fading opacities (which creates vector ghosting),
- * we freeze both stacked rigs, decompose each shared layer's affine matrix into
- * translate / rotate / scale / shear, interpolate with shortest-path rotation and subtle
- * Disney anticipation/settle easing, and perform a clean 1-frame art cut at the midpoint.
- */
+import type { StuckBuddyPose } from './types'
 
-export interface AffineComponents {
-    a: number
-    b: number
-    c: number
-    d: number
-    e: number
-    f: number
+export interface PoseTransitionProfile {
+    /**
+     * Contact/plant frame in `walking.json` (40 frames total) whose arm and torso
+     * silhouette flows naturally into the target pose:
+     * - frame 8: left arm already raised out left, right arm down right (matches `waving-hello`)
+     * - frame 28: arms tucked near torso in a compact upright stance (matches `thinking`, `worried`, `sad`)
+     */
+    walkExitFrame: number
+    /** Total duration (ms) of the 4-beat brake -> hop-turn -> cushion-land -> settle arc. */
+    durationMs: number
+    squatScaleX: number
+    squatScaleY: number
+    squatSkewDeg: number
+    squatDropPx: number
+    apexLiftPx: number
+    apexScaleX: number
+    apexScaleY: number
+    apexTiltDeg: number
+    landScaleX: number
+    landScaleY: number
+    landDropPx: number
+    landTiltDeg: number
 }
 
-export interface DecomposedMatrix {
-    tx: number
-    ty: number
-    rot: number
-    sx: number
-    sy: number
-    shear: number
+export interface PoseTransitionFrame {
+    scaleX: number
+    scaleY: number
+    translateY: number
+    rotateDeg: number
+    skewXDeg: number
+    /** Exact 1-frame pose cut at the apex of the hop (`t >= 0.50`), avoiding vector ghosting. */
+    showTargetArt: boolean
+    /** Speech bubble launches right on touchdown (`t >= 0.68`) so it feels triggered by landing weight. */
+    bubbleReady: boolean
 }
 
-export interface RigLayerPair {
-    gFrom: SVGGElement
-    gTo: SVGGElement
-    dFrom: DecomposedMatrix
-    dTo: DecomposedMatrix
-    baseFrom: string | null
-    baseTo: string | null
+export const POSE_TRANSITION_PROFILES: Record<StuckBuddyPose, PoseTransitionProfile> = {
+    'waving-hello': {
+        walkExitFrame: 8,
+        durationMs: 440,
+        squatScaleX: 1.14,
+        squatScaleY: 0.84,
+        squatSkewDeg: -5.5,
+        squatDropPx: 2.5,
+        apexLiftPx: 14,
+        apexScaleX: 0.87,
+        apexScaleY: 1.15,
+        apexTiltDeg: 3.5,
+        landScaleX: 1.09,
+        landScaleY: 0.9,
+        landDropPx: 2.5,
+        landTiltDeg: 2.0,
+    },
+    thinking: {
+        walkExitFrame: 28,
+        durationMs: 420,
+        squatScaleX: 1.1,
+        squatScaleY: 0.88,
+        squatSkewDeg: -4.0,
+        squatDropPx: 2.0,
+        apexLiftPx: 8.5,
+        apexScaleX: 0.92,
+        apexScaleY: 1.09,
+        apexTiltDeg: -2.0,
+        landScaleX: 1.06,
+        landScaleY: 0.93,
+        landDropPx: 1.5,
+        landTiltDeg: -3.2,
+    },
+    worried: {
+        walkExitFrame: 28,
+        durationMs: 480,
+        squatScaleX: 1.13,
+        squatScaleY: 0.84,
+        squatSkewDeg: -5.0,
+        squatDropPx: 3.0,
+        apexLiftPx: 9.5,
+        apexScaleX: 0.9,
+        apexScaleY: 1.11,
+        apexTiltDeg: 2.5,
+        landScaleX: 1.11,
+        landScaleY: 0.87,
+        landDropPx: 3.5,
+        landTiltDeg: -1.8,
+    },
+    sad: {
+        walkExitFrame: 28,
+        durationMs: 480,
+        squatScaleX: 1.13,
+        squatScaleY: 0.84,
+        squatSkewDeg: -5.0,
+        squatDropPx: 3.0,
+        apexLiftPx: 9.0,
+        apexScaleX: 0.9,
+        apexScaleY: 1.1,
+        apexTiltDeg: 2.0,
+        landScaleX: 1.11,
+        landScaleY: 0.87,
+        landDropPx: 3.5,
+        landTiltDeg: -2.0,
+    },
 }
 
-/** Decompose a 2D affine matrix via QR-style factorization so rotating limbs never shear or shrink. */
-export function decomposeMatrix(m: AffineComponents): DecomposedMatrix {
-    const sx = Math.hypot(m.a, m.b) || 1e-6
-    const rot = Math.atan2(m.b, m.a)
-    const shear = (m.a * m.c + m.b * m.d) / (sx * sx)
-    const sy = (m.a * m.d - m.b * m.c) / sx
-    return { tx: m.e, ty: m.f, rot, sx, sy, shear }
+const BEAT_SQUAT_END = 0.26
+const BEAT_APEX = 0.5
+const BEAT_LAND = 0.72
+const BUBBLE_TRIGGER_T = 0.68
+
+function lerp(a: number, b: number, t: number): number {
+    return a + (b - a) * t
 }
 
-/** Recompose translate/rotate/scale/shear back into an SVG `matrix(...)` attribute string. */
-export function recomposeMatrix(d: DecomposedMatrix): string {
-    const cos = Math.cos(d.rot)
-    const sin = Math.sin(d.rot)
-    const a = d.sx * cos
-    const b = d.sx * sin
-    const c = d.sy * (d.shear * cos - sin)
-    const dd = d.sy * (d.shear * sin + cos)
-    return `matrix(${a.toFixed(5)} ${b.toFixed(5)} ${c.toFixed(5)} ${dd.toFixed(5)} ${d.tx.toFixed(3)} ${d.ty.toFixed(3)})`
+function easeInOutQuad(t: number): number {
+    return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
 }
 
-/** Shortest-path angular + linear interpolation between two decomposed rig matrices. */
-export function lerpDecomposed(from: DecomposedMatrix, to: DecomposedMatrix, progress: number): DecomposedMatrix {
-    let deltaRot = to.rot - from.rot
-    while (deltaRot > Math.PI) deltaRot -= 2 * Math.PI
-    while (deltaRot < -Math.PI) deltaRot += 2 * Math.PI
-    return {
-        tx: from.tx + (to.tx - from.tx) * progress,
-        ty: from.ty + (to.ty - from.ty) * progress,
-        rot: from.rot + deltaRot * progress,
-        sx: from.sx + (to.sx - from.sx) * progress,
-        sy: from.sy + (to.sy - from.sy) * progress,
-        shear: from.shear + (to.shear - from.shear) * progress,
-    }
+function easeOutCubic(t: number): number {
+    return 1 - Math.pow(1 - t, 3)
 }
 
-/**
- * Weighted Disney-style ease with a tiny overshoot & settle (`c1 = 1.35`):
- * gives Peanut a snappy, weighty feel as he plants his feet out of a walk into a wave or worried pose.
- */
-export function easeOutBackWeight(t: number): number {
-    const clamped = Math.max(0, Math.min(1, t))
-    const c1 = 1.35
+function easeInQuad(t: number): number {
+    return t * t
+}
+
+function easeOutBackGentle(t: number): number {
+    const c1 = 1.25
     const c3 = c1 + 1
-    return 1 + c3 * Math.pow(clamped - 1, 3) + c1 * Math.pow(clamped - 1, 2)
+    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2)
 }
 
 /**
- * Subtle foot-plant squash & stretch envelope over `[0, 1]` morph progress:
- * compresses slightly as Peanut brakes (`t ~ 0.25`), rebounds upright (`t ~ 0.65`), and settles to `1, 1`.
+ * Decide whether the walk-in loop has reached the pose-matched contact exit frame.
+ * Guarantees the character plants on a clean foot-contact frame rather than freezing mid-stride,
+ * while bounding extra wait time so the transition always fires promptly.
  */
-export function computeFootPlantSquash(t: number): { scaleX: number; scaleY: number; translateY: number } {
-    const clamped = Math.max(0, Math.min(1, t))
-    const wave = Math.sin(clamped * Math.PI * 2) * Math.exp(-clamped * 3.2)
-    const scaleX = 1 + 0.065 * wave
-    const scaleY = 1 - 0.065 * wave
-    const translateY = 2.5 * Math.max(0, wave)
-    return { scaleX, scaleY, translateY }
+export function shouldExitWalkToTransition(
+    currentFrame: number,
+    exitFrame: number,
+    elapsedMs: number,
+    minWalkMs = 680,
+    maxWaitExtraMs = 420
+): boolean {
+    if (elapsedMs < minWalkMs) return false
+    if (elapsedMs >= minWalkMs + maxWaitExtraMs) return true
+    return Math.abs(currentFrame - exitFrame) <= 2
 }
 
-interface LottieRendererElementLike {
-    data?: { nm?: string }
-    layerElement?: SVGGElement
-}
+/**
+ * Compute whole-rig Disney 4-beat character physics for `walking` -> `targetPose`.
+ *
+ * Uses whole-rig anticipation squat, volume-preserving stretch hop, exact 1-frame apex
+ * pose swap (overlapping into the target pose's live frames before touchdown), cushioned
+ * landing squash, and damped spring settle. Never mutates individual Lottie child `<g>`
+ * transforms, so limbs and shoes stay 100% locked to the artist's rig.
+ */
+export function computePoseTransitionFrame(pose: StuckBuddyPose, rawT: number): PoseTransitionFrame {
+    const t = Math.max(0, Math.min(1, rawT))
+    const p = POSE_TRANSITION_PROFILES[pose]
 
-interface LottieAnimationLike {
-    renderer?: { elements?: LottieRendererElementLike[] }
-}
-
-function readElementMatrix(g: SVGGElement): AffineComponents {
-    try {
-        const consolidated = g.transform?.baseVal?.consolidate?.()
-        if (consolidated?.matrix) {
-            const { a, b, c, d, e, f } = consolidated.matrix
-            return { a, b, c, d, e, f }
-        }
-    } catch {
-        // jsdom / non-SVG fallback
-    }
-    return { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }
-}
-
-function mapLayersByName(anim: LottieAnimationLike): Map<string, SVGGElement> {
-    const map = new Map<string, SVGGElement>()
-    const elements = anim.renderer?.elements
-    if (!Array.isArray(elements)) return map
-    for (const el of elements) {
-        const name = el?.data?.nm
-        if (name && el.layerElement) {
-            map.set(name, el.layerElement)
+    if (t <= BEAT_SQUAT_END) {
+        const u = easeInOutQuad(t / BEAT_SQUAT_END)
+        return {
+            scaleX: lerp(1, p.squatScaleX, u),
+            scaleY: lerp(1, p.squatScaleY, u),
+            translateY: lerp(0, p.squatDropPx, u),
+            rotateDeg: lerp(0, -2.5, u),
+            skewXDeg: lerp(0, p.squatSkewDeg, u),
+            showTargetArt: false,
+            bubbleReady: false,
         }
     }
-    return map
-}
 
-/** Pair every shared named layer between the walking rig and the target pose rig. */
-export function collectSharedRigPairs(fromAnim: LottieAnimationLike, toAnim: LottieAnimationLike): RigLayerPair[] {
-    const fromMap = mapLayersByName(fromAnim)
-    const toMap = mapLayersByName(toAnim)
-    const pairs: RigLayerPair[] = []
-    fromMap.forEach((gFrom, name) => {
-        const gTo = toMap.get(name)
-        if (!gTo) return
-        pairs.push({
-            gFrom,
-            gTo,
-            dFrom: decomposeMatrix(readElementMatrix(gFrom)),
-            dTo: decomposeMatrix(readElementMatrix(gTo)),
-            baseFrom: gFrom.getAttribute('transform'),
-            baseTo: gTo.getAttribute('transform'),
-        })
-    })
-    return pairs
-}
-
-/** Apply decomposed rig morph transforms at normalized progress `t in [0, 1]`. */
-export function applyRigMorphStep(pairs: readonly RigLayerPair[], t: number): { showTargetArt: boolean } {
-    const eased = easeOutBackWeight(t)
-    for (const pair of pairs) {
-        const attr = recomposeMatrix(lerpDecomposed(pair.dFrom, pair.dTo, eased))
-        pair.gFrom.setAttribute('transform', attr)
-        pair.gTo.setAttribute('transform', attr)
+    if (t < BEAT_APEX) {
+        const u = easeOutCubic((t - BEAT_SQUAT_END) / (BEAT_APEX - BEAT_SQUAT_END))
+        return {
+            scaleX: lerp(p.squatScaleX, p.apexScaleX, u),
+            scaleY: lerp(p.squatScaleY, p.apexScaleY, u),
+            translateY: lerp(p.squatDropPx, -p.apexLiftPx, u),
+            rotateDeg: lerp(-2.5, p.apexTiltDeg, u),
+            skewXDeg: lerp(p.squatSkewDeg, 0, u),
+            showTargetArt: false,
+            bubbleReady: false,
+        }
     }
-    // Hard 1-frame art cut at the midpoint — never opacity-blend sharp vector rigs.
-    return { showTargetArt: t >= 0.5 }
+
+    if (t < BEAT_LAND) {
+        const u = easeInQuad((t - BEAT_APEX) / (BEAT_LAND - BEAT_APEX))
+        return {
+            scaleX: lerp(p.apexScaleX, p.landScaleX, u),
+            scaleY: lerp(p.apexScaleY, p.landScaleY, u),
+            translateY: lerp(-p.apexLiftPx, p.landDropPx, u),
+            rotateDeg: lerp(p.apexTiltDeg, p.landTiltDeg, u),
+            skewXDeg: 0,
+            showTargetArt: true,
+            bubbleReady: t >= BUBBLE_TRIGGER_T,
+        }
+    }
+
+    const u = easeOutBackGentle((t - BEAT_LAND) / (1 - BEAT_LAND))
+    return {
+        scaleX: lerp(p.landScaleX, 1, u),
+        scaleY: lerp(p.landScaleY, 1, u),
+        translateY: lerp(p.landDropPx, 0, u),
+        rotateDeg: lerp(p.landTiltDeg, 0, u),
+        skewXDeg: 0,
+        showTargetArt: true,
+        bubbleReady: true,
+    }
 }
 
-/** Restore Lottie-owned base transforms before handing playback back to the target rig. */
-export function restoreRigTransforms(pairs: readonly RigLayerPair[]): void {
-    for (const pair of pairs) {
-        if (pair.baseFrom === null) pair.gFrom.removeAttribute('transform')
-        else pair.gFrom.setAttribute('transform', pair.baseFrom)
-        if (pair.baseTo === null) pair.gTo.removeAttribute('transform')
-        else pair.gTo.setAttribute('transform', pair.baseTo)
-    }
+/** Format a transition frame into a GPU-composited CSS `transform` anchored at Peanut's feet. */
+export function formatPoseTransitionTransform(frame: PoseTransitionFrame): string {
+    return `translate3d(0, ${frame.translateY.toFixed(2)}px, 0) rotate(${frame.rotateDeg.toFixed(2)}deg) skewX(${frame.skewXDeg.toFixed(2)}deg) scale(${frame.scaleX.toFixed(4)}, ${frame.scaleY.toFixed(4)})`
 }

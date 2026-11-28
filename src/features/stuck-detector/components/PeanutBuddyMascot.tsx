@@ -9,22 +9,20 @@ import {
 } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import { jitterFrame, subscribeToMascotClock } from '@/components/Global/PeanutMascot/PeanutMascot.utils'
 import {
-    applyRigMorphStep,
-    collectSharedRigPairs,
-    computeFootPlantSquash,
-    restoreRigTransforms,
-    type RigLayerPair,
+    computePoseTransitionFrame,
+    formatPoseTransitionTransform,
+    POSE_TRANSITION_PROFILES,
+    shouldExitWalkToTransition,
 } from '../rigMorph'
 import type { StuckBuddyPose } from '../types'
 
-const WALK_DURATION_MS = 820
-const MORPH_DURATION_MS = 420
+const MIN_WALK_DURATION_MS = 680
 
-export type BuddyMotionPhase = 'loading' | 'walking' | 'morphing' | 'idle'
+export type BuddyMotionPhase = 'loading' | 'walking' | 'transitioning' | 'idle'
 
 interface PeanutBuddyMascotProps {
     targetPose: StuckBuddyPose
-    /** Fired as soon as Peanut finishes the walk→pose morph and lands. */
+    /** Fired right on touchdown so the speech bubble springs open with Peanut's landing impact. */
     onLanded?: () => void
     /** Optional alt text; defaults to decorative (`aria-hidden`). */
     alt?: string
@@ -32,11 +30,12 @@ interface PeanutBuddyMascotProps {
 
 /**
  * Dual-rig Lottie mascot player for the walking Peanut buddy:
- *   1. Plays `walking` with Peanut's vintage stutter (`hold=2`, `1.30x`) while sliding in.
- *   2. Freezes both stacked SVGs and tweens all 13 shared rig layers into `targetPose`
- *      (`waving-hello`, `worried`, `thinking`, or `sad`) with weighted foot-plant squash
- *      and a crisp 1-frame midpoint art cut (no vector blur).
- *   3. Loops `targetPose` on the shared mascot clock.
+ *   1. Plays `walking` with Peanut's vintage stutter (`hold=2`, `1.30x`) while sliding in,
+ *      locking onto a pose-matched foot-contact exit frame (never freezing mid-stride).
+ *   2. Executes a 4-beat Disney character transition anchored at his feet:
+ *      braking anticipation squat -> elastic stretch hop -> 1-frame apex pose cut with
+ *      overlapping target playback -> weighted touchdown squash & damped settle.
+ *   3. Loops `targetPose` seamlessly on the shared mascot clock.
  *
  * Under `prefers-reduced-motion: reduce`, renders `targetPose` frozen at frame 0 immediately.
  */
@@ -62,6 +61,7 @@ export function PeanutBuddyMascot({ targetPose, onLanded, alt }: PeanutBuddyMasc
     useEffect(() => {
         const walkHost = walkContainerRef.current
         const targetHost = targetContainerRef.current
+        const stageEl = stageRef.current
         if (!walkHost || !targetHost) return
 
         let cancelled = false
@@ -69,7 +69,6 @@ export function PeanutBuddyMascot({ targetPose, onLanded, alt }: PeanutBuddyMasc
         let targetAnim: AnimationItem | null = null
         let stopClock: (() => void) | null = null
         let rafId: number | null = null
-        let activePairs: RigLayerPair[] = []
 
         void Promise.all([
             import('lottie-web/build/player/lottie_light'),
@@ -108,7 +107,9 @@ export function PeanutBuddyMascot({ targetPose, onLanded, alt }: PeanutBuddyMasc
                     return
                 }
 
-                // Phase 1: Stuttered walk-in
+                const profile = POSE_TRANSITION_PROFILES[targetPose]
+
+                // Phase 1: Stuttered walk-in ending cleanly on the pose-matched contact frame.
                 walkHost.style.opacity = '1'
                 targetHost.style.opacity = '0'
                 setPhase('walking')
@@ -116,16 +117,15 @@ export function PeanutBuddyMascot({ targetPose, onLanded, alt }: PeanutBuddyMasc
                 let virtualFrame = 0
                 let shownFrame = -1
                 const walkStartedAt = performance.now()
-                let morphStarted = false
+                let transitionStarted = false
 
-                const startIdleLoop = () => {
+                const startIdleLoop = (initialFrame: number, initialShown: number) => {
                     if (cancelled || !targetAnim) return
                     const total = targetAnim.totalFrames || 1
                     const fps = targetAnim.frameRate || 30
-                    let idleFrame = 0
-                    let idleShown = -1
+                    let idleFrame = initialFrame
+                    let idleShown = initialShown
                     setPhase('idle')
-                    onLandedRef.current?.()
 
                     stopClock = subscribeToMascotClock((deltaSeconds) => {
                         if (!targetAnim) return
@@ -137,64 +137,88 @@ export function PeanutBuddyMascot({ targetPose, onLanded, alt }: PeanutBuddyMasc
                     })
                 }
 
-                const startRigMorph = () => {
+                const startPoseTransition = () => {
                     if (cancelled || !walkAnim || !targetAnim) return
-                    setPhase('morphing')
+                    setPhase('transitioning')
+                    walkAnim.goToAndStop(profile.walkExitFrame, true)
                     targetAnim.goToAndStop(0, true)
-                    activePairs = collectSharedRigPairs(
-                        walkAnim as unknown as Parameters<typeof collectSharedRigPairs>[0],
-                        targetAnim as unknown as Parameters<typeof collectSharedRigPairs>[1]
-                    )
 
-                    if (activePairs.length === 0) {
-                        // Graceful fallback (e.g. jsdom tests without real SVG matrices)
-                        walkHost.style.opacity = '0'
-                        targetHost.style.opacity = '1'
-                        startIdleLoop()
-                        return
-                    }
+                    const total = targetAnim.totalFrames || 1
+                    const fps = targetAnim.frameRate || 30
+                    const transitionT0 = performance.now()
+                    let lastNow = transitionT0
+                    let targetFrame = 0
+                    let targetShown = 0
+                    let bubbleFired = false
 
-                    const morphT0 = performance.now()
-                    const tickMorph = (now: number) => {
-                        if (cancelled) return
-                        const progress = Math.min(1, (now - morphT0) / MORPH_DURATION_MS)
-                        const { showTargetArt } = applyRigMorphStep(activePairs, progress)
-                        walkHost.style.opacity = showTargetArt ? '0' : '1'
-                        targetHost.style.opacity = showTargetArt ? '1' : '0'
+                    const tickTransition = (now: number) => {
+                        if (cancelled || !targetAnim) return
+                        const dt = Math.min((now - lastNow) / 1000, 0.1)
+                        lastNow = now
+
+                        const progress = Math.min(1, (now - transitionT0) / profile.durationMs)
+                        const frame = computePoseTransitionFrame(targetPose, progress)
+
+                        walkHost.style.opacity = frame.showTargetArt ? '0' : '1'
+                        targetHost.style.opacity = frame.showTargetArt ? '1' : '0'
+
+                        // Overlapping action: advance targetPose right after the apex cut so the
+                        // wave or worried hands are already alive as Peanut cushions onto his feet.
+                        if (frame.showTargetArt) {
+                            targetFrame = (targetFrame + dt * fps * MASCOT_SPEED) % total
+                            const held = Math.floor(targetFrame / MASCOT_HOLD_FRAMES) * MASCOT_HOLD_FRAMES
+                            if (held !== targetShown) {
+                                targetShown = held
+                                targetAnim.goToAndStop(jitterFrame(held, total), true)
+                            }
+                        }
+
+                        if (frame.bubbleReady && !bubbleFired) {
+                            bubbleFired = true
+                            onLandedRef.current?.()
+                        }
 
                         if (stageRef.current) {
-                            const { scaleX, scaleY, translateY } = computeFootPlantSquash(progress)
-                            stageRef.current.style.transform = `translateY(${translateY.toFixed(2)}px) scale(${scaleX.toFixed(4)}, ${scaleY.toFixed(4)})`
+                            stageRef.current.style.transform = formatPoseTransitionTransform(frame)
                         }
 
                         if (progress < 1) {
-                            rafId = requestAnimationFrame(tickMorph)
+                            rafId = requestAnimationFrame(tickTransition)
                             return
                         }
 
                         if (stageRef.current) stageRef.current.style.transform = ''
-                        restoreRigTransforms(activePairs)
-                        activePairs = []
                         walkHost.style.opacity = '0'
                         targetHost.style.opacity = '1'
-                        startIdleLoop()
+                        if (!bubbleFired) {
+                            bubbleFired = true
+                            onLandedRef.current?.()
+                        }
+                        startIdleLoop(targetFrame, targetShown)
                     }
-                    rafId = requestAnimationFrame(tickMorph)
+
+                    rafId = requestAnimationFrame(tickTransition)
                 }
 
                 const walkTotal = walkAnim.totalFrames || 1
                 const walkFps = walkAnim.frameRate || 30
                 stopClock = subscribeToMascotClock((deltaSeconds) => {
                     if (!walkAnim) return
-                    if (!morphStarted && performance.now() - walkStartedAt >= WALK_DURATION_MS) {
-                        morphStarted = true
-                        stopClock?.()
-                        stopClock = null
-                        startRigMorph()
-                        return
-                    }
+                    const elapsed = performance.now() - walkStartedAt
                     virtualFrame = (virtualFrame + deltaSeconds * walkFps * MASCOT_SPEED) % walkTotal
                     const held = Math.floor(virtualFrame / MASCOT_HOLD_FRAMES) * MASCOT_HOLD_FRAMES
+
+                    if (
+                        !transitionStarted &&
+                        shouldExitWalkToTransition(held, profile.walkExitFrame, elapsed, MIN_WALK_DURATION_MS)
+                    ) {
+                        transitionStarted = true
+                        stopClock?.()
+                        stopClock = null
+                        startPoseTransition()
+                        return
+                    }
+
                     if (held === shownFrame) return
                     shownFrame = held
                     walkAnim.goToAndStop(jitterFrame(held, walkTotal), true)
@@ -207,7 +231,7 @@ export function PeanutBuddyMascot({ targetPose, onLanded, alt }: PeanutBuddyMasc
             cancelled = true
             stopClock?.()
             if (rafId !== null) cancelAnimationFrame(rafId)
-            if (activePairs.length > 0) restoreRigTransforms(activePairs)
+            if (stageEl) stageEl.style.transform = ''
             walkAnim?.destroy()
             targetAnim?.destroy()
         }
@@ -216,7 +240,7 @@ export function PeanutBuddyMascot({ targetPose, onLanded, alt }: PeanutBuddyMasc
     return (
         <div
             ref={stageRef}
-            className="relative size-full origin-bottom"
+            className="relative size-full origin-[50%_90%] will-change-transform"
             role={alt ? 'img' : undefined}
             aria-label={alt || undefined}
             aria-hidden={alt ? undefined : true}
