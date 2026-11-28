@@ -5,10 +5,11 @@ const STORAGE_PREFIX = 'peanut:stuck-memory:v2:'
 
 export const DISMISS_COOLDOWN_MS = 7 * 86_400_000
 export const GLOBAL_QUIET_COOLDOWN_MS = 24 * 3_600_000
+export const FRICTION_MEMORY_TTL_MS = 7 * 86_400_000
 export const LIFETIME_DISMISS_CAP = 3
 
 const DEFAULT_MEMORY: StuckMemory = {
-    priorObservedFriction: false,
+    priorObservedFrictionUntil: 0,
     seenAddMoneyUnfunded: false,
     dismissedUntil: {},
     globalQuietUntil: 0,
@@ -29,7 +30,11 @@ export function readStuckMemory(userId?: string | null): StuckMemory {
     try {
         const parsed = JSON.parse(raw) as Partial<StuckMemory>
         return {
-            priorObservedFriction: Boolean(parsed.priorObservedFriction),
+            priorObservedFrictionUntil:
+                typeof parsed.priorObservedFrictionUntil === 'number' &&
+                Number.isFinite(parsed.priorObservedFrictionUntil)
+                    ? parsed.priorObservedFrictionUntil
+                    : 0,
             seenAddMoneyUnfunded: Boolean(parsed.seenAddMoneyUnfunded),
             dismissedUntil:
                 parsed.dismissedUntil && typeof parsed.dismissedUntil === 'object' ? { ...parsed.dismissedUntil } : {},
@@ -79,8 +84,10 @@ export function recordSurfaceDismissal(
 }
 
 /**
- * Persists a cooldown after the user tapped the buddy CTA so the same buddy does not re-nag
+ * Persists a cooldown after the user tapped a stuck-help CTA so the same buddy does not re-nag
  * in the next session (does not count toward the explicit-dismissal lifetime cap).
+ * For `home_wave` whimsy taps/exits, only sets `home_wave`'s own 7-day cooldown so real payment
+ * help is never silenced by a playful wave.
  */
 export function recordSurfaceActionCooldown(
     userId: string | null | undefined,
@@ -94,22 +101,35 @@ export function recordSurfaceActionCooldown(
             ...current.dismissedUntil,
             [surface]: nowMs + DISMISS_COOLDOWN_MS,
         },
-        globalQuietUntil: Math.max(current.globalQuietUntil, nowMs + GLOBAL_QUIET_COOLDOWN_MS),
+        globalQuietUntil:
+            surface === 'home_wave'
+                ? current.globalQuietUntil
+                : Math.max(current.globalQuietUntil, nowMs + GLOBAL_QUIET_COOLDOWN_MS),
     }
     writeStuckMemory(userId, next)
     return next
 }
 
-/** Records a factual observed failure (never a model score) for funded-unspent Home follow-ups. */
-export function recordObservedFriction(userId: string | null | undefined): StuckMemory {
+/** Records a time-bounded (7-day) factual failure for funded-unspent Home follow-ups. */
+export function recordObservedFriction(userId: string | null | undefined, nowMs = Date.now()): StuckMemory {
     const current = readStuckMemory(userId)
-    if (current.priorObservedFriction) return current
-    const next: StuckMemory = { ...current, priorObservedFriction: true }
+    const nextUntil = nowMs + FRICTION_MEMORY_TTL_MS
+    if (current.priorObservedFrictionUntil >= nextUntil - 60_000) return current
+    const next: StuckMemory = { ...current, priorObservedFrictionUntil: nextUntil }
     writeStuckMemory(userId, next)
     return next
 }
 
-/** Called on exit from a bank-details screen with verified $0 balance so a 2nd visit can offer help. */
+/** Clears prior friction memory once a user activates so it never lingers indefinitely. */
+export function clearObservedFriction(userId: string | null | undefined): StuckMemory {
+    const current = readStuckMemory(userId)
+    if (current.priorObservedFrictionUntil === 0) return current
+    const next: StuckMemory = { ...current, priorObservedFrictionUntil: 0 }
+    writeStuckMemory(userId, next)
+    return next
+}
+
+/** Called on exit from a bank-details screen (>=10s dwell, verified $0 balance) so a 2nd visit can offer help. */
 export function markSeenAddMoneyUnfunded(userId: string | null | undefined): StuckMemory {
     const current = readStuckMemory(userId)
     if (current.seenAddMoneyUnfunded) return current

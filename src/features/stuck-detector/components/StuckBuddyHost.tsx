@@ -8,7 +8,7 @@ import posthog from 'posthog-js'
 import * as Sentry from '@sentry/nextjs'
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { IS_PRODUCTION } from '@/constants/general.consts'
+import { BASE_URL } from '@/constants/general.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
 import { useModalsContextOptional } from '@/context/ModalsContext'
@@ -20,6 +20,7 @@ import { useAnyAppOverlayOpen } from '@/utils/overlay-visibility'
 import { redactSupportText } from '@/utils/support-context'
 import { decideStuckIntervention } from '../decideIntervention'
 import {
+    clearObservedFriction,
     markSeenAddMoneyUnfunded,
     readStuckMemory,
     recordObservedFriction,
@@ -38,6 +39,7 @@ import {
     evaluateIdleTick,
     getStuckRuntimeSnapshot,
     markSessionNudgeShown,
+    markSessionWhimsyShown,
     noteElementClick,
     noteUserActivity,
     setStuckDocumentVisible,
@@ -52,7 +54,9 @@ import { HomeFundedDrawer } from './HomeFundedDrawer'
 import { PeanutBuddy } from './PeanutBuddy'
 
 const IDLE_POLL_MS = 5_000
+const MIN_UNFUNDED_EXIT_DWELL_MS = 10_000
 const CHECKPOINT_SECONDS = [0, 15, 30, 60] as const
+const IS_PROD_DOMAIN = BASE_URL === 'https://peanut.me'
 const QR_PAY_COUNTRIES = new Set(['AR', 'ARG', 'ARGENTINA', 'BR', 'BRA', 'BRAZIL'])
 const DIRECT_SUPPORT_SURFACES = new Set<StuckSurface>(['verify_loop', 'setup_passkey'])
 
@@ -96,7 +100,7 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent, canUseQrPay, canUseCard
         () =>
             parseDemoSurface(
                 urlParams.stuck_demo ? `?stuck_demo=${encodeURIComponent(urlParams.stuck_demo)}` : '',
-                !IS_PRODUCTION
+                !IS_PROD_DOMAIN
             ),
         [urlParams.stuck_demo]
     )
@@ -104,40 +108,53 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent, canUseQrPay, canUseCard
     const surface = useMemo(() => surfaceForPath(effectiveRoute, hasSpent), [effectiveRoute, hasSpent])
     const journey = useMemo(() => journeyForPath(effectiveRoute), [effectiveRoute])
     const uiEnabled = Boolean(demoSurface) || isFlagEnabled('stuck-buddy-interventions')
-    const isKeyboardOpen = useKeyboardOpen(Boolean(surface || demoSurface) && uiEnabled)
 
-    // Refresh functional memory when authenticated user changes.
+    // Run keyboard guard identically in BOTH control and treatment arms so holdout eligibility is apples-to-apples.
+    const isKeyboardOpen = useKeyboardOpen(Boolean(surface || demoSurface))
+
     useEffect(() => {
         setMemory(readStuckMemory(userId))
     }, [userId])
 
-    // Sync canonical route into runtime store and clear per-visit dismissal.
     useEffect(() => {
         setStuckRoute(effectiveRoute)
         setDismissedThisVisit(false)
     }, [effectiveRoute])
 
-    // Record `seenAddMoneyUnfunded` ONLY when leaving a bank-details step with verified $0 balance
-    // (never on first entry, never when balance is still loading, never while flag is off).
+    // Clear prior friction memory once a user activates so it never lingers indefinitely.
+    useEffect(() => {
+        if (!uiEnabled || !hasSpent) return
+        setMemory(clearObservedFriction(userId))
+    }, [uiEnabled, hasSpent, userId])
+
+    // Record `seenAddMoneyUnfunded` ONLY when leaving a bank-details step after >=10s dwell with verified $0 balance
+    // (never on first entry, never on brief amount edits, never when balance is loading, never while flag is off).
     const balanceUsdRef = useRef(balanceUsd)
     balanceUsdRef.current = balanceUsd
+    const activeDwellRef = useRef(runtime.activeDwellMs)
+    activeDwellRef.current = runtime.activeDwellMs
     useEffect(() => {
         if (!uiEnabled || !runtime.isDepositDetailsStep) return
         return () => {
-            if (balanceUsdRef.current !== null && balanceUsdRef.current <= 0) {
+            if (
+                balanceUsdRef.current !== null &&
+                balanceUsdRef.current <= 0 &&
+                activeDwellRef.current >= MIN_UNFUNDED_EXIT_DWELL_MS
+            ) {
                 setMemory(markSeenAddMoneyUnfunded(userId))
             }
         }
     }, [uiEnabled, runtime.isDepositDetailsStep, userId])
 
-    // Persist factual observed friction (never a score crossing) only while flag is enabled.
+    // Persist time-bounded (7d) factual friction only while flag is enabled.
     const hasObservedFailure = runtime.flags.moneyFailed || runtime.flags.kycBlocked || runtime.flags.appError
     useEffect(() => {
-        if (!uiEnabled || !hasObservedFailure) return
+        if (!uiEnabled || !hasObservedFailure || hasSpent) return
         setMemory(recordObservedFriction(userId))
-    }, [uiEnabled, hasObservedFailure, userId])
+    }, [uiEnabled, hasObservedFailure, hasSpent, userId])
 
-    // Visibility-aware dwell/idle clocks + activity & same-element rage-click listeners.
+    // Visibility-aware dwell/idle clocks + activity (incl. capture-phase scroll inside `#scrollable-content` and touchmove)
+    // + same-element rage-click listener.
     useEffect(() => {
         if (typeof window === 'undefined' || isStuckExcludedPath(effectiveRoute)) return
         setStuckDocumentVisible(document.visibilityState === 'visible')
@@ -151,17 +168,20 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent, canUseQrPay, canUseCard
         const onActivity = () => noteUserActivity()
 
         document.addEventListener('visibilitychange', onVisibility)
+        // `scroll` does not bubble, so capture phase is required to catch `#scrollable-content` scrolling.
+        document.addEventListener('scroll', onActivity, { capture: true, passive: true })
         window.addEventListener('click', onClick, { passive: true })
         window.addEventListener('keydown', onActivity, { passive: true })
         window.addEventListener('input', onActivity, { passive: true })
-        window.addEventListener('scroll', onActivity, { passive: true })
+        window.addEventListener('touchmove', onActivity, { passive: true })
 
         return () => {
             document.removeEventListener('visibilitychange', onVisibility)
+            document.removeEventListener('scroll', onActivity, { capture: true })
             window.removeEventListener('click', onClick)
             window.removeEventListener('keydown', onActivity)
             window.removeEventListener('input', onActivity)
-            window.removeEventListener('scroll', onActivity)
+            window.removeEventListener('touchmove', onActivity)
         }
     }, [effectiveRoute])
 
@@ -210,22 +230,27 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent, canUseQrPay, canUseCard
 
     const activeImpressionMatchesCurrentRoute =
         runtime.activeImpressionKey !== null && runtime.activeImpressionKey.startsWith(`${effectiveRoute}:`)
+    const activeImpressionIsWhimsy = runtime.activeImpressionKey === `${effectiveRoute}:home_wave`
 
     const decision = useMemo(
         () =>
             decideStuckIntervention({
                 surface,
                 uiEnabled,
-                isProd: IS_PRODUCTION,
+                isProdDomain: IS_PROD_DOMAIN,
                 dismissedThisVisit,
                 isDepositDetailsStep: runtime.isDepositDetailsStep,
                 activeDwellMs: runtime.activeDwellMs,
+                activeDwellSincePasskeyCancelMs: runtime.activeDwellSincePasskeyCancelMs,
                 activeIdleMs: runtime.activeIdleMs,
                 flags: runtime.flags,
+                hadSessionFriction: runtime.hadSessionFriction,
                 memory,
                 nowMs,
                 // Once an impression lands, keep THAT buddy mounted for this visit, while blocking any second buddy on later routes.
-                sessionNudgeShown: runtime.sessionNudgeShown && !activeImpressionMatchesCurrentRoute,
+                sessionNudgeShown:
+                    runtime.sessionNudgeShown && !(activeImpressionMatchesCurrentRoute && !activeImpressionIsWhimsy),
+                sessionWhimsyShown: runtime.sessionWhimsyShown && !activeImpressionIsWhimsy,
                 hasOverlayOpen: anyOverlayOpen || drawerSurface !== null,
                 isKeyboardOpen,
                 isFlowBusy: runtime.isFlowBusy,
@@ -246,6 +271,7 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent, canUseQrPay, canUseCard
             memory,
             nowMs,
             activeImpressionMatchesCurrentRoute,
+            activeImpressionIsWhimsy,
             anyOverlayOpen,
             drawerSurface,
             isKeyboardOpen,
@@ -278,9 +304,17 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent, canUseQrPay, canUseCard
     }, [decision, effectiveRoute, journey])
 
     const shownLoggedRef = useRef<string | null>(null)
+    const whimsyLandedRef = useRef(false)
     const handleImpression = useCallback(() => {
         if (!decision.show) return
-        if (!decision.isDemo) markSessionNudgeShown(`${effectiveRoute}:${decision.surface}`)
+        if (!decision.isDemo) {
+            if (decision.mode === 'whimsy') {
+                whimsyLandedRef.current = true
+                markSessionWhimsyShown(`${effectiveRoute}:home_wave`)
+            } else {
+                markSessionNudgeShown(`${effectiveRoute}:${decision.surface}`)
+            }
+        }
         const key = `${effectiveRoute}:${decision.surface}:${decision.reason}`
         if (shownLoggedRef.current === key) return
         shownLoggedRef.current = key
@@ -314,7 +348,11 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent, canUseQrPay, canUseCard
         if (!decision.show) return
         setDismissedThisVisit(true)
         if (!decision.isDemo) {
-            markSessionNudgeShown()
+            if (decision.mode === 'whimsy') {
+                markSessionWhimsyShown()
+            } else {
+                markSessionNudgeShown()
+            }
             clearActiveImpression()
             setMemory(recordSurfaceActionCooldown(userId, decision.surface))
         }
@@ -338,11 +376,15 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent, canUseQrPay, canUseCard
 
     const handleAutoLeave = useCallback(() => {
         setDismissedThisVisit(true)
-        if (decision.show && !decision.isDemo) {
-            markSessionNudgeShown()
-            clearActiveImpression()
+        clearActiveImpression()
+        // Only mark the whimsy cameo cooled down if it actually landed (never penalize a failed Lottie load),
+        // and never spend the session's real stuck-help nudge cap.
+        if (decision.show && !decision.isDemo && decision.mode === 'whimsy' && whimsyLandedRef.current) {
+            whimsyLandedRef.current = false
+            markSessionWhimsyShown()
+            setMemory(recordSurfaceActionCooldown(userId, 'home_wave'))
         }
-    }, [decision])
+    }, [decision, userId])
 
     const handleDismiss = useCallback(() => {
         if (!decision.show) return
@@ -350,7 +392,6 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent, canUseQrPay, canUseCard
         if (!decision.isDemo) {
             markSessionNudgeShown()
             clearActiveImpression()
-            // Functional dismissal preference persists even when analytics are opted out.
             setMemory(recordSurfaceDismissal(userId, decision.surface))
         }
         posthog.capture(ANALYTICS_EVENTS.STUCK_BUDDY_DISMISSED, {
@@ -412,8 +453,9 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent, canUseQrPay, canUseCard
             case 'setup_passkey':
                 return { prompt: t('prompts.setupPasskey'), cta: t('ctas.contactSupport') }
             case 'home_funded':
-            case 'home_wave':
                 return { prompt: t('prompts.homeFunded'), cta: t('ctas.homeFunded') }
+            case 'home_wave':
+                return { prompt: '', cta: '' }
             case 'active_issue':
                 return { prompt: t('prompts.activeIssue'), cta: t('ctas.activeIssue') }
         }

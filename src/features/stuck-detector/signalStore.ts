@@ -7,23 +7,28 @@ import type { PasskeyStepState, StuckSessionFlags } from './types'
 const RAGE_WINDOW_MS = 1_500
 const RAGE_RADIUS_PX = 28
 const RAGE_CLICK_COUNT = 3
-const IDLE_THRESHOLD_MS = 25_000
-/** Reset session-scoped flags and nudge cap after 30 minutes away (native documents live up to 12h). */
+/** Reset session-scoped flags and nudge caps after 30 minutes away (native documents live up to 12h). */
 export const SESSION_RESET_IDLE_MS = 30 * 60_000
 
 export interface StuckRuntimeSnapshot {
     pathname: string
     /** Accumulated active visible dwell on the current screen/step (ms; paused while document is hidden). */
     activeDwellMs: number
+    /** Accumulated active visible dwell since the latest passkey cancel/failure on the current step (ms). */
+    activeDwellSincePasskeyCancelMs: number
     /** Accumulated active visible idle time since last interaction (ms; paused while document is hidden). */
     activeIdleMs: number
-    /** Monotonic wall-clock timestamp of the last processed tick or visibility resume. */
+    /** Monotonic wall-clock timestamp of the last processed tick, activity, or visibility resume. */
     lastTickAt: number
     /** Wall-clock timestamp of last user interaction (used only to detect 30-min session boundary). */
     lastWallInteractionAt: number
     isDocumentVisible: boolean
     isDepositDetailsStep: boolean
+    /** Last bank-deposit corridor visited inside `/add-money/*` so picker round-trips still count corridor bounces. */
+    lastDepositCorridorPath: string | null
     flags: StuckSessionFlags
+    /** Session-wide factual friction flag (shared by both control and treatment arms). */
+    hadSessionFriction: boolean
     localVerifyAttempts: number
     passkeyCancelCount: number
     corridorSwitchCount: number
@@ -31,6 +36,7 @@ export interface StuckRuntimeSnapshot {
     passkeyStepState: PasskeyStepState
     isFlowBusy: boolean
     sessionNudgeShown: boolean
+    sessionWhimsyShown: boolean
     /** Key (`pathname:surface`) of the currently visible impression so marking the session cap never unmounts the active buddy mid-visit. */
     activeImpressionKey: string | null
     lastErrorCode: string | null
@@ -41,21 +47,22 @@ export interface StuckRuntimeSnapshot {
 const initialFlags = (): StuckSessionFlags => ({
     appError: false,
     rageTaps: false,
-    longIdle: false,
     moneyFailed: false,
-    moneyStuck: false,
     kycBlocked: false,
 })
 
 const createInitialState = (now = Date.now()): StuckRuntimeSnapshot => ({
     pathname: '',
     activeDwellMs: 0,
+    activeDwellSincePasskeyCancelMs: 0,
     activeIdleMs: 0,
     lastTickAt: now,
     lastWallInteractionAt: now,
     isDocumentVisible: true,
     isDepositDetailsStep: false,
+    lastDepositCorridorPath: null,
     flags: initialFlags(),
+    hadSessionFriction: false,
     localVerifyAttempts: 0,
     passkeyCancelCount: 0,
     corridorSwitchCount: 0,
@@ -63,6 +70,7 @@ const createInitialState = (now = Date.now()): StuckRuntimeSnapshot => ({
     passkeyStepState: 'inactive',
     isFlowBusy: false,
     sessionNudgeShown: false,
+    sessionWhimsyShown: false,
     activeImpressionKey: null,
     lastErrorCode: null,
     version: 0,
@@ -71,6 +79,7 @@ const createInitialState = (now = Date.now()): StuckRuntimeSnapshot => ({
 let state: StuckRuntimeSnapshot = createInitialState()
 const subscribers = new Set<() => void>()
 const recentClicks: Array<{ target: EventTarget | null; x: number; y: number; at: number }> = []
+const busySources = new Set<string>()
 let subscribedToTap = false
 
 function notify(): void {
@@ -81,29 +90,32 @@ function notify(): void {
 function handleTapSignal(kind: StuckSignalKind, eventName: string): void {
     const nextFlags = { ...state.flags }
     let passkeyCancelCount = state.passkeyCancelCount
+    let activeDwellSincePasskeyCancelMs = state.activeDwellSincePasskeyCancelMs
     let errorRetryCount = state.errorRetryCount
+    let hadSessionFriction = state.hadSessionFriction
     let lastErrorCode = state.lastErrorCode
 
     switch (kind) {
         case 'appError':
             nextFlags.appError = true
+            hadSessionFriction = true
             errorRetryCount += 1
             lastErrorCode = eventName
             break
         case 'moneyFailed':
             nextFlags.moneyFailed = true
+            hadSessionFriction = true
             errorRetryCount += 1
             lastErrorCode = eventName
             break
-        case 'moneyStuck':
-            nextFlags.moneyStuck = true
-            break
         case 'kycBlocked':
             nextFlags.kycBlocked = true
+            hadSessionFriction = true
             lastErrorCode = eventName
             break
         case 'passkeyCancel':
             passkeyCancelCount += 1
+            activeDwellSincePasskeyCancelMs = 0
             lastErrorCode = eventName
             break
         case 'rageClick':
@@ -114,7 +126,9 @@ function handleTapSignal(kind: StuckSignalKind, eventName: string): void {
     state = {
         ...state,
         flags: nextFlags,
+        hadSessionFriction,
         passkeyCancelCount,
+        activeDwellSincePasskeyCancelMs,
         errorRetryCount,
         lastErrorCode,
     }
@@ -149,7 +163,7 @@ function maybeResetStaleSession(now: number): void {
         isDocumentVisible: state.isDocumentVisible,
         isDepositDetailsStep: state.isDepositDetailsStep,
         passkeyStepState: state.passkeyStepState,
-        isFlowBusy: state.isFlowBusy,
+        isFlowBusy: busySources.size > 0,
         version: state.version,
     }
 }
@@ -157,27 +171,40 @@ function maybeResetStaleSession(now: number): void {
 export function setStuckRoute(pathname: string, now = Date.now()): void {
     maybeResetStaleSession(now)
     if (state.pathname === pathname) return
-    const switchedDepositCorridor =
-        isBankDepositPath(state.pathname) && isBankDepositPath(pathname) && state.pathname !== pathname
-    const nextCorridorSwitchCount = switchedDepositCorridor ? state.corridorSwitchCount + 1 : 0
+
+    const inAddMoney = pathname === '/add-money' || pathname.startsWith('/add-money/')
+    const enteringBankCorridor = isBankDepositPath(pathname)
+    let nextCorridorSwitchCount = inAddMoney ? state.corridorSwitchCount : 0
+    let nextLastCorridor = inAddMoney ? state.lastDepositCorridorPath : null
+
+    if (enteringBankCorridor) {
+        if (state.lastDepositCorridorPath && state.lastDepositCorridorPath !== pathname) {
+            nextCorridorSwitchCount += 1
+        }
+        nextLastCorridor = pathname
+    }
+
     recentClicks.length = 0
     state = {
         ...state,
         pathname,
         activeDwellMs: 0,
+        activeDwellSincePasskeyCancelMs: 0,
         activeIdleMs: 0,
         lastTickAt: now,
         lastWallInteractionAt: now,
         corridorSwitchCount: nextCorridorSwitchCount,
+        lastDepositCorridorPath: nextLastCorridor,
         localVerifyAttempts: pathname === '/verify' || pathname.startsWith('/verify/') ? state.localVerifyAttempts : 0,
         passkeyCancelCount: pathname === '/setup' || pathname.startsWith('/setup/') ? state.passkeyCancelCount : 0,
         errorRetryCount: 0,
         activeImpressionKey: null,
+        // Screen-scoped error flags reset on route change so a failure on one screen never follows the user to another.
         flags: {
-            ...state.flags,
-            longIdle: false,
+            appError: false,
             rageTaps: false,
-            moneyStuck: nextCorridorSwitchCount >= 2,
+            moneyFailed: false,
+            kycBlocked: state.flags.kycBlocked,
         },
     }
     notify()
@@ -194,11 +221,13 @@ export function setStuckDocumentVisible(visible: boolean, now = Date.now()): voi
             lastTickAt: now,
         }
     } else {
-        const delta = Math.max(0, now - state.lastTickAt)
+        const delta = Math.max(0, Math.min(now - state.lastTickAt, 30_000))
         state = {
             ...state,
             isDocumentVisible: false,
             activeDwellMs: state.activeDwellMs + delta,
+            activeDwellSincePasskeyCancelMs:
+                state.passkeyCancelCount > 0 ? state.activeDwellSincePasskeyCancelMs + delta : 0,
             activeIdleMs: state.activeIdleMs + delta,
             lastTickAt: now,
         }
@@ -206,18 +235,22 @@ export function setStuckDocumentVisible(visible: boolean, now = Date.now()): voi
     notify()
 }
 
-/** Resets active idle timer on any real activity (`keydown`, `input`, `scroll`, `click`). */
+/**
+ * Resets active idle timer on any real activity (`click`, `keydown`, `input`, `scroll`, `touchmove`)
+ * while preserving elapsed visible dwell time (never drops dwell accrued since `lastTickAt`).
+ */
 export function noteUserActivity(now = Date.now()): void {
     maybeResetStaleSession(now)
-    const wasIdle = state.flags.longIdle
+    const delta = state.isDocumentVisible ? Math.max(0, Math.min(now - state.lastTickAt, 30_000)) : 0
     state = {
         ...state,
+        activeDwellMs: state.activeDwellMs + delta,
+        activeDwellSincePasskeyCancelMs:
+            state.passkeyCancelCount > 0 ? state.activeDwellSincePasskeyCancelMs + delta : 0,
         activeIdleMs: 0,
         lastWallInteractionAt: now,
         lastTickAt: now,
-        flags: wasIdle ? { ...state.flags, longIdle: false } : state.flags,
     }
-    if (wasIdle) notify()
 }
 
 /**
@@ -253,15 +286,13 @@ export function evaluateIdleTick(now = Date.now()): void {
     maybeResetStaleSession(now)
     const delta = Math.max(0, Math.min(now - state.lastTickAt, 30_000))
     if (delta === 0) return
-    const nextDwell = state.activeDwellMs + delta
-    const nextIdle = state.activeIdleMs + delta
-    const nextLongIdle = nextIdle >= IDLE_THRESHOLD_MS
     state = {
         ...state,
-        activeDwellMs: nextDwell,
-        activeIdleMs: nextIdle,
+        activeDwellMs: state.activeDwellMs + delta,
+        activeDwellSincePasskeyCancelMs:
+            state.passkeyCancelCount > 0 ? state.activeDwellSincePasskeyCancelMs + delta : 0,
+        activeIdleMs: state.activeIdleMs + delta,
         lastTickAt: now,
-        flags: nextLongIdle !== state.flags.longIdle ? { ...state.flags, longIdle: nextLongIdle } : state.flags,
     }
     notify()
 }
@@ -271,8 +302,16 @@ export function noteLocalVerifyFieldError(attemptsOnField: number): void {
         ...state,
         localVerifyAttempts: Math.max(state.localVerifyAttempts, attemptsOnField),
         flags: { ...state.flags, kycBlocked: true },
+        hadSessionFriction: true,
         lastErrorCode: 'verify_field_error',
     }
+    notify()
+}
+
+/** Resets local verify error attempts when the field becomes valid or the step advances. */
+export function clearLocalVerifyFieldError(): void {
+    if (state.localVerifyAttempts === 0) return
+    state = { ...state, localVerifyAttempts: 0 }
     notify()
 }
 
@@ -301,9 +340,13 @@ export function setPasskeyStepState(nextState: PasskeyStepState, now = Date.now(
     notify()
 }
 
-export function setStuckFlowBusy(isBusy: boolean): void {
-    if (state.isFlowBusy === isBusy) return
-    state = { ...state, isFlowBusy: isBusy }
+/** Source-keyed busy latch so concurrent passkey/send/withdraw flows never clobber one another. */
+export function setStuckFlowBusy(isBusy: boolean, sourceKey = 'default'): void {
+    if (isBusy) busySources.add(sourceKey)
+    else busySources.delete(sourceKey)
+    const nextBusy = busySources.size > 0
+    if (state.isFlowBusy === nextBusy) return
+    state = { ...state, isFlowBusy: nextBusy }
     notify()
 }
 
@@ -311,6 +354,13 @@ export function markSessionNudgeShown(impressionKey?: string): void {
     const nextKey = impressionKey ?? null
     if (state.sessionNudgeShown && state.activeImpressionKey === nextKey) return
     state = { ...state, sessionNudgeShown: true, activeImpressionKey: nextKey }
+    notify()
+}
+
+export function markSessionWhimsyShown(impressionKey?: string): void {
+    const nextKey = impressionKey ?? null
+    if (state.sessionWhimsyShown && state.activeImpressionKey === nextKey) return
+    state = { ...state, sessionWhimsyShown: true, activeImpressionKey: nextKey }
     notify()
 }
 
@@ -322,6 +372,7 @@ export function clearActiveImpression(): void {
 
 export function resetStuckRuntimeForTests(now = Date.now()): void {
     recentClicks.length = 0
+    busySources.clear()
     state = createInitialState(now)
     notify()
 }

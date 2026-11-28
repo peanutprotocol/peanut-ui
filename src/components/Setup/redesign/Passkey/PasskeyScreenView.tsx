@@ -100,8 +100,8 @@ export function PasskeyScreenView({ passkey }: { passkey: SignupPasskey }) {
     // Treat an in-flight passkey ceremony as busy so the buddy never walks in behind the OS sheet.
     useEffect(() => {
         const inFlight = Boolean(passkey.isClaiming || passkey.isLoggingIn)
-        setStuckFlowBusy(inFlight)
-        return () => setStuckFlowBusy(false)
+        setStuckFlowBusy(inFlight, 'passkey')
+        return () => setStuckFlowBusy(false, 'passkey')
     }, [passkey.isClaiming, passkey.isLoggingIn])
 
     // The tap's beat: the hero's sheet grows and the brackets flash twice.

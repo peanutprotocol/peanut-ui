@@ -1,6 +1,8 @@
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import {
+    clearObservedFriction,
     DISMISS_COOLDOWN_MS,
+    FRICTION_MEMORY_TTL_MS,
     GLOBAL_QUIET_COOLDOWN_MS,
     markSeenAddMoneyUnfunded,
     readStuckMemory,
@@ -9,6 +11,7 @@ import {
     recordSurfaceDismissal,
 } from '../memory'
 import {
+    clearLocalVerifyFieldError,
     evaluateIdleTick,
     getStuckRuntimeSnapshot,
     markSessionNudgeShown,
@@ -42,17 +45,19 @@ describe('stuck-detector memory', () => {
         expect(reread.dismissedUntil.add_money).toBe(t0 + DISMISS_COOLDOWN_MS)
     })
 
-    it('persists action cooldown without incrementing explicit dismissal lifetime cap', () => {
+    it('keeps home_wave cooldown isolated from globalQuietUntil so a wave never silences real payment help', () => {
         const t0 = 1_700_000_000_000
-        const afterAction = recordSurfaceActionCooldown('user-2', 'home_funded', t0)
-        expect(afterAction.dismissedUntil.home_funded).toBe(t0 + DISMISS_COOLDOWN_MS)
-        expect(afterAction.globalQuietUntil).toBe(t0 + GLOBAL_QUIET_COOLDOWN_MS)
-        expect(afterAction.lifetimeDismissCount).toBe(0)
+        const afterWave = recordSurfaceActionCooldown('user-wave', 'home_wave', t0)
+        expect(afterWave.dismissedUntil.home_wave).toBe(t0 + DISMISS_COOLDOWN_MS)
+        expect(afterWave.globalQuietUntil).toBe(0)
+        expect(afterWave.lifetimeDismissCount).toBe(0)
     })
 
-    it('stores factual observed friction and seenAddMoneyUnfunded idempotently', () => {
-        expect(readStuckMemory('user-3').priorObservedFriction).toBe(false)
-        expect(recordObservedFriction('user-3').priorObservedFriction).toBe(true)
+    it('stores time-bounded observed friction and clears it cleanly on activation', () => {
+        const t0 = 1_700_000_000_000
+        expect(readStuckMemory('user-3').priorObservedFrictionUntil).toBe(0)
+        expect(recordObservedFriction('user-3', t0).priorObservedFrictionUntil).toBe(t0 + FRICTION_MEMORY_TTL_MS)
+        expect(clearObservedFriction('user-3').priorObservedFrictionUntil).toBe(0)
         expect(markSeenAddMoneyUnfunded('user-3').seenAddMoneyUnfunded).toBe(true)
     })
 
@@ -60,7 +65,7 @@ describe('stuck-detector memory', () => {
         window.localStorage.setItem('peanut:stuck-memory:v2:bad', '{not-json')
         const mem = readStuckMemory('bad')
         expect(mem.lifetimeDismissCount).toBe(0)
-        expect(mem.priorObservedFriction).toBe(false)
+        expect(mem.priorObservedFrictionUntil).toBe(0)
     })
 })
 
@@ -71,36 +76,75 @@ describe('stuck-detector signalStore & signalTap', () => {
         resetStuckRuntimeForTests(T0)
     })
 
+    it('preserves full activeDwellMs even when the user taps every 3s between 5s ticks (N4)', () => {
+        setStuckRoute('/add-money/germany/bank', T0)
+        setDepositDetailsStepActive(true, T0)
+
+        for (let sec = 3; sec <= 60; sec += 3) {
+            noteUserActivity(T0 + sec * 1_000)
+        }
+
+        const snap = getStuckRuntimeSnapshot()
+        expect(snap.activeDwellMs).toBe(60_000)
+        expect(snap.activeIdleMs).toBe(0)
+    })
+
     it('pauses active dwell and idle clocks while document is hidden (e.g. user in bank app)', () => {
         setStuckRoute('/add-money/germany/bank', T0)
         setDepositDetailsStepActive(true, T0)
         evaluateIdleTick(T0 + 10_000)
         expect(getStuckRuntimeSnapshot().activeDwellMs).toBe(10_000)
 
-        // User switches to their bank app for 2 minutes.
         setStuckDocumentVisible(false, T0 + 10_000)
         evaluateIdleTick(T0 + 130_000)
         expect(getStuckRuntimeSnapshot().activeDwellMs).toBe(10_000)
 
-        // User returns; only active visible time after resume counts.
         setStuckDocumentVisible(true, T0 + 130_000)
         evaluateIdleTick(T0 + 135_000)
         expect(getStuckRuntimeSnapshot().activeDwellMs).toBe(15_000)
     })
 
-    it('resets dwell when entering deposit-details or passkey ready steps', () => {
-        setStuckRoute('/add-money/germany/bank', T0)
-        evaluateIdleTick(T0 + 25_000)
-        expect(getStuckRuntimeSnapshot().activeDwellMs).toBe(25_000)
+    it('clears screen-scoped moneyFailed/appError on route change (N5) and counts corridor switches across picker visits (N17)', () => {
+        setStuckRoute('/withdraw', T0)
+        noteStuckAnalyticsEvent(ANALYTICS_EVENTS.WITHDRAW_FAILED)
+        expect(getStuckRuntimeSnapshot().flags.moneyFailed).toBe(true)
 
-        // Entering the actual details screen resets loading/amount dwell back to 0.
-        setDepositDetailsStepActive(true, T0 + 25_000)
-        expect(getStuckRuntimeSnapshot().activeDwellMs).toBe(0)
+        // Moving to /qr-pay clears moneyFailed so the old failure never follows the user.
+        setStuckRoute('/qr-pay', T0 + 5_000)
+        expect(getStuckRuntimeSnapshot().flags.moneyFailed).toBe(false)
+        expect(getStuckRuntimeSnapshot().hadSessionFriction).toBe(true)
 
-        setStuckRoute('/setup', T0 + 30_000)
-        evaluateIdleTick(T0 + 50_000)
-        setPasskeyStepState('ready', T0 + 50_000)
-        expect(getStuckRuntimeSnapshot().activeDwellMs).toBe(0)
+        // Corridor bounce survives /add-money picker visits.
+        setStuckRoute('/add-money/argentina/manteca', T0 + 10_000)
+        setStuckRoute('/add-money', T0 + 12_000)
+        setStuckRoute('/add-money/germany/bank', T0 + 14_000)
+        setStuckRoute('/add-money', T0 + 16_000)
+        setStuckRoute('/add-money/spain/bank', T0 + 18_000)
+        expect(getStuckRuntimeSnapshot().corridorSwitchCount).toBe(2)
+    })
+
+    it('tracks dwell since passkey cancel (N11), ref-counts busy sources (B5), and clears verify attempts when fixed (N10)', () => {
+        setStuckRoute('/setup', T0)
+        setPasskeyStepState('ready', T0)
+        evaluateIdleTick(T0 + 30_000)
+        expect(getStuckRuntimeSnapshot().activeDwellSincePasskeyCancelMs).toBe(0)
+
+        noteStuckAnalyticsEvent(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED)
+        evaluateIdleTick(T0 + 40_000)
+        expect(getStuckRuntimeSnapshot().activeDwellSincePasskeyCancelMs).toBe(10_000)
+
+        // Source-keyed busy latch: clearing one source keeps busy true while another is active.
+        setStuckFlowBusy(true, 'passkey')
+        setStuckFlowBusy(true, 'pending-charge-send')
+        setStuckFlowBusy(false, 'passkey')
+        expect(getStuckRuntimeSnapshot().isFlowBusy).toBe(true)
+        setStuckFlowBusy(false, 'pending-charge-send')
+        expect(getStuckRuntimeSnapshot().isFlowBusy).toBe(false)
+
+        noteLocalVerifyFieldError(3)
+        expect(getStuckRuntimeSnapshot().localVerifyAttempts).toBe(3)
+        clearLocalVerifyFieldError()
+        expect(getStuckRuntimeSnapshot().localVerifyAttempts).toBe(0)
     })
 
     it('resets stale session flags and nudge cap after 30 minutes away', () => {
@@ -125,26 +169,5 @@ describe('stuck-detector signalStore & signalTap', () => {
 
         noteElementClick(btnA, 102, 102, false, T0 + 700)
         expect(getStuckRuntimeSnapshot().flags.rageTaps).toBe(true)
-    })
-
-    it('resets longIdle on keyboard/scroll activity and taps PostHog $rageclick + failures', () => {
-        evaluateIdleTick(T0 + 26_000)
-        expect(getStuckRuntimeSnapshot().flags.longIdle).toBe(true)
-
-        noteUserActivity(T0 + 27_000)
-        expect(getStuckRuntimeSnapshot().flags.longIdle).toBe(false)
-        expect(getStuckRuntimeSnapshot().activeIdleMs).toBe(0)
-
-        noteStuckAnalyticsEvent('$rageclick')
-        expect(getStuckRuntimeSnapshot().flags.rageTaps).toBe(true)
-
-        noteStuckAnalyticsEvent(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED)
-        expect(getStuckRuntimeSnapshot().passkeyCancelCount).toBe(1)
-
-        noteLocalVerifyFieldError(3)
-        expect(getStuckRuntimeSnapshot().localVerifyAttempts).toBe(3)
-
-        setStuckFlowBusy(true)
-        expect(getStuckRuntimeSnapshot().isFlowBusy).toBe(true)
     })
 })

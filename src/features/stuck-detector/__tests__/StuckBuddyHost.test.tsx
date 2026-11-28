@@ -6,7 +6,14 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import enMessages from '@/i18n/app/messages/en.json'
 import { StuckBuddyHost } from '../components/StuckBuddyHost'
 import { readStuckMemory } from '../memory'
-import { noteLocalVerifyFieldError, resetStuckRuntimeForTests, setDepositDetailsStepActive } from '../signalStore'
+import {
+    evaluateIdleTick,
+    getStuckRuntimeSnapshot,
+    noteLocalVerifyFieldError,
+    resetStuckRuntimeForTests,
+    setDepositDetailsStepActive,
+} from '../signalStore'
+import { noteStuckAnalyticsEvent } from '../signalTap'
 
 let mockPathname = '/verify'
 let mockFlagEnabled = false
@@ -159,19 +166,44 @@ describe('StuckBuddyHost invariants', () => {
         expect(mem.dismissedUntil.verify_loop).toBeGreaterThan(Date.now())
     })
 
-    it('records seenAddMoneyUnfunded only on leaving deposit details (not on first entry)', () => {
+    it('catches non-bubbling scroll inside #scrollable-content so scrolling resets idle (N2a)', () => {
+        mockFlagEnabled = true
+        mockPathname = '/home'
+        const scroller = document.createElement('div')
+        scroller.id = 'scrollable-content'
+        document.body.appendChild(scroller)
+
+        const { unmount } = renderHost()
+        const t0 = getStuckRuntimeSnapshot().lastTickAt
+
+        act(() => {
+            evaluateIdleTick(t0 + 20_000)
+        })
+        expect(getStuckRuntimeSnapshot().activeIdleMs).toBe(20_000)
+
+        // Dispatch a non-bubbling scroll event on an inner container (like AppShell's #scrollable-content).
+        act(() => {
+            scroller.dispatchEvent(new Event('scroll', { bubbles: false }))
+        })
+        expect(getStuckRuntimeSnapshot().activeIdleMs).toBe(0)
+
+        unmount()
+        scroller.remove()
+    })
+
+    it('records seenAddMoneyUnfunded only on leaving deposit details after >=10s dwell (N9)', () => {
         mockFlagEnabled = true
         mockPathname = '/add-money/germany/bank'
         const { unmount } = renderHost()
 
         act(() => {
             setDepositDetailsStepActive(true)
+            const t0 = getStuckRuntimeSnapshot().lastTickAt
+            evaluateIdleTick(t0 + 12_000)
         })
-        // First visit while still on screen: NOT yet marked seenAddMoneyUnfunded.
         expect(readStuckMemory('u-host-test').seenAddMoneyUnfunded).toBe(false)
 
         unmount()
-        // After leaving with verified $0 balance: marked for future visit.
         expect(readStuckMemory('u-host-test').seenAddMoneyUnfunded).toBe(true)
     })
 
@@ -181,11 +213,6 @@ describe('StuckBuddyHost invariants', () => {
         renderHost()
 
         act(() => {
-            noteLocalVerifyFieldError(1)
-        })
-        // Trigger active_issue via 2 error retries.
-        act(() => {
-            const { noteStuckAnalyticsEvent } = require('../signalTap')
             noteStuckAnalyticsEvent(ANALYTICS_EVENTS.DEPOSIT_FAILED)
             noteStuckAnalyticsEvent(ANALYTICS_EVENTS.DEPOSIT_FAILED)
         })

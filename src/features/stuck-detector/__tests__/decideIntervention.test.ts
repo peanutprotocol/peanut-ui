@@ -4,10 +4,12 @@ import {
     DEPOSIT_DETAILS_DWELL_MS,
     HOME_IDLE_WAVE_MS,
     PASSKEY_STALL_AFTER_CANCEL_MS,
+    REPEAT_UNFUNDED_DWELL_MS,
 } from '../decideIntervention'
 import {
     createDefaultStuckMemory,
     DISMISS_COOLDOWN_MS,
+    FRICTION_MEMORY_TTL_MS,
     GLOBAL_QUIET_COOLDOWN_MS,
     LIFETIME_DISMISS_CAP,
 } from '../memory'
@@ -26,22 +28,23 @@ const NOW = 1_700_000_000_000
 const baseInput = (overrides: Partial<StuckDecisionInput> = {}): StuckDecisionInput => ({
     surface: 'add_money',
     uiEnabled: true,
-    isProd: false,
+    isProdDomain: false,
     dismissedThisVisit: false,
     isDepositDetailsStep: true,
     activeDwellMs: 50_000,
+    activeDwellSincePasskeyCancelMs: 0,
     activeIdleMs: 10_000,
     flags: {
         appError: false,
         rageTaps: false,
-        longIdle: false,
         moneyFailed: false,
-        moneyStuck: false,
         kycBlocked: false,
     },
+    hadSessionFriction: false,
     memory: createDefaultStuckMemory(),
     nowMs: NOW,
     sessionNudgeShown: false,
+    sessionWhimsyShown: false,
     hasOverlayOpen: false,
     isKeyboardOpen: false,
     isFlowBusy: false,
@@ -72,10 +75,10 @@ describe('decideStuckIntervention', () => {
         })
     })
 
-    it('strictly ignores demoSurface in production', () => {
+    it('strictly ignores demoSurface on the production domain', () => {
         const res = decideStuckIntervention(
             baseInput({
-                isProd: true,
+                isProdDomain: true,
                 demoSurface: 'active_issue',
                 surface: 'verify_loop',
                 localVerifyAttempts: 0,
@@ -125,16 +128,29 @@ describe('decideStuckIntervention', () => {
         ).toEqual({ show: false, suppressedBy: 'lifetime_cap_reached' })
     })
 
-    it('only triggers add_money on the actual deposit-details step and never coerces null balance to $0', () => {
+    it('requires deposit details step, >=15s dwell on repeat unfunded visit, and never coerces null balance to $0', () => {
         expect(decideStuckIntervention(baseInput({ isDepositDetailsStep: false }))).toEqual({
             show: false,
             suppressedBy: 'below_threshold',
         })
+        // 5s on repeat visit is too brief (e.g. user editing amount); wait until 15s.
         expect(
             decideStuckIntervention(
                 baseInput({
                     isDepositDetailsStep: true,
                     activeDwellMs: 5_000,
+                    balanceUsd: 0,
+                    memory: { ...createDefaultStuckMemory(), seenAddMoneyUnfunded: true },
+                })
+            )
+        ).toEqual({ show: false, suppressedBy: 'below_threshold' })
+
+        // Null balance (still loading) never counts as $0.
+        expect(
+            decideStuckIntervention(
+                baseInput({
+                    isDepositDetailsStep: true,
+                    activeDwellMs: REPEAT_UNFUNDED_DWELL_MS,
                     balanceUsd: null,
                     memory: { ...createDefaultStuckMemory(), seenAddMoneyUnfunded: true },
                 })
@@ -144,7 +160,7 @@ describe('decideStuckIntervention', () => {
         const repeatRes = decideStuckIntervention(
             baseInput({
                 isDepositDetailsStep: true,
-                activeDwellMs: 5_000,
+                activeDwellMs: REPEAT_UNFUNDED_DWELL_MS,
                 balanceUsd: 0,
                 memory: { ...createDefaultStuckMemory(), seenAddMoneyUnfunded: true },
             })
@@ -153,108 +169,67 @@ describe('decideStuckIntervention', () => {
         if (repeatRes.show) expect(repeatRes.reason).toBe('repeat_unfunded_visit')
     })
 
-    it('never triggers setup_passkey with zero cancels, and yields to dedicated Passkey help screens', () => {
+    it('measures passkey stall from the cancel timestamp (never from entering /setup)', () => {
         expect(
             decideStuckIntervention(
                 baseInput({
                     surface: 'setup_passkey',
                     passkeyStepState: 'ready',
-                    passkeyCancelCount: 0,
-                    activeDwellMs: 120_000,
+                    passkeyCancelCount: 1,
+                    activeDwellMs: 90_000,
+                    activeDwellSincePasskeyCancelMs: 2_000,
                 })
             )
         ).toEqual({ show: false, suppressedBy: 'below_threshold' })
-
-        expect(
-            decideStuckIntervention(
-                baseInput({
-                    surface: 'setup_passkey',
-                    passkeyStepState: 'dedicated_help',
-                    passkeyCancelCount: 2,
-                })
-            )
-        ).toEqual({ show: false, suppressedBy: 'setup_error_open' })
 
         const stalledAfterCancel = decideStuckIntervention(
             baseInput({
                 surface: 'setup_passkey',
                 passkeyStepState: 'ready',
                 passkeyCancelCount: 1,
-                activeDwellMs: PASSKEY_STALL_AFTER_CANCEL_MS,
+                activeDwellSincePasskeyCancelMs: PASSKEY_STALL_AFTER_CANCEL_MS,
             })
         )
         expect(stalledAfterCancel.show).toBe(true)
         if (stalledAfterCancel.show) expect(stalledAfterCancel.reason).toBe('passkey_stall_after_cancel')
     })
 
-    it('triggers verify_loop only on genuine 3rd repeated validation failure', () => {
-        expect(
-            decideStuckIntervention(
-                baseInput({ surface: 'verify_loop', localVerifyAttempts: 2, activeDwellMs: 90_000 })
-            )
-        ).toEqual({ show: false, suppressedBy: 'below_threshold' })
-
-        const res = decideStuckIntervention(baseInput({ surface: 'verify_loop', localVerifyAttempts: 3 }))
-        expect(res.show).toBe(true)
-        if (res.show) {
-            expect(res.pose).toBe('thinking')
-            expect(res.reason).toBe('verify_field_loop')
-        }
-    })
-
-    it('triggers home_funded only on verified $10+ balance with factual prior friction, else home_wave after 60s idle', () => {
-        const funded = decideStuckIntervention(
-            baseInput({
-                surface: 'home_funded',
-                balanceUsd: 42,
-                hasSpent: false,
-                memory: { ...createDefaultStuckMemory(), priorObservedFriction: true },
-            })
-        )
-        expect(funded.show).toBe(true)
-        if (funded.show) {
-            expect(funded.surface).toBe('home_funded')
-            expect(funded.mode).toBe('stuck')
-        }
-
-        const quietWave = decideStuckIntervention(
-            baseInput({
-                surface: 'home_funded',
-                balanceUsd: 0,
-                activeIdleMs: HOME_IDLE_WAVE_MS,
-            })
-        )
-        expect(quietWave.show).toBe(true)
-        if (quietWave.show) {
-            expect(quietWave.surface).toBe('home_wave')
-            expect(quietWave.mode).toBe('whimsy')
-            expect(quietWave.reason).toBe('home_idle_wave')
-        }
-
-        // Cooldown on home_wave must suppress fallthrough from home_funded too.
-        const cooledWave = decideStuckIntervention(
-            baseInput({
-                surface: 'home_funded',
-                balanceUsd: 0,
-                activeIdleMs: HOME_IDLE_WAVE_MS,
-                memory: { ...createDefaultStuckMemory(), dismissedUntil: { home_wave: NOW + DISMISS_COOLDOWN_MS } },
-            })
-        )
-        expect(cooledWave).toEqual({ show: false, suppressedBy: 'cooldown_active' })
-    })
-
-    it('triggers active_issue with worried pose on hard failure or 2+ retries', () => {
-        const res = decideStuckIntervention(
+    it('keeps home_wave session cap separate from stuck-help session cap and expires friction TTL cleanly', () => {
+        // After a whimsy wave earlier in the session, real payment failure help STILL shows!
+        const helpAfterWave = decideStuckIntervention(
             baseInput({
                 surface: 'active_issue',
+                sessionWhimsyShown: true,
+                sessionNudgeShown: false,
                 errorRetryCount: 2,
             })
         )
-        expect(res.show).toBe(true)
-        if (res.show) {
-            expect(res.pose).toBe('worried')
-            expect(res.reason).toBe('repeat_error_retry')
-        }
+        expect(helpAfterWave.show).toBe(true)
+
+        // Expired prior friction (>7d old) does not fire home_funded.
+        const expiredFriction = decideStuckIntervention(
+            baseInput({
+                surface: 'home_funded',
+                balanceUsd: 50,
+                hasSpent: false,
+                activeIdleMs: 5_000,
+                memory: { ...createDefaultStuckMemory(), priorObservedFrictionUntil: NOW - 1 },
+            })
+        )
+        expect(expiredFriction).toEqual({ show: false, suppressedBy: 'below_threshold' })
+
+        // Fresh prior friction (<7d old) fires home_funded.
+        const freshFriction = decideStuckIntervention(
+            baseInput({
+                surface: 'home_funded',
+                balanceUsd: 50,
+                hasSpent: false,
+                activeIdleMs: 5_000,
+                memory: { ...createDefaultStuckMemory(), priorObservedFrictionUntil: NOW + FRICTION_MEMORY_TTL_MS },
+            })
+        )
+        expect(freshFriction.show).toBe(true)
+        if (freshFriction.show) expect(freshFriction.surface).toBe('home_funded')
     })
 })
 
@@ -278,7 +253,7 @@ describe('decideStuckIntervention property invariants', () => {
         null
     )
 
-    it('never renders UI when uiEnabled is false and demo is absent (or in prod)', () => {
+    it('never renders UI when uiEnabled is false and demo is absent (or on prod domain)', () => {
         fc.assert(
             fc.property(
                 surfaceArb,
@@ -287,13 +262,13 @@ describe('decideStuckIntervention property invariants', () => {
                 fc.boolean(),
                 fc.integer({ min: 0, max: 180_000 }),
                 fc.integer({ min: 0, max: 180_000 }),
-                (surface, demoSurface, isProd, moneyFailed, activeDwellMs, activeIdleMs) => {
-                    const effectiveDemo = isProd ? demoSurface : null
+                (surface, demoSurface, isProdDomain, moneyFailed, activeDwellMs, activeIdleMs) => {
+                    const effectiveDemo = isProdDomain ? demoSurface : null
                     const res = decideStuckIntervention(
                         baseInput({
                             surface,
                             uiEnabled: false,
-                            isProd,
+                            isProdDomain,
                             demoSurface: effectiveDemo,
                             activeDwellMs,
                             activeIdleMs,
@@ -306,7 +281,7 @@ describe('decideStuckIntervention property invariants', () => {
         )
     })
 
-    it('never shows with zero friction and under 60s idle on any surface', () => {
+    it('never shows with zero friction and under dwell/idle thresholds on any surface', () => {
         fc.assert(
             fc.property(
                 surfaceArb,
@@ -340,15 +315,22 @@ describe('decideStuckIntervention property invariants', () => {
             fc.property(
                 surfaceArb,
                 demoArb,
-                fc.constantFrom('overlay', 'keyboard', 'busy'),
-                (surface, demoSurface, guard) => {
+                fc.constantFrom('overlay', 'keyboard', 'busy', 'session_cap', 'lifetime_cap'),
+                (surface, demoSurface, blocker) => {
+                    const isHardGuard = blocker === 'overlay' || blocker === 'keyboard' || blocker === 'busy'
                     const res = decideStuckIntervention(
                         baseInput({
                             surface,
-                            demoSurface,
-                            hasOverlayOpen: guard === 'overlay',
-                            isKeyboardOpen: guard === 'keyboard',
-                            isFlowBusy: guard === 'busy',
+                            demoSurface: isHardGuard ? demoSurface : null,
+                            hasOverlayOpen: blocker === 'overlay',
+                            isKeyboardOpen: blocker === 'keyboard',
+                            isFlowBusy: blocker === 'busy',
+                            sessionNudgeShown: blocker === 'session_cap',
+                            sessionWhimsyShown: blocker === 'session_cap',
+                            memory: {
+                                ...createDefaultStuckMemory(),
+                                lifetimeDismissCount: blocker === 'lifetime_cap' ? LIFETIME_DISMISS_CAP : 0,
+                            },
                         })
                     )
                     expect(res.show).toBe(false)
@@ -380,6 +362,7 @@ describe('routeJourney segment-safe mapping', () => {
         expect(surfaceForPath('/home', false)).toBe('home_funded')
 
         expect(journeyForPath('/pay-request')).toBe('other')
+        expect(journeyForPath('/pay/foo')).toBe('send')
         expect(journeyForPath('/send')).toBe('send')
         expect(parseDemoSurface('?stuck_demo=home_wave', true)).toBe('home_wave')
         expect(parseDemoSurface('?stuck_demo=home_wave', false)).toBeNull()

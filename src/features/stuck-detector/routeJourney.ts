@@ -19,8 +19,8 @@ export function journeyForPath(pathname: string): StuckJourney {
     if (hasSegmentPrefix(pathname, '/add-money')) return 'deposit'
     if (hasSegmentPrefix(pathname, '/qr-pay')) return 'qr_pay'
     if (hasSegmentPrefix(pathname, '/withdraw')) return 'withdraw'
-    if (pathname === '/card' || hasSegmentPrefix(pathname, '/card/apply')) return 'card'
-    if (hasSegmentPrefix(pathname, '/send') || pathname === '/pay' || hasSegmentPrefix(pathname, '/pay/')) {
+    if (pathname === '/card') return 'card'
+    if (hasSegmentPrefix(pathname, '/send') || hasSegmentPrefix(pathname, '/pay')) {
         return 'send'
     }
     if (hasSegmentPrefix(pathname, '/profile/accounts')) return 'account_setup'

@@ -21,26 +21,24 @@ export type BugReportCategory = 'payment_failed' | 'screen_stuck' | 'something_w
 export interface StuckSessionFlags {
     appError: boolean
     rageTaps: boolean
-    longIdle: boolean
     moneyFailed: boolean
-    moneyStuck: boolean
     kycBlocked: boolean
 }
 
 /**
- * Functional dismissal preferences + observed factual friction (never model scores).
+ * Functional dismissal preferences + time-bounded observed factual friction (never model scores).
  * Dismissal fields persist regardless of analytics opt-out so opted-out users are never re-nagged.
  */
 export interface StuckMemory {
-    /** True only after a real observed error/failure (moneyFailed, kycBlocked, appError) — never a score crossing. */
-    priorObservedFriction: boolean
-    /** Set when leaving a bank-details screen with verified $0 balance so a 2nd visit can offer deposit help. */
+    /** Timestamp until which a prior factual failure (7d TTL) qualifies a funded newcomer for Home help. */
+    priorObservedFrictionUntil: number
+    /** Set when leaving a bank-details screen after >=10s with verified $0 balance so a 2nd visit can offer help. */
     seenAddMoneyUnfunded: boolean
-    /** Per-surface 7-day cooldown timestamps (written on both dismiss and CTA action). */
+    /** Per-surface 7-day cooldown timestamps (written on dismiss, action, or whimsy cameo). */
     dismissedUntil: Partial<Record<StuckSurface, number>>
-    /** Cross-surface 24h quiet period after any dismissal or action. */
+    /** Cross-surface 24h quiet period after any stuck-help dismissal or action (never set by whimsy wave). */
     globalQuietUntil: number
-    /** Lifetime count of explicit dismissals; once >= LIFETIME_DISMISS_CAP, proactive nudges stay off. */
+    /** Lifetime count of explicit dismissals; once >= LIFETIME_DISMISS_CAP, proactive stuck nudges stay off. */
     lifetimeDismissCount: number
 }
 
@@ -49,18 +47,23 @@ export type PasskeyStepState = 'inactive' | 'ready' | 'dedicated_help'
 export interface StuckDecisionInput {
     surface: StuckSurface | null
     uiEnabled: boolean
-    isProd: boolean
+    isProdDomain: boolean
     dismissedThisVisit: boolean
     /** True only when `AddMoneyBankDetails` or `MantecaDepositShareDetails` is mounted (not amount/ToS/verify steps). */
     isDepositDetailsStep: boolean
     /** Active visible dwell time on the current screen/step (paused while document is hidden). */
     activeDwellMs: number
-    /** Active visible idle time since last pointer/keyboard/scroll activity (paused while hidden). */
+    /** Active visible dwell time since the latest passkey cancel/failure on the current step. */
+    activeDwellSincePasskeyCancelMs: number
+    /** Active visible idle time since last click/keyboard/scroll/touch activity (paused while hidden). */
     activeIdleMs: number
     flags: StuckSessionFlags
+    /** Session-scoped factual friction (available identically in both control and treatment arms). */
+    hadSessionFriction: boolean
     memory: StuckMemory
     nowMs: number
     sessionNudgeShown: boolean
+    sessionWhimsyShown: boolean
     hasOverlayOpen: boolean
     isKeyboardOpen: boolean
     isFlowBusy: boolean

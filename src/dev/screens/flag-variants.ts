@@ -35,5 +35,5 @@ export const FLAG_EXEMPTIONS: Record<string, string> = {
     'user-interviews-invite':
         'No fixture reaches the invite: even fixture-home-activated, which reads the flag, shows no invite card with it on.',
     'stuck-buddy-interventions':
-        'Driven by runtime friction signals and shadow scoring; no static capture fixture triggers the buddy.',
+        'Driven by deterministic runtime friction signals; no static capture fixture triggers the buddy.',
 }

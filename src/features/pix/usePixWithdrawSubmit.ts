@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useReducer, useRef } from 'react'
+import { useCallback, useEffect, useReducer, useRef } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import type { Address } from 'viem'
@@ -59,6 +59,7 @@ import { friendlyError } from '@/utils/friendly-error.utils'
 import { captureNetworkTriagedFailure, isNetworkLayerFailure } from '@/utils/network-triage'
 import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { rhinoDepositWithIdCalls } from '@/utils/rhino-deposit.utils'
+import { setStuckFlowBusy } from '@/features/stuck-detector/signalStore'
 
 const flowTags = (step: string) => ({ ...criticalFlowTags('withdraw-pix'), withdraw_step: step })
 
@@ -447,6 +448,13 @@ export function usePixWithdrawSubmit({
     }, [sign])
 
     const withdrawal = openedWithdrawal(state)
+
+    useEffect(() => {
+        const isPixBusy = state.phase === 'starting' || state.phase === 'signing' || state.phase === 'unconfirmed'
+        setStuckFlowBusy(isPixBusy, 'pix-withdraw')
+        return () => setStuckFlowBusy(false, 'pix-withdraw')
+    }, [state.phase])
+
     return {
         submit,
         confirmOpened,

@@ -8,7 +8,7 @@ import { MONEY_FAILED_EVENTS } from '@/utils/app-review-friction'
  * `instrumentation-client.ts` does not pull React, Sentry, or Lottie into boot.
  */
 
-export type StuckSignalKind = 'appError' | 'moneyFailed' | 'moneyStuck' | 'kycBlocked' | 'passkeyCancel' | 'rageClick'
+export type StuckSignalKind = 'appError' | 'moneyFailed' | 'kycBlocked' | 'passkeyCancel' | 'rageClick'
 
 const APP_ERROR_EVENTS = new Set<string>([
     '$exception',

@@ -10,7 +10,10 @@ import type {
 /** Active visible dwell on bank transfer details before offering deposit help. */
 export const DEPOSIT_DETAILS_DWELL_MS = 45_000
 
-/** Active visible dwell on Passkey step after at least one cancel/failure. */
+/** Minimum visible dwell on a repeat unfunded bank-details visit (avoids instant 0s flash on amount edits). */
+export const REPEAT_UNFUNDED_DWELL_MS = 15_000
+
+/** Active visible dwell on Passkey step *after* a real cancel/failure. */
 export const PASSKEY_STALL_AFTER_CANCEL_MS = 25_000
 
 /** Quiet active visible idle duration on `/home` before Peanut pops in for a brief silent wave cameo. */
@@ -31,16 +34,24 @@ interface RuleMatch {
     reason: Exclude<StuckTriggerReason, 'demo_override'>
 }
 
+function matchHomeWhimsy(input: StuckDecisionInput): RuleMatch | null {
+    return input.activeIdleMs >= HOME_IDLE_WAVE_MS
+        ? { surface: 'home_wave', mode: 'whimsy', reason: 'home_idle_wave' }
+        : null
+}
+
 function matchSurfaceRule(input: StuckDecisionInput): RuleMatch | null {
     const { surface } = input
     if (!surface) return null
 
     switch (surface) {
         case 'add_money': {
-            // Only offer bank transfer help on the actual transfer-details step (not amount/ToS/verify/loading).
             if (!input.isDepositDetailsStep) return null
             const repeatUnfunded =
-                input.memory.seenAddMoneyUnfunded && input.balanceUsd !== null && input.balanceUsd <= 0
+                input.memory.seenAddMoneyUnfunded &&
+                input.balanceUsd !== null &&
+                input.balanceUsd <= 0 &&
+                input.activeDwellMs >= REPEAT_UNFUNDED_DWELL_MS
             if (repeatUnfunded) {
                 return { surface, mode: 'stuck', reason: 'repeat_unfunded_visit' }
             }
@@ -54,7 +65,6 @@ function matchSurfaceRule(input: StuckDecisionInput): RuleMatch | null {
         }
 
         case 'verify_loop': {
-            // Reserved for repeated validation failures on the same field (formatTaxId already auto-formats live).
             if (input.localVerifyAttempts >= 3) {
                 return { surface, mode: 'stuck', reason: 'verify_field_loop' }
             }
@@ -62,11 +72,13 @@ function matchSurfaceRule(input: StuckDecisionInput): RuleMatch | null {
         }
 
         case 'setup_passkey': {
-            // Require at least one real passkey cancel/failure so a healthy reader never triggers.
             if (input.passkeyCancelCount >= 2) {
                 return { surface, mode: 'stuck', reason: 'passkey_repeat_cancel' }
             }
-            if (input.passkeyCancelCount >= 1 && input.activeDwellMs >= PASSKEY_STALL_AFTER_CANCEL_MS) {
+            if (
+                input.passkeyCancelCount >= 1 &&
+                input.activeDwellSincePasskeyCancelMs >= PASSKEY_STALL_AFTER_CANCEL_MS
+            ) {
                 return { surface, mode: 'stuck', reason: 'passkey_stall_after_cancel' }
             }
             return null
@@ -74,21 +86,15 @@ function matchSurfaceRule(input: StuckDecisionInput): RuleMatch | null {
 
         case 'home_funded': {
             const isFundedUnspent = input.balanceUsd !== null && input.balanceUsd >= 10 && !input.hasSpent
-            if (isFundedUnspent && input.memory.priorObservedFriction) {
+            const hasRecentFriction = input.hadSessionFriction || input.memory.priorObservedFrictionUntil > input.nowMs
+            if (isFundedUnspent && hasRecentFriction) {
                 return { surface, mode: 'stuck', reason: 'funded_no_spend' }
             }
-            if (input.activeIdleMs >= HOME_IDLE_WAVE_MS) {
-                return { surface: 'home_wave', mode: 'whimsy', reason: 'home_idle_wave' }
-            }
-            return null
+            return matchHomeWhimsy(input)
         }
 
-        case 'home_wave': {
-            if (input.activeIdleMs >= HOME_IDLE_WAVE_MS) {
-                return { surface: 'home_wave', mode: 'whimsy', reason: 'home_idle_wave' }
-            }
-            return null
-        }
+        case 'home_wave':
+            return matchHomeWhimsy(input)
 
         case 'active_issue': {
             if (input.errorRetryCount >= 2) {
@@ -113,19 +119,20 @@ function matchSurfaceRule(input: StuckDecisionInput): RuleMatch | null {
 /**
  * Pure deterministic eligibility gate for the walking Peanut buddy.
  *
- * Enforces all safety invariants in one place (no flag or guard logic in components):
+ * Enforces all safety invariants in one place:
  *   - Safety guards (overlay, keyboard, flow-busy) run before BOTH real and demo triggers.
- *   - Demo parameter is strictly ignored in production (`isProd === true`).
- *   - Evaluates the real trigger rule even when `uiEnabled === false` so control-arm holdout
- *     eligibility (`eligibleInControl`) is measured identically to treatment.
+ *   - Demo parameter is strictly ignored on the production domain (`isProdDomain === true`).
+ *   - `home_wave` whimsy uses its own session cap (`sessionWhimsyShown`) and never spends the
+ *     session's real stuck-help nudge (`sessionNudgeShown`) or global 24h quiet period.
+ *   - Evaluates the real trigger rule identically when `uiEnabled === false` so control-arm
+ *     holdout eligibility (`eligibleInControl`) matches treatment.
  */
 export function decideStuckIntervention(input: StuckDecisionInput): StuckInterventionDecision {
-    // Hard safety guards never yield — not even for non-prod `?stuck_demo=`.
     if (input.hasOverlayOpen) return { show: false, suppressedBy: 'overlay_open' }
     if (input.isKeyboardOpen) return { show: false, suppressedBy: 'keyboard_open' }
     if (input.isFlowBusy) return { show: false, suppressedBy: 'flow_busy' }
 
-    const activeDemo = !input.isProd ? input.demoSurface : null
+    const activeDemo = !input.isProdDomain ? input.demoSurface : null
     if (activeDemo) {
         if (input.dismissedThisVisit) return { show: false, suppressedBy: 'dismissed_this_visit' }
         return {
@@ -153,20 +160,27 @@ export function decideStuckIntervention(input: StuckDecisionInput): StuckInterve
         }
     }
 
-    if (input.sessionNudgeShown) return { show: false, suppressedBy: 'already_nudged_session' }
-    if (input.memory.lifetimeDismissCount >= LIFETIME_DISMISS_CAP) {
-        return { show: false, suppressedBy: 'lifetime_cap_reached' }
-    }
-    if (input.memory.globalQuietUntil > input.nowMs) {
-        return { show: false, suppressedBy: 'cooldown_active' }
-    }
-
     const match = matchSurfaceRule(input)
     if (!match) return { show: false, suppressedBy: 'below_threshold' }
 
-    // Check cooldown against the matched surface (covers `home_funded` falling through to `home_wave`).
-    const cooldownUntil = input.memory.dismissedUntil[match.surface] ?? 0
-    if (cooldownUntil > input.nowMs) return { show: false, suppressedBy: 'cooldown_active' }
+    if (match.mode === 'whimsy') {
+        if (input.sessionWhimsyShown) return { show: false, suppressedBy: 'already_nudged_session' }
+        if (input.memory.lifetimeDismissCount >= LIFETIME_DISMISS_CAP) {
+            return { show: false, suppressedBy: 'lifetime_cap_reached' }
+        }
+        const waveCooldown = input.memory.dismissedUntil.home_wave ?? 0
+        if (waveCooldown > input.nowMs) return { show: false, suppressedBy: 'cooldown_active' }
+    } else {
+        if (input.sessionNudgeShown) return { show: false, suppressedBy: 'already_nudged_session' }
+        if (input.memory.lifetimeDismissCount >= LIFETIME_DISMISS_CAP) {
+            return { show: false, suppressedBy: 'lifetime_cap_reached' }
+        }
+        if (input.memory.globalQuietUntil > input.nowMs) {
+            return { show: false, suppressedBy: 'cooldown_active' }
+        }
+        const cooldownUntil = input.memory.dismissedUntil[match.surface] ?? 0
+        if (cooldownUntil > input.nowMs) return { show: false, suppressedBy: 'cooldown_active' }
+    }
 
     if (!input.uiEnabled) {
         return {

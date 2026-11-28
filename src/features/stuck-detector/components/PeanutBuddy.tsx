@@ -133,6 +133,7 @@ export function PeanutBuddy({
     if (whimsy && (reducedMotion || mascotFailed)) return null
 
     const isBubbleInteractive = bubbleVisible || reducedMotion
+    const isMascotInteractive = whimsy ? whimsyLanded : isBubbleInteractive
 
     return (
         <motion.aside
@@ -210,7 +211,10 @@ export function PeanutBuddy({
                     tabIndex={whimsy ? 0 : -1}
                     aria-label={mascotLabel}
                     data-testid="peanut-buddy-mascot-btn"
-                    className="pointer-events-auto relative h-24 w-20 shrink-0 cursor-pointer focus-visible:outline-3 focus-visible:outline-action-focus"
+                    className={twMerge(
+                        'relative h-24 w-20 shrink-0 cursor-pointer focus-visible:outline-3 focus-visible:outline-action-focus',
+                        isMascotInteractive ? 'pointer-events-auto' : 'pointer-events-none'
+                    )}
                 >
                     <PeanutBuddyMascot
                         targetPose={pose}
