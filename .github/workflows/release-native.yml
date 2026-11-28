@@ -95,7 +95,7 @@ jobs:
 
             - name: Read native-incompatible OTA evidence
               if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure' }}
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@v8
               with:
                   name: ota-native-incompatible-${{ github.event.workflow_run.id }}
                   run-id: ${{ github.event.workflow_run.id }}
@@ -132,7 +132,7 @@ jobs:
             - name: Read the unchanged-bundle OTA marker
               if: steps.ota_marker.outputs.present == 'true'
               continue-on-error: true
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@v8
               with:
                   name: ota-bundle-unchanged-${{ github.event.workflow_run.id }}
                   run-id: ${{ github.event.workflow_run.id }}
