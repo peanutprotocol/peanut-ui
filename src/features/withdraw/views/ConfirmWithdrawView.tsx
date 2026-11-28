@@ -75,13 +75,6 @@ interface WithdrawConfirmViewProps {
     saveAddressPrompt?: React.ReactNode
     /** Extra gate for the CTA — e.g. "Save to favorites" ticked with no nickname yet. */
     confirmDisabled?: boolean
-    /**
-     * Funds already left the wallet for this charge and only the bookkeeping
-     * failed, so Retry replays the record and spends nothing. The balance and
-     * minimum gates are about spending, and a full-balance withdrawal trips
-     * them once the wallet empties — they must not disable the recovery.
-     */
-    alreadySpent?: boolean
 }
 
 export default function ConfirmWithdrawView({
@@ -102,7 +95,6 @@ export default function ConfirmWithdrawView({
     showHighFeeWarning = false,
     insufficientBalance = false,
     belowMinimumMessage = null,
-    alreadySpent = false,
     isFromSendFlow = false,
     toNickname = null,
     saveAddressPrompt = null,
@@ -118,11 +110,6 @@ export default function ConfirmWithdrawView({
         tokenAddress: token.address,
         tokenSymbol: token.symbol,
     })
-
-    // After this charge spends, a lower live balance is expected. Only a new
-    // spend needs affordability validation; processing keeps the CTA locked
-    // while the balance refreshes and payment recording finishes.
-    const balanceBlocksConfirmation = insufficientBalance && !alreadySpent
 
     const displayReceived = useMemo<string | null>(() => {
         if (!isCrossChain || !receiveAmount || !resolvedTokenSymbol) return null
@@ -271,15 +258,10 @@ export default function ConfirmWithdrawView({
                         }}
                         // Retry replaces the confirm CTA, so it has to carry the
                         // same gates — otherwise a failed send is a way past
-                        // them, and the money moves anyway. Once the spend has
-                        // landed there is nothing left to gate: Retry only
-                        // replays the record.
-                        disabled={
-                            isProcessing ||
-                            (alreadySpent
-                                ? confirmDisabled
-                                : insufficientBalance || !!belowMinimumMessage || confirmDisabled)
-                        }
+                        // them, and the money moves anyway. A send that may
+                        // have moved money keeps isProcessing on until its
+                        // recovery ends.
+                        disabled={isProcessing || insufficientBalance || !!belowMinimumMessage || confirmDisabled}
                         loading={false}
                         className="w-full"
                         icon="retry"
@@ -294,7 +276,7 @@ export default function ConfirmWithdrawView({
                         disabled={
                             isProcessing ||
                             isCalculating ||
-                            balanceBlocksConfirmation ||
+                            insufficientBalance ||
                             !!belowMinimumMessage ||
                             confirmDisabled
                         }
@@ -307,7 +289,8 @@ export default function ConfirmWithdrawView({
                     </Button>
                 )}
 
-                {balanceBlocksConfirmation && !isProcessing && !error && (
+                {/* a send in progress lowers the balance it is checked against */}
+                {insufficientBalance && !isProcessing && !error && (
                     <Callout priority="error" data-testid="withdraw-insufficient-balance">
                         {tErrors('notEnoughBalanceAddFunds')}
                     </Callout>

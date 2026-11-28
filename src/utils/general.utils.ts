@@ -132,9 +132,10 @@ export const saveToLocalStorage = (key: string, data: unknown, expirySeconds?: n
         } else {
             localStorage.removeItem(`${key}-expiry`)
         }
-        // key is passed as an argument (not interpolated into the format string)
-        // so a user-controlled key can't act as a console format string (CodeQL).
-        console.log('Saved to localStorage:', key, data)
+        // Key only: a stored value can be a bearer secret (a send link with its
+        // password), and console output reaches Sentry breadcrumbs. The key is an
+        // argument, not part of the format string, so it can't act as one (CodeQL).
+        console.log('Saved to localStorage:', key)
         return true
     } catch (error) {
         Sentry.captureException(error)

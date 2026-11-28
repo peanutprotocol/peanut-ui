@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
+import { identityStartRefusalPath } from '@/features/paperwork-verification/paperworkVerificationEntry'
 import { useAuth } from '@/context/authContext'
 import type { FeatureReverificationConflict } from '@/app/actions/types/kyc-reverification.types'
 import { currentReverificationDestination, featureReverificationPath } from '@/utils/kyc-reverification'
@@ -13,7 +14,12 @@ export interface ActionFlowResponse {
 }
 
 interface ActionTokenFetcher {
-    (): Promise<{ data?: ActionFlowResponse; error?: string; reverification?: FeatureReverificationConflict }>
+    (): Promise<{
+        data?: ActionFlowResponse
+        error?: string
+        code?: string
+        reverification?: FeatureReverificationConflict
+    }>
 }
 
 interface UseSumsubActionFlowOptions {
@@ -83,6 +89,11 @@ export function useSumsubActionFlow({ fetchToken, onSuccess, onNeedsSupport }: U
                 return
             }
 
+            const refusalPath = identityStartRefusalPath(response.code)
+            if (refusalPath) {
+                router.push(refusalPath)
+                return
+            }
             if (response.error) {
                 setError(response.error)
                 return
@@ -121,7 +132,7 @@ export function useSumsubActionFlow({ fetchToken, onSuccess, onNeedsSupport }: U
         } finally {
             if (mounted.current && owner.current === userId) setIsLoading(false)
         }
-    }, [goToReverification, t, userId])
+    }, [goToReverification, router, t, userId])
 
     // called when SDK signals verification was submitted
     const handleSdkComplete = useCallback(() => {
@@ -150,13 +161,18 @@ export function useSumsubActionFlow({ fetchToken, onSuccess, onNeedsSupport }: U
             return ''
         }
 
+        const refusalPath = identityStartRefusalPath(response.code)
+        if (refusalPath) {
+            setShowWrapper(false)
+            router.push(refusalPath)
+        }
         if (response.error || !response.data?.token) {
             throw new Error(response.error || 'Failed to refresh token')
         }
 
         setAccessToken(response.data.token)
         return response.data.token
-    }, [goToReverification, userId])
+    }, [goToReverification, router, userId])
 
     return {
         isLoading,

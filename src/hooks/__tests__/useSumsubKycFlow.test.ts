@@ -20,7 +20,7 @@ import {
 } from '@/app/actions/sumsub'
 
 jest.mock('@/app/actions/kyc-workflow', () => {
-    const getKycDocumentPlan = jest.fn(async () => ({ available: false, routes: [] }))
+    const getKycDocumentPlan = jest.fn(async () => ({ available: false, flow: null, routes: [] }))
     return {
         getKycDocumentStatus: jest.fn(async () => 'IN_REVIEW'),
         getKycDocumentPlan,
@@ -1686,7 +1686,9 @@ describe('a user the plan keeps off Smart Paperwork Verification keeps the legac
     it('still syncs the current status on mount', async () => {
         mockInitiate.mockResolvedValue({ data: { status: 'APPROVED', token: null, applicantId: 'a-1' } } as never)
         renderHook(() => useSumsubKycFlow({ regionIntent: 'STANDARD' }))
-        await waitFor(() => expect(mockInitiate).toHaveBeenCalledWith({ regionIntent: 'STANDARD' }))
+        await waitFor(() =>
+            expect(mockInitiate).toHaveBeenCalledWith({ regionIntent: 'STANDARD' }, undefined, expect.any(AbortSignal))
+        )
     })
 
     it('resumes the owner-bound attempt after a reload', async () => {
@@ -1817,25 +1819,10 @@ describe('a user the plan keeps off Smart Paperwork Verification keeps the legac
     })
 })
 
-describe('an API without a readable document plan keeps the legacy flow', () => {
+describe('legacy sessions use a confirmed plan', () => {
     beforeEach(() => {
-        jest.mocked(getKycDocumentPlan).mockRejectedValue(new Error('KYC request failed'))
+        jest.mocked(getKycDocumentPlan).mockResolvedValue({ available: false, flow: null, routes: [] } as never)
         mockInitiate.mockClear()
-    })
-    afterEach(() => jest.mocked(getKycDocumentPlan).mockResolvedValue({ available: false, routes: [] } as never))
-
-    it('starts verification through the legacy initiate', async () => {
-        mockInitiate.mockResolvedValue({
-            data: { status: 'NOT_STARTED', token: 'legacy-token', applicantId: 'applicant-1' },
-        })
-        const { result } = renderHook(() => useSumsubKycFlow({}))
-        await act(async () => {
-            await result.current.handleInitiateKyc()
-        })
-        expect(mockInitiate).toHaveBeenCalledTimes(1)
-        expect(result.current.error).toBeNull()
-        expect(result.current.accessToken).toBe('legacy-token')
-        expect(result.current.showWrapper).toBe(true)
     })
 
     it('refreshes the legacy session through the legacy initiate', async () => {
@@ -1846,6 +1833,7 @@ describe('an API without a readable document plan keeps the legacy flow', () => 
         await act(async () => {
             await result.current.handleInitiateKyc()
         })
+        expect(result.current.showWrapper).toBe(true)
         mockInitiate.mockClear()
         await act(async () => {
             await result.current.refreshToken()
@@ -1853,7 +1841,7 @@ describe('an API without a readable document plan keeps the legacy flow', () => 
         expect(mockInitiate).toHaveBeenCalledTimes(1)
     })
 
-    it('restarts identity through the legacy restart', async () => {
+    it('restarts an existing legacy identity', async () => {
         jest.mocked(restartIdentityVerification).mockResolvedValue({ data: { token: 'restart-token' } } as never)
         const { result } = renderHook(() => useSumsubKycFlow({}))
         await act(async () => {
@@ -1863,15 +1851,16 @@ describe('an API without a readable document plan keeps the legacy flow', () => 
         expect(result.current.error).toBeNull()
     })
 
-    it('still syncs the current status on mount', async () => {
+    it('still syncs legacy status on mount', async () => {
         mockInitiate.mockResolvedValue({
             data: { status: 'APPROVED', token: null, applicantId: 'applicant-1' },
         } as never)
         renderHook(() => useSumsubKycFlow({ regionIntent: 'STANDARD' }))
-        await waitFor(() => expect(mockInitiate).toHaveBeenCalledWith({ regionIntent: 'STANDARD' }))
+        await waitFor(() =>
+            expect(mockInitiate).toHaveBeenCalledWith({ regionIntent: 'STANDARD' }, undefined, expect.any(AbortSignal))
+        )
     })
 })
-
 describe('useSumsubKycFlow — restarting an identity verified through a verification attempt', () => {
     const replacementPlan = {
         available: true,
@@ -2032,7 +2021,7 @@ describe('useSumsubKycFlow — Smart Paperwork Verification routing', () => {
         ;(getKycDocumentStatus as jest.Mock).mockResolvedValue('NOT_STARTED')
     })
     afterEach(() => {
-        ;(getKycDocumentPlan as jest.Mock).mockResolvedValue({ available: false, routes: [] })
+        ;(getKycDocumentPlan as jest.Mock).mockResolvedValue({ available: false, flow: null, routes: [] })
         ;(getKycDocumentStatus as jest.Mock).mockResolvedValue('IN_REVIEW')
     })
 
@@ -2081,12 +2070,14 @@ describe('server-selected feature routing', () => {
     beforeEach(() => {
         mockInitiate.mockReset()
         mockRouterPush.mockReset()
-        jest.mocked(getKycDocumentPlan).mockResolvedValue({ available: false, routes: [] } as never)
+        jest.mocked(getKycDocumentPlan).mockResolvedValue({ available: false, flow: null, routes: [] } as never)
     })
-    afterEach(() => jest.mocked(getKycDocumentPlan).mockResolvedValue({ available: false, routes: [] } as never))
+    afterEach(() =>
+        jest.mocked(getKycDocumentPlan).mockResolvedValue({ available: false, flow: null, routes: [] } as never)
+    )
     it.each(['local', 'bank'] as const)('routes initial %s conflict to its own questions', async (feature) => {
         jest.mocked(getKycDocumentPlan)
-            .mockResolvedValueOnce({ available: false, routes: [] } as never)
+            .mockResolvedValueOnce({ available: false, flow: null, routes: [] } as never)
             .mockResolvedValue({ available: true, routes: [], flow: 'verify-once' } as never)
         mockInitiate.mockResolvedValue({
             code: 'feature_selection_required',
@@ -2219,7 +2210,7 @@ describe('KYC entry handlers report whether the SDK opened', () => {
         mockStartAction.mockReset()
         mockResubmit.mockReset()
         jest.mocked(findKycReplacementPlan).mockResolvedValue(null)
-        jest.mocked(getKycDocumentPlan).mockResolvedValue({ available: false, routes: [] } as never)
+        jest.mocked(getKycDocumentPlan).mockResolvedValue({ available: false, flow: null, routes: [] } as never)
     })
 
     it.each(['restart', 'action', 'resubmit'] as const)(
