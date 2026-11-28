@@ -13,7 +13,7 @@
  */
 
 import { useCallback, useContext, useMemo } from 'react'
-import { type Address } from 'viem'
+import { formatUnits, type Address } from 'viem'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useDirectSendFlowContext } from './DirectSendFlowContext'
 import { MutationResponseTimeoutError } from '@/utils/connection-timeout-error'
@@ -87,13 +87,20 @@ export function useDirectSendFlow() {
         spendableBalanceDecimal,
         hasSufficientSpendableBalance: hasSufficientBalance,
         isFetchingSpendableBalance,
+        availableSpendableBalance,
         isSpendableBalanceReady,
+        isSpendableBalanceSettled,
     } = useWallet()
 
-    // the spendable total in dollars for the add-money gap; undefined until both live terms read, so the
-    // persisted display cache never counts as funds. During a refetch useWallet holds the last total
-    // both reads agreed on, so a smart/Rain skew mid-move never reads as funded (TASK-25467)
-    const liveSpendableUsd = isSpendableBalanceReady ? spendableBalanceDecimal : undefined
+    // the live spendable total the affordability gate runs on, in dollars; undefined until both terms
+    // read, so a cached display balance never reads as funded (TASK-25467)
+    const liveSpendableUsd = useMemo(
+        () =>
+            isSpendableBalanceReady && availableSpendableBalance !== undefined
+                ? Number(formatUnits(availableSpendableBalance, PEANUT_WALLET_TOKEN_DECIMALS))
+                : undefined,
+        [isSpendableBalanceReady, availableSpendableBalance]
+    )
 
     const isLoggedIn = !!user?.user?.userId
 
@@ -319,6 +326,7 @@ export function useDirectSendFlow() {
         formattedBalance: formattedSpendableBalance,
         balanceFillAmount: spendableBalanceDecimal,
         liveSpendableUsd,
+        isSpendableBalanceSettled,
 
         // actions
         setAmount: handleSetAmount,

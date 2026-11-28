@@ -24,6 +24,7 @@ export function useAddMoneyAction({
     place,
     targetUsd,
     spendableUsd,
+    balanceSettled,
     step,
     urlState,
 }: {
@@ -43,6 +44,12 @@ export function useAddMoneyAction({
     targetUsd: number
     /** the place's spendable balance in dollars; undefined while it loads */
     spendableUsd: number | undefined
+    /**
+     * Both balance reads are idle (useWallet's `isSpendableBalanceSettled`). The gap follows the live
+     * balance the place's gate uses; "funded" waits for this, so a mid-move skew never closes the
+     * drawer, drops the transfer note or records a funded event.
+     */
+    balanceSettled: boolean
 }) {
     const readiness = useAddMoneyReadiness(false)
     const { user } = useAuth()
@@ -60,7 +67,7 @@ export function useAddMoneyAction({
         const search = query.toString()
         return window.location.pathname + (search ? `?${search}` : '')
     }, [])
-    const funded = gapUsd === 0
+    const funded = gapUsd === 0 && balanceSettled
 
     // one drawer per opening (`n` remounts it), kept mounted closed through vaul's exit animation
     const [n, setN] = useState(0)
@@ -86,10 +93,10 @@ export function useAddMoneyAction({
     }
     useEffect(() => {
         const tapped = Number(readStoredValue(shortKey, 'sessionStorage'))
-        if (!tapped || addMoneyGapUsd(tapped, spendableUsd) !== 0) return
+        if (!tapped || !balanceSettled || addMoneyGapUsd(tapped, spendableUsd) !== 0) return
         removeStoredValue(shortKey, 'sessionStorage')
         captureAddMoneyCameBackFunded(place, open, shown.current?.method ?? null)
-    }, [shortKey, spendableUsd, place, open])
+    }, [shortKey, spendableUsd, balanceSettled, place, open])
 
     // funded with the drawer open: back to the step, whose own button is now on
     useEffect(() => {
