@@ -82,7 +82,7 @@
         "features/paperwork-verification/components/QuestionStepScreen.tsx": 242,
         "features/payments/flows/contribute-pot/components/PayByBankTransferDrawer.tsx": 155,
         "features/payments/flows/contribute-pot/views/ContributePotInputView.tsx": 142,
-        "features/payments/flows/direct-send/views/SendInputView.tsx": 63,
+        "features/payments/flows/direct-send/views/SendInputView.tsx": 125,
         "features/payments/flows/qr-pay/views/QrPayBlockedView.tsx": 151,
         "features/payments/flows/qr-pay/views/QrPayFormView.tsx": 162,
         "features/payments/flows/qr-pay/views/QrPayKycGateView.tsx": 122,

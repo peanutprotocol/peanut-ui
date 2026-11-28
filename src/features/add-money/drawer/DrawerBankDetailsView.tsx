@@ -38,7 +38,8 @@ export function DrawerBankDetailsView({
 }: {
     corridor: DepositCorridor
     targetUsd: number
-    returnTo: string
+    /** read as the route opens, so it carries the place's latest step */
+    returnTo: () => string
     /** "I've sent the transfer"; `inDollars`: the transfer was the dollar gap, so the place may name it */
     onSent: (inDollars: boolean) => void
 }) {
@@ -86,7 +87,7 @@ export function DrawerBankDetailsView({
 
     const moreWays = (
         <div className="mt-2 flex justify-center">
-            <LinkButton onClick={() => router.push(withReturnTo('/add-money?method=bank', returnTo))}>
+            <LinkButton onClick={() => router.push(withReturnTo('/add-money?method=bank', returnTo()))}>
                 {tMethods('moreWays')}
             </LinkButton>
         </div>
@@ -183,7 +184,12 @@ export function DrawerBankDetailsView({
                 withHeading={false}
             />
             {usable && (
-                <Button variant="primary" className="w-full" onClick={() => onSent(!nonUsd)}>
+                <Button
+                    variant="primary"
+                    className="w-full"
+                    onClick={() => onSent(!nonUsd)}
+                    data-testid="add-money-bank-sent"
+                >
                     {tBank('sentTransfer')}
                 </Button>
             )}

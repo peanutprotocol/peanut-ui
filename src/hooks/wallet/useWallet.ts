@@ -312,6 +312,9 @@ export const useWallet = () => {
     // that failed with no data stops loading while the balance is still unknown.
     const isSpendableBalanceReady =
         isRainReady && availableSpendableBalance !== undefined && (demoMode || isAddressReady)
+    // ready, and neither read is refetching: the raw sum cannot be a mid-move skew (money counted in
+    // both the smart account and Rain). A "funded" decision waits for this; the gates do not.
+    const isSpendableBalanceSettled = isSpendableBalanceReady && (demoMode || !anyFetching)
 
     // formatted balance for display (e.g. "1,234.56"). Smart-account only —
     // use `formattedSpendableBalance` below for user-facing widgets that
@@ -368,5 +371,6 @@ export const useWallet = () => {
         isFetchingSpendableBalance: isSpendableBalanceLoading,
         isSpendableBalanceStale,
         isSpendableBalanceReady,
+        isSpendableBalanceSettled,
     }
 }

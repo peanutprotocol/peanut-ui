@@ -13,7 +13,7 @@
  */
 
 import { useCallback, useContext, useMemo } from 'react'
-import { type Address } from 'viem'
+import { formatUnits, type Address } from 'viem'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useDirectSendFlowContext } from './DirectSendFlowContext'
 import { chargesApi } from '@/services/charges'
@@ -79,7 +79,20 @@ export function useDirectSendFlow() {
         spendableBalanceDecimal,
         hasSufficientSpendableBalance: hasSufficientBalance,
         isFetchingSpendableBalance,
+        availableSpendableBalance,
+        isSpendableBalanceReady,
+        isSpendableBalanceSettled,
     } = useWallet()
+
+    // the live spendable total the affordability gate runs on, in dollars; undefined until both terms
+    // read, so a cached display balance never reads as funded (TASK-25467)
+    const liveSpendableUsd = useMemo(
+        () =>
+            isSpendableBalanceReady && availableSpendableBalance !== undefined
+                ? Number(formatUnits(availableSpendableBalance, PEANUT_WALLET_TOKEN_DECIMALS))
+                : undefined,
+        [isSpendableBalanceReady, availableSpendableBalance]
+    )
 
     const readCharge = useCallback(
         async ({ chargeId }: PendingChargeSend) => {
@@ -232,6 +245,8 @@ export function useDirectSendFlow() {
             setPayment(paymentResult)
             setIsSuccess(true)
             setCurrentView('STATUS')
+            // a refresh after a sent payment must not open Send filled in again
+            setAmount('')
 
             // Client-leg latency split. Prod DB timing only sees intent
             // creation → POST /payments as one opaque 7.9s-median block
@@ -295,7 +310,8 @@ export function useDirectSendFlow() {
                     },
                 },
             })
-            if (mayHaveSent) await pendingSend.recover()
+            // a send the recovery confirms is paid: drop the amount, as the success path does
+            if (mayHaveSent && (await pendingSend.recover()) === 'completed') setAmount('')
         } finally {
             pendingSend.release()
             setIsLoading(false)
@@ -316,6 +332,7 @@ export function useDirectSendFlow() {
         setPayment,
         setIsSuccess,
         setCurrentView,
+        setAmount,
         setError,
         setIsLoading,
         setLoadingState,
@@ -349,6 +366,8 @@ export function useDirectSendFlow() {
         walletAddress,
         formattedBalance: formattedSpendableBalance,
         balanceFillAmount: spendableBalanceDecimal,
+        liveSpendableUsd,
+        isSpendableBalanceSettled,
 
         // actions
         setAmount: handleSetAmount,

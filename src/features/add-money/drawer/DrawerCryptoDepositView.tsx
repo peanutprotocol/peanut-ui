@@ -28,6 +28,7 @@ import {
     rememberDepositLanding,
     rememberEarlyLanding,
 } from './depositLanding'
+import type { AddMoneyPlace } from './drawerAnalytics'
 import { DrawerStatus } from './DrawerStatus'
 import { readLiveSpendableUsd } from './readLiveSpendableUsd'
 
@@ -68,11 +69,14 @@ type Hold = {
 export function DrawerCryptoDepositView({
     network,
     targetUsd,
+    place,
     onDone,
     onProcessingChange,
 }: {
     network: RhinoChainType
     targetUsd: number
+    /** the support message names the card only on the card */
+    place: AddMoneyPlace
     onDone: () => void
     /** a deposit is settling: the drawer hides its back, so a second address is never one tap away */
     onProcessingChange: (processing: boolean) => void
@@ -496,7 +500,14 @@ export function DrawerCryptoDepositView({
                                 variant="secondary"
                                 className="w-full"
                                 onClick={() =>
-                                    openSupportWithMessage(t('stillLandingSupportMessage', { network: networkLabel }))
+                                    openSupportWithMessage(
+                                        t(
+                                            place === 'card'
+                                                ? 'stillLandingSupportMessage'
+                                                : 'stillLandingSupportMessageBalance',
+                                            { network: networkLabel }
+                                        )
+                                    )
                                 }
                                 data-testid="card-add-money-contact-support"
                             >

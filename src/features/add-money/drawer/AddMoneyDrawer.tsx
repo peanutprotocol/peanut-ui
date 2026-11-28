@@ -3,15 +3,19 @@
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import NetworkList from '@/components/AddMoney/components/NetworkList'
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
+import type { AddMoneyPickerMethod } from '@/features/add-money/addMoneyMethods'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import { markVerifySource } from '@/features/paperwork-verification/verifySource'
 import type { RhinoChainType } from '@/services/services.types'
 import { withReturnTo } from '@/utils/return-to.utils'
 import { bankPageHref, type DrawerBankPlan, type DrawerBankRow } from './addMoneyDrawerPlan'
+import { BankMethodRow } from './BankMethodRow'
+import { CryptoMethodRow } from './CryptoMethodRow'
 import { DrawerBankDetailsView } from './DrawerBankDetailsView'
 import { DrawerBankRowsView } from './DrawerBankRowsView'
 import { DrawerBankStatusView } from './DrawerBankStatusView'
@@ -27,14 +31,21 @@ import {
     type DrawerMethod,
     type AddMoneyPlace,
 } from './drawerAnalytics'
+import { useBankMethodState } from './useBankMethodState'
 
-/** Where the drawer stands. `bank` follows the plan, so a plan that loads changes the view with it. */
-type DrawerView =
-    /** `fromBank`: opened from a bank status's crypto way out, so back returns to that status */
-    | { kind: 'networks'; fromBank?: boolean }
-    | { kind: 'address'; network: RhinoChainType; fromBank?: boolean }
+/**
+ * Where the drawer stands. `bank` and `methods` follow the plan, so a plan that loads changes the
+ * view with them. `prev`: the view this one was opened from, so back returns to it; a view without
+ * one is the drawer's root and gets the title instead.
+ */
+type DrawerView = DrawerStep & { prev?: DrawerView }
+type DrawerStep =
+    /** crypto and the bank ways side by side, for a place that opens the drawer with no method */
+    | { kind: 'methods' }
+    | { kind: 'networks' }
+    | { kind: 'address'; network: RhinoChainType }
     | { kind: 'bank' }
-    /** an account picked from the bank list; a single account is the `bank` view itself */
+    /** an account picked from a bank list; a single account is the `bank` view itself */
     | { kind: 'details'; corridor: DepositCorridor }
 
 /** What a bank view shows for this plan. */
@@ -76,7 +87,8 @@ export function AddMoneyDrawer({
     onBankSent,
 }: {
     open: boolean
-    method: DrawerMethod
+    /** the method the place picked; without one the drawer opens on the choice of methods */
+    method?: DrawerMethod
     /** the place's funded state, for the add-funds event a rail picked here sends */
     funded: boolean
     /** the spendable balance the place needs: each view reads the balance fresh and asks for the gap to it */
@@ -85,12 +97,15 @@ export function AddMoneyDrawer({
     gapUsd: number | undefined
     plan: DrawerBankPlan
     residenceIso2s: readonly string[]
-    /** where /verify, finish-setup and bank pages send the user back to */
-    returnTo: string
+    /**
+     * Where /verify, finish-setup and bank pages send the user back to, read as the route opens: the
+     * place's step may have changed after the drawer opened, and the return must carry the latest.
+     */
+    returnTo: () => string
     /** names the analytics events and the verify source */
     place: AddMoneyPlace
     /** the method and view on screen, for the funded and closed events */
-    onShow: (method: DrawerMethod, view: AddMoneyDrawerView) => void
+    onShow: (method: DrawerMethod | null, view: AddMoneyDrawerView) => void
     /** the user closed the drawer: swipe, overlay or back */
     onDismiss: () => void
     /** "I've sent the transfer": the place shows the transfer on its way */
@@ -99,12 +114,25 @@ export function AddMoneyDrawer({
     const t = useTranslations('card.addMoney')
     const tAdd = useTranslations('addMoney')
     const router = useRouter()
-    const [view, setView] = useState<DrawerView>(openedWith === 'crypto' ? { kind: 'networks' } : { kind: 'bank' })
+    const [view, setView] = useState<DrawerView>({
+        kind: openedWith === 'crypto' ? 'networks' : openedWith === 'bank' ? 'bank' : 'methods',
+    })
     const [processing, setProcessing] = useState(false)
+    const bank = useBankMethodState(plan)
 
+    // Kush (2026-11-27): the choice always shows the bank row, disabled with its badge when bank cannot
+    // be used yet; there is always a bank row, so the choice is never skipped. Until bank is known the
+    // choice waits, so its row never changes under the user's tap.
     const code: AddMoneyDrawerView =
-        view.kind === 'bank' ? bankView(plan) : view.kind === 'details' ? 'details' : view.kind
-    const method: DrawerMethod = code === 'networks' || code === 'address' ? 'crypto' : 'bank'
+        view.kind === 'methods'
+            ? bank.unknown
+                ? 'loading'
+                : 'methods'
+            : view.kind === 'bank'
+              ? bankView(plan)
+              : view.kind
+    const method: DrawerMethod | null =
+        code === 'networks' || code === 'address' ? 'crypto' : code === 'methods' ? null : 'bank'
 
     const reportedOpen = useRef(false)
     useEffect(() => {
@@ -119,15 +147,18 @@ export function AddMoneyDrawer({
     // amount: the body names what to send (the gap, a network minimum above it, or euros), so the two
     // biggest amounts on screen never disagree. A status names itself in body text under it.
     const title = tAdd('title')
-    const toNetworksFromBank = () => setView({ kind: 'networks', fromBank: true })
+    const countPick = (picked: AddMoneyPickerMethod) => {
+        if (!openedWith || picked !== 'bank') captureAddMoneyMethodPicked(place, funded, picked)
+    }
     const pickRow = (row: DrawerBankRow) => {
         captureAddMoneyRailPicked(place, row.corridor, row.kind)
-        // the place's Bank tap counted as bank; ARS and Pix are picked here, so they count here (TASK-25444)
-        const picked = pickerMethodOf(row.corridor)
-        if (picked !== 'bank') captureAddMoneyMethodPicked(place, funded, picked)
-        if (row.kind === 'account') setView({ kind: 'details', corridor: row.corridor })
-        else router.push(bankPageHref(row.corridor, gapUsd, residenceIso2s, returnTo))
+        // the place's tap counted its method (the card's Bank counts as bank), so ARS and Pix count here
+        // (TASK-25444); in the choice the opening tap counted nothing, so every pick counts here
+        countPick(pickerMethodOf(row.corridor))
+        if (row.kind === 'account') setView({ kind: 'details', corridor: row.corridor, prev: view })
+        else router.push(bankPageHref(row.corridor, gapUsd, residenceIso2s, returnTo()))
     }
+    const toNetworks = () => setView({ kind: 'networks', prev: view })
 
     const details = (corridor: DepositCorridor) => (
         <DrawerBankDetailsView corridor={corridor} targetUsd={targetUsd} returnTo={returnTo} onSent={onBankSent} />
@@ -139,6 +170,7 @@ export function AddMoneyDrawer({
                 <DrawerCryptoDepositView
                     network={view.network}
                     targetUsd={targetUsd}
+                    place={place}
                     onDone={onDismiss}
                     onProcessingChange={setProcessing}
                 />
@@ -152,12 +184,53 @@ export function AddMoneyDrawer({
                         showEvmChips
                         onSelect={(network) => {
                             captureAddMoneyNetworkPicked(place, network)
-                            setView({ kind: 'address', network, fromBank: view.kind === 'networks' && view.fromBank })
+                            setView({ kind: 'address', network, prev: view })
                         }}
                     />
                 </div>
             )
         }
+        if (code === 'methods') {
+            const crypto = (
+                <CryptoMethodRow
+                    onClick={() => {
+                        countPick('crypto')
+                        toNetworks()
+                    }}
+                    testId="add-money-method-crypto"
+                />
+            )
+            const bankRow = (
+                <BankMethodRow
+                    bank={bank}
+                    onClick={() => {
+                        countPick('bank')
+                        setView({ kind: 'bank', prev: view })
+                    }}
+                    testId="add-money-method-bank"
+                />
+            )
+            // ready bank ways are rows of their own; otherwise one bank row says why, as on the card, sorted
+            // last when the residence rules bank out
+            return plan.kind === 'rows' ? (
+                <DrawerBankRowsView rows={plan.rows} onPick={pickRow}>
+                    {crypto}
+                </DrawerBankRowsView>
+            ) : (
+                <ListGroup>
+                    {bank.offered && bankRow}
+                    {crypto}
+                    {!bank.offered && bankRow}
+                </ListGroup>
+            )
+        }
+        const spinner = (
+            <div className="flex justify-center py-10">
+                <Loading />
+            </div>
+        )
+        // the choice waiting on bank: a not-offered plan with its residence rule unknown is no status yet
+        if (view.kind === 'methods') return spinner
         switch (plan.kind) {
             case 'rows':
                 return code === 'details' ? (
@@ -171,32 +244,26 @@ export function AddMoneyDrawer({
                 return (
                     <DrawerBankStatusView
                         status={plan}
-                        onUseCrypto={toNetworksFromBank}
+                        onUseCrypto={toNetworks}
                         onVerify={() => {
                             captureAddMoneyVerifyTapped(place)
                             markVerifySource(place)
                             // option B (Kush): the check ends back on the place that opened the drawer
-                            router.push(withReturnTo('/verify', returnTo))
+                            router.push(withReturnTo('/verify', returnTo()))
                         }}
-                        onFinishSetup={() => router.push(withReturnTo('/add-money?method=bank', returnTo))}
+                        onFinishSetup={() => router.push(withReturnTo('/add-money?method=bank', returnTo()))}
                     />
                 )
             default:
-                return (
-                    <div className="flex justify-center py-10">
-                        <Loading />
-                    </div>
-                )
+                return spinner
         }
     }
 
     // a sub-view drills in from a list, so it gets the back control; a root view gets the title
-    const subView = view.kind === 'address' || view.kind === 'details' || (view.kind === 'networks' && !!view.fromBank)
+    const subView = !!view.prev
     const back = () => {
-        if (view.kind === 'address') {
-            setProcessing(false)
-            setView({ kind: 'networks', fromBank: view.fromBank })
-        } else setView({ kind: 'bank' })
+        setProcessing(false)
+        if (view.prev) setView(view.prev)
     }
     return (
         <Drawer open={open} onOpenChange={(isOpen) => !isOpen && onDismiss()}>

@@ -1,5 +1,6 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
+import { withNuqsTestingAdapter } from 'nuqs/adapters/testing'
 import type { Address } from 'viem'
 import { useDirectSendFlowContext, type DirectSendRecipient } from '../DirectSendFlowContext'
 import { clearRepeatDraft, offerRepeatDraft, peekRepeatDraft } from '@/features/payments/shared/repeat-draft'
@@ -33,7 +34,7 @@ describe('DirectSendPage with a Send again draft (TASK-25462)', () => {
     test('seeds the amount and note for the same recipient, then forgets the draft', () => {
         offerRepeatDraft({ to: 'user', username: 'Hugo', amount: '20.5', message: 'Lunch' })
 
-        render(<DirectSendPage recipient={recipient} />)
+        render(<DirectSendPage recipient={recipient} />, { wrapper: withNuqsTestingAdapter() })
 
         expect(screen.getByTestId('amount')).toHaveTextContent('20.5')
         expect(screen.getByTestId('usd-amount')).toHaveTextContent('20.5')
@@ -45,7 +46,7 @@ describe('DirectSendPage with a Send again draft (TASK-25462)', () => {
     test('a draft for someone else is not used and stays for them', () => {
         offerRepeatDraft({ to: 'user', username: 'konrad', amount: '12' })
 
-        render(<DirectSendPage recipient={recipient} />)
+        render(<DirectSendPage recipient={recipient} />, { wrapper: withNuqsTestingAdapter() })
 
         expect(screen.getByTestId('amount')).toBeEmptyDOMElement()
         expect(screen.getByTestId('message')).toBeEmptyDOMElement()
@@ -53,8 +54,20 @@ describe('DirectSendPage with a Send again draft (TASK-25462)', () => {
     })
 
     test('without a draft the screen opens empty', () => {
-        render(<DirectSendPage recipient={recipient} />)
+        render(<DirectSendPage recipient={recipient} />, { wrapper: withNuqsTestingAdapter() })
 
         expect(screen.getByTestId('amount')).toBeEmptyDOMElement()
+    })
+
+    // TASK-25467: the amount in the URL is the step coming back from adding money, so it wins
+    test('an amount already in the URL wins over a draft', () => {
+        offerRepeatDraft({ to: 'user', username: 'hugo', amount: '20.5' })
+
+        render(<DirectSendPage recipient={recipient} />, {
+            wrapper: withNuqsTestingAdapter({ searchParams: '?amount=7' }),
+        })
+
+        expect(screen.getByTestId('amount')).toHaveTextContent('7')
+        expect(screen.getByTestId('usd-amount')).toHaveTextContent('7')
     })
 })

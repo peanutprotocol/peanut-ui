@@ -379,8 +379,8 @@ export const ANALYTICS_EVENTS = {
     // server-side `deposit_completion` (peanut-api-ts, every rail).
     CARD_GATE_ADD_FUNDS_TAPPED: 'card_gate_add_funds_tapped',
     // The add-money drawer on the funding step (TASK-25169). Codes only, no amount.
-    // `method` ∈ bank|crypto; `view` ∈ networks|address|rows|details|not_verified|
-    // finish_setup|not_offered|loading. Closed = dismissed without funding.
+    // `method` ∈ bank|crypto, null on the choice view; `view` ∈ methods|networks|address|rows|details|
+    // not_verified|finish_setup|not_offered|loading. Closed = dismissed without funding.
     CARD_GATE_ADD_MONEY_DRAWER_OPENED: 'card_gate_add_money_drawer_opened',
     CARD_GATE_ADD_MONEY_DRAWER_CLOSED: 'card_gate_add_money_drawer_closed',
     // `network` ∈ EVM|SOL|TRON
@@ -391,6 +391,17 @@ export const ANALYTICS_EVENTS = {
     // The balance reached the minimum while the funding step showed. `in_drawer` = the
     // drawer was open; `method` = its method, or the last one opened, else null.
     CARD_GATE_CAME_BACK_FUNDED: 'card_gate_came_back_funded',
+    // The same add-money drawer opened from Send's short balance (TASK-25467), one funnel per
+    // place: the properties match the card's events above. Came back funded = the balance
+    // reached the amount the user tapped "Add $X" for; `in_drawer` and `method` as the card's.
+    SEND_ADD_MONEY_DRAWER_OPENED: 'send_add_money_drawer_opened',
+    SEND_ADD_MONEY_DRAWER_CLOSED: 'send_add_money_drawer_closed',
+    SEND_ADD_MONEY_NETWORK_PICKED: 'send_add_money_network_picked',
+    SEND_ADD_MONEY_RAIL_PICKED: 'send_add_money_rail_picked',
+    SEND_ADD_MONEY_VERIFY_TAPPED: 'send_add_money_verify_tapped',
+    SEND_ADD_MONEY_CAME_BACK_FUNDED: 'send_add_money_came_back_funded',
+    // A method picked in Send's choice view: `method` ∈ bank|crypto|ars|pix; `funded` as the card's.
+    SEND_ADD_MONEY_METHOD_PICKED: 'send_add_money_method_picked',
     // POST /rain/cards lifecycle. `outcome` ∈
     // pending|terms-required|incomplete|main-kyc-required|enabled|error|already-applied.
     CARD_APPLY_ATTEMPTED: 'card_apply_attempted',
