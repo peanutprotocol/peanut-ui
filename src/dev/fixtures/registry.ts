@@ -2984,6 +2984,8 @@ export const FIXTURES: Record<string, Fixture> = {
             [
                 ['pending', 'PROCESSING', 1, 'the details with their countdown'],
                 ['expired', 'CANCELLED', 1, 'the expired order and start-over button'],
+                // the order did not go through: same ended card, no CVU to pay into
+                ['failed', 'FAILED', 1, 'the failed order and start-over button'],
                 // TASK-25444: the pesos reached Manteca, then the balance got them
                 ['received', 'PROCESSING', 2, 'payment received while the balance is credited'],
                 ['completed', 'COMPLETED', 3, 'the received deposit and Done'],
