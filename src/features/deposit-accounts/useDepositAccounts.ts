@@ -24,6 +24,7 @@ import {
     DEPOSIT_RAIL_ORDER,
     emptyCorridorRecord,
     DEPOSIT_RAILS,
+    indexByCorridor,
     isClaimable,
     railIdFor,
 } from './rails'
@@ -302,14 +303,7 @@ export function useDepositAccounts({
         [query.data]
     )
 
-    const offeredClaimable = useMemo((): Record<DepositCorridor, ClaimableCorridor | undefined> => {
-        const byCorridor = emptyCorridorRecord<ClaimableCorridor>()
-        for (const corridorTerms of query.data?.claimable ?? []) {
-            const corridor = corridorFromRailId(corridorTerms.railId)
-            if (corridor) byCorridor[corridor] = corridorTerms
-        }
-        return byCorridor
-    }, [query.data])
+    const offeredClaimable = useMemo(() => indexByCorridor(query.data?.claimable), [query.data])
 
     /**
      * Why a corridor is NOT on offer, straight from the backend. It replaces
@@ -321,14 +315,7 @@ export function useDepositAccounts({
      * about — the provider read failed — so it is absent here too and the rows
      * keep the gate's own answer.
      */
-    const withheldUnavailable = useMemo((): Record<DepositCorridor, UnavailableCorridor | undefined> => {
-        const byCorridor = emptyCorridorRecord<UnavailableCorridor>()
-        for (const withheld of query.data?.unavailable ?? []) {
-            const corridor = corridorFromRailId(withheld.railId)
-            if (corridor) byCorridor[corridor] = withheld
-        }
-        return byCorridor
-    }, [query.data])
+    const withheldUnavailable = useMemo(() => indexByCorridor(query.data?.unavailable), [query.data])
 
     const { claimable, unavailable } = useMemo(
         () =>

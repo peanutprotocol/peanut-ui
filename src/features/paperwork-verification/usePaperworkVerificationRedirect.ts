@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useOptionalAuth } from '@/context/authContext'
 import { paperworkVerificationEntryRoute, type PaperworkVerificationEntry } from './paperworkVerificationEntry'
 import { markVerifySource, type VerifySource } from './verifySource'
-import { useOptionalAuth } from '@/context/authContext'
 
 /**
  * Sends a Smart Paperwork Verification user to /verify (or the add-later screen
@@ -23,28 +23,32 @@ export function usePaperworkVerificationRedirect(
     const userId = useOptionalAuth()?.user?.user.userId
     const routerRef = useRef(router)
     routerRef.current = router
-    const [stay, setStay] = useState(false)
+    const [legacyEntry, setLegacyEntry] = useState<string | null>(null)
     const enabled = active && !!entry
-    const entryKey = JSON.stringify(entry ?? null)
+    const entryKey = JSON.stringify([userId, entry ?? null])
+    const currentEntry = useRef(entryKey)
+    currentEntry.current = entryKey
     useEffect(() => {
-        setStay(false)
+        setLegacyEntry(null)
         if (!enabled || !entry) return
         const controller = new AbortController()
+        const go = (route: string) => (replace ? routerRef.current.replace(route) : routerRef.current.push(route))
         void paperworkVerificationEntryRoute(entry, controller.signal)
             .then((route) => {
-                if (controller.signal.aborted) return
+                if (controller.signal.aborted || currentEntry.current !== entryKey) return
                 if (route === '/verify') markVerifySource(source)
-                if (route && replace) routerRef.current.replace(route)
-                else if (route) routerRef.current.push(route)
-                else setStay(true)
+                if (route) go(route)
+                else setLegacyEntry(entryKey)
             })
             .catch(() => {
-                if (!controller.signal.aborted) setStay(true)
+                if (controller.signal.aborted || currentEntry.current !== entryKey) return
+                markVerifySource(source)
+                go('/verify')
             })
         return () => {
             controller.abort()
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps -- `entryKey` stands for `entry`
-    }, [enabled, entryKey, userId, replace])
-    return enabled && !stay
+    }, [enabled, entryKey, source, replace])
+    return enabled && legacyEntry !== entryKey
 }

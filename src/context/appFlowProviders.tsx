@@ -7,7 +7,6 @@ import { KernelClientProvider } from './kernelClient.context'
 import { LoadingStateContextProvider } from './loadingStates.context'
 import { TokenContextProvider } from './tokenSelector.context'
 import { ClaimBankFlowContextProvider } from './ClaimBankFlowContext'
-import { RequestFulfilmentFlowContextProvider } from './RequestFulfillmentFlowContext'
 import { PasskeySupportProvider } from './passkeySupportContext'
 import { ModalsProvider } from './ModalsContext'
 import { RainCooldownProvider } from './RainCooldownContext'
@@ -41,20 +40,18 @@ export const AppFlowProviders = ({ children }: { children: React.ReactNode }) =>
                     <TokenContextProvider>
                         <LoadingStateContextProvider>
                             <ClaimBankFlowContextProvider>
-                                <RequestFulfilmentFlowContextProvider>
-                                    <OnrampFlowContextProvider>
-                                        <PasskeySupportProvider>
-                                            <ModalsProvider>
-                                                <RainCooldownProvider>
-                                                    {/* connectivity state rides the toast surface (ruled 2026-09-03) */}
-                                                    <ConnectivityToast />
-                                                    <SocketQueryRefresh />
-                                                    {children}
-                                                </RainCooldownProvider>
-                                            </ModalsProvider>
-                                        </PasskeySupportProvider>
-                                    </OnrampFlowContextProvider>
-                                </RequestFulfilmentFlowContextProvider>
+                                <OnrampFlowContextProvider>
+                                    <PasskeySupportProvider>
+                                        <ModalsProvider>
+                                            <RainCooldownProvider>
+                                                {/* connectivity state rides the toast surface (ruled 2026-09-03) */}
+                                                <ConnectivityToast />
+                                                <SocketQueryRefresh />
+                                                {children}
+                                            </RainCooldownProvider>
+                                        </ModalsProvider>
+                                    </PasskeySupportProvider>
+                                </OnrampFlowContextProvider>
                             </ClaimBankFlowContextProvider>
                         </LoadingStateContextProvider>
                     </TokenContextProvider>

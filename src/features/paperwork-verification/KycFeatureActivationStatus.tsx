@@ -87,10 +87,17 @@ export function KycFeatureActivationStatus({
         report?.state === 'refused' ||
         report?.state === 'not_requested' ||
         (!accountStatus && result?.kind === 'conflict' && !identityRequired && !questionsRequired)
+    // Non-supplement action_required (or an unknown future state) is NOT ready —
+    // never show "You're all set" when the user still owes an action.
+    const readyOrSettlingState =
+        report?.state === 'on' ||
+        report?.state === 'ready' ||
+        report?.state === 'pending' ||
+        report?.state === 'setting_up'
     // a tap would have shown the set-up screen here; on arrival the activation is already running
-    if (settling && accountCurrency && !failed && !refused)
+    if (settling && accountCurrency && !failed && !refused && (!report || readyOrSettlingState))
         return <FeatureSettingUpScreen currency={accountCurrency} onBack={onBack} />
-    if (!consent && !failed && !refused && feature !== 'qr')
+    if (!consent && !failed && !refused && readyOrSettlingState && feature !== 'qr')
         return (
             <FeatureReadyScreen
                 feature={feature}

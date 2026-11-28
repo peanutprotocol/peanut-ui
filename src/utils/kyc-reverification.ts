@@ -74,6 +74,8 @@ export function safeReverificationReturnTo(value?: string | null): string | null
     const url = new URL(value, 'https://peanut.invalid')
     if (url.origin !== 'https://peanut.invalid' || url.pathname.startsWith('//') || /^\/verify\/?$/i.test(url.pathname))
         return null
+    // The interrupted SDK replay has been consumed before entering re-verification.
+    if (url.searchParams.has('kyc')) url.searchParams.delete('kyc')
     return `${url.pathname}${url.search}${url.hash}`
 }
 

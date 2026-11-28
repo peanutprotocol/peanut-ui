@@ -1,16 +1,5 @@
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
-/**
- * APK #4: a fresh user on Smart Paperwork Verification tapped Verify, the plan
- * GET failed (Android WebView GETs fail intermittently), and the failed read
- * was taken for "today's flow". The legacy initiate then opened an applicant
- * that shuts the user out of the new flow for good. The API now refuses that
- * start (409 paperwork_verification_required), so an unreadable plan still
- * starts: a legacy user verifies, a new-flow user is sent to /verify.
- *
- * The plan read is real here, down to the fetch, because the bug lived in how
- * a failed read was turned into an answer.
- */
 import { act } from '@testing-library/react'
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
@@ -49,23 +38,45 @@ const startWithUnreadablePlan = async () => {
         await started
     })
     expect(mockFetch).toHaveBeenCalledTimes(3)
-    expect(mockInitiate).toHaveBeenCalledTimes(1)
+    expect(mockInitiate).not.toHaveBeenCalled()
     return result
 }
 
-it('a plan that cannot be read still starts today’s verification for a legacy user', async () => {
-    mockInitiate.mockResolvedValue({ data: { token: 'legacy-token', applicantId: 'a', status: 'NOT_STARTED' } })
-    const result = await startWithUnreadablePlan()
-    expect(result.current.showWrapper).toBe(true)
-    expect(result.current.error).toBeFalsy()
-})
-
-it('a plan that cannot be read sends a Smart Paperwork Verification user to /verify, as the API asks', async () => {
-    mockInitiate.mockResolvedValue({
-        error: 'paperwork_verification_required',
-        code: 'paperwork_verification_required',
-    } as never)
+it('an unreadable plan opens verification recovery without dispatching legacy initiation', async () => {
     const result = await startWithUnreadablePlan()
     expect(mockRouterPush).toHaveBeenCalledWith('/verify')
     expect(result.current.showWrapper).toBe(false)
+})
+
+it('consumes a saved legacy level before routing its unsubmitted identity to /verify', async () => {
+    mockFetch.mockImplementation(
+        async (path) =>
+            ({
+                ok: true,
+                status: 200,
+                json: async () =>
+                    path === '/users/kyc/plan'
+                        ? { available: true, flow: 'verify-once', routes: [] }
+                        : { identity: null },
+            }) as Response
+    )
+    const consume = jest.fn(async () => {
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+    const { result } = renderHook(() => useSumsubKycFlow({}))
+    await act(async () => {
+        await result.current.handleInitiateKyc(
+            'EU',
+            'bridge-requirements',
+            undefined,
+            undefined,
+            false,
+            undefined,
+            false,
+            consume
+        )
+    })
+    expect(consume).toHaveBeenCalledTimes(1)
+    expect(mockRouterPush).toHaveBeenCalledWith('/verify')
+    expect(mockInitiate).not.toHaveBeenCalled()
 })

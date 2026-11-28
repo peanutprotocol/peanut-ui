@@ -13,14 +13,6 @@ import type { ReactNode } from 'react'
 const mockGet = jest.fn()
 jest.mock('@/services/sendLinks', () => ({
     sendLinksApi: { getClaimStatus: mockGet },
-    ESendLinkStatus: {
-        creating: 'creating',
-        completed: 'completed',
-        CLAIMING: 'CLAIMING',
-        CLAIMED: 'CLAIMED',
-        CANCELLED: 'CANCELLED',
-        FAILED: 'FAILED',
-    },
 }))
 
 // must come after the jest.mock calls above
