@@ -104,20 +104,21 @@ describe('01 Landing — render and copy', () => {
     })
 
     it('P1-04 en and es-AR hold the 5 landing keys with the exact strings; es-419 and pt-BR hold the same keys', () => {
-        // F's catalog names: `cta` is the mock's landing.cta (Sign up), `loginBtn` its landing.loginBtn (Log in).
+        // F's catalog names: `cta` is the mock's landing.cta (Sign up), `loginBtn` its landing.loginBtn, relabelled
+        // "I already have an account" (TASK-25289, from ui#4086).
         const expected: Record<'en' | 'es-AR', Record<string, string>> = {
             en: {
                 title: 'Get paid from the US and Europe.',
                 sub: 'Receive from abroad. Pay by QR in Argentina and Brazil, or anywhere Visa is accepted.',
                 cta: 'Sign up',
-                loginBtn: 'Log in',
+                loginBtn: 'I already have an account',
                 recover: 'Need to recover a Peanut account?',
             },
             'es-AR': {
                 title: 'Cobrá desde EE. UU. y Europa.',
                 sub: 'Recibí desde el exterior. Pagá con QR en Argentina y Brasil, o donde acepten Visa.',
                 cta: 'Registrate',
-                loginBtn: 'Iniciá sesión',
+                loginBtn: 'Ya tengo cuenta',
                 recover: '¿Necesitás recuperar la cuenta de Peanut?',
             },
         }

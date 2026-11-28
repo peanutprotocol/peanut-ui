@@ -58,7 +58,7 @@
         "components/Setup/redesign/Email/EmailScreen.tsx": 79,
         "components/Setup/redesign/FinalConfirm/FinalConfirmScreen.tsx": 76,
         "components/Setup/redesign/FinalConfirm/PasskeyInfoSheet.tsx": 63,
-        "components/Setup/redesign/Landing/LandingScreen.tsx": 86,
+        "components/Setup/redesign/Landing/LandingScreen.tsx": 89,
         "components/Setup/redesign/Notifications/NotificationsScreen.tsx": 70,
         "components/Setup/redesign/Passkey/PasskeyScreenView.tsx": 121,
         "components/Setup/redesign/Residence/ResidenceScreen.tsx": 97,
