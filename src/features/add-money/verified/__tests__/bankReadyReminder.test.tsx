@@ -137,7 +137,7 @@ describe('useBankReadyReminder', () => {
 
     it('a page that never showed keeps the reminder for the next open', () => {
         renderHook(() => load()(false))
-        // the page left before showing (access refused): it drops the hand-off, records nothing
+        // the page took the hand-off on mount, then left before showing: it records nothing
         takeReshowing()
         mockReplace.mockClear()
         renderHook(() => load()(false))

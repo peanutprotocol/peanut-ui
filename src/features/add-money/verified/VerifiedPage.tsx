@@ -98,13 +98,14 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
     // a direct visit must not claim a verification it does not have (Chip on #4317), nor count as a view
     const justApproved = useRef(identityJustApproved()).current
     const access = verifiedPageAccess(user ? user.identityVerification?.status : undefined, settled, justApproved)
+    // the visit Home's reminder opened takes its accounts at once, so a visit left before it shows ends the hand-off
+    const reshown = useRef(takeReshowing()).current
     const shown = useRef(false)
     useEffect(() => {
         if (shown.current || readiness.isLoading || access !== 'show') return
         shown.current = true
         trackAddMoney(ANALYTICS_EVENTS.VERIFIED_PAGE_SHOWN, { entry: entry.current, variant, ...stateProps })
         // Home's reminder opened it: the re-show counts only now that the page shows
-        const reshown = takeReshowing()
         if (reshown) trackAddMoney(ANALYTICS_EVENTS.VERIFIED_PAGE_RESHOWN, { accounts: reshown, variant })
         // once per view, with the rows as they first read
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -184,10 +185,7 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
 
     const username = user?.user.username
     useEffect(() => {
-        if (access !== 'leave') return
-        // the page never showed: no re-show to report, the reminder stays for the next open
-        takeReshowing()
-        router.replace('/home')
+        if (access === 'leave') router.replace('/home')
     }, [access, router])
     // an account seen ready here, or from the bank_ready push, never opens the reminder again
     useEffect(() => {
