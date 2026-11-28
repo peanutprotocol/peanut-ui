@@ -26,14 +26,10 @@ export interface StuckSessionFlags {
 }
 
 /**
- * Functional dismissal preferences + time-bounded observed factual friction (never model scores).
- * Dismissal fields persist regardless of analytics opt-out so opted-out users are never re-nagged.
+ * Functional dismissal preferences (never model scores, never analytics state).
+ * Persists regardless of analytics opt-out so opted-out users are never re-nagged.
  */
 export interface StuckMemory {
-    /** Timestamp until which a prior factual failure (7d TTL) qualifies a funded newcomer for Home help. */
-    priorObservedFrictionUntil: number
-    /** Set when leaving a bank-details screen after >=10s with verified $0 balance so a 2nd visit can offer help. */
-    seenAddMoneyUnfunded: boolean
     /** Per-surface 7-day cooldown timestamps (written on dismiss, action, or whimsy cameo). */
     dismissedUntil: Partial<Record<StuckSurface, number>>
     /** Cross-surface 24h quiet period after any stuck-help dismissal or action (never set by whimsy wave). */
@@ -60,6 +56,8 @@ export interface StuckDecisionInput {
     flags: StuckSessionFlags
     /** Session-scoped factual friction (available identically in both control and treatment arms). */
     hadSessionFriction: boolean
+    /** Session-scoped flag set when leaving bank details (>=10s dwell, verified $0 balance); identical in both arms. */
+    seenDepositDetailsUnfundedInSession: boolean
     memory: StuckMemory
     nowMs: number
     sessionNudgeShown: boolean

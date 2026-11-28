@@ -27,8 +27,10 @@ export interface StuckRuntimeSnapshot {
     /** Last bank-deposit corridor visited inside `/add-money/*` so picker round-trips still count corridor bounces. */
     lastDepositCorridorPath: string | null
     flags: StuckSessionFlags
-    /** Session-wide factual friction flag (shared by both control and treatment arms). */
+    /** Session-wide factual friction flag (shared identically by both control and treatment arms). */
     hadSessionFriction: boolean
+    /** Session-wide flag set on leaving bank details (>=10s dwell, verified $0 balance); identical in both arms. */
+    seenDepositDetailsUnfundedInSession: boolean
     localVerifyAttempts: number
     passkeyCancelCount: number
     corridorSwitchCount: number
@@ -63,6 +65,7 @@ const createInitialState = (now = Date.now()): StuckRuntimeSnapshot => ({
     lastDepositCorridorPath: null,
     flags: initialFlags(),
     hadSessionFriction: false,
+    seenDepositDetailsUnfundedInSession: false,
     localVerifyAttempts: 0,
     passkeyCancelCount: 0,
     corridorSwitchCount: 0,
@@ -324,6 +327,12 @@ export function setDepositDetailsStepActive(active: boolean, now = Date.now()): 
         activeDwellMs: active ? 0 : state.activeDwellMs,
         lastTickAt: now,
     }
+    notify()
+}
+
+export function markSeenDepositDetailsUnfundedInSession(): void {
+    if (state.seenDepositDetailsUnfundedInSession) return
+    state = { ...state, seenDepositDetailsUnfundedInSession: true }
     notify()
 }
 

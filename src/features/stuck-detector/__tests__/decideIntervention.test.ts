@@ -9,7 +9,6 @@ import {
 import {
     createDefaultStuckMemory,
     DISMISS_COOLDOWN_MS,
-    FRICTION_MEMORY_TTL_MS,
     GLOBAL_QUIET_COOLDOWN_MS,
     LIFETIME_DISMISS_CAP,
 } from '../memory'
@@ -41,6 +40,7 @@ const baseInput = (overrides: Partial<StuckDecisionInput> = {}): StuckDecisionIn
         kycBlocked: false,
     },
     hadSessionFriction: false,
+    seenDepositDetailsUnfundedInSession: false,
     memory: createDefaultStuckMemory(),
     nowMs: NOW,
     sessionNudgeShown: false,
@@ -140,7 +140,7 @@ describe('decideStuckIntervention', () => {
                     isDepositDetailsStep: true,
                     activeDwellMs: 5_000,
                     balanceUsd: 0,
-                    memory: { ...createDefaultStuckMemory(), seenAddMoneyUnfunded: true },
+                    seenDepositDetailsUnfundedInSession: true,
                 })
             )
         ).toEqual({ show: false, suppressedBy: 'below_threshold' })
@@ -152,7 +152,7 @@ describe('decideStuckIntervention', () => {
                     isDepositDetailsStep: true,
                     activeDwellMs: REPEAT_UNFUNDED_DWELL_MS,
                     balanceUsd: null,
-                    memory: { ...createDefaultStuckMemory(), seenAddMoneyUnfunded: true },
+                    seenDepositDetailsUnfundedInSession: true,
                 })
             )
         ).toEqual({ show: false, suppressedBy: 'below_threshold' })
@@ -162,7 +162,7 @@ describe('decideStuckIntervention', () => {
                 isDepositDetailsStep: true,
                 activeDwellMs: REPEAT_UNFUNDED_DWELL_MS,
                 balanceUsd: 0,
-                memory: { ...createDefaultStuckMemory(), seenAddMoneyUnfunded: true },
+                seenDepositDetailsUnfundedInSession: true,
             })
         )
         expect(repeatRes.show).toBe(true)
@@ -194,7 +194,7 @@ describe('decideStuckIntervention', () => {
         if (stalledAfterCancel.show) expect(stalledAfterCancel.reason).toBe('passkey_stall_after_cancel')
     })
 
-    it('keeps home_wave session cap separate from stuck-help session cap and expires friction TTL cleanly', () => {
+    it('keeps home_wave session cap separate from stuck-help session cap and triggers home_funded identically in both arms on session friction', () => {
         // After a whimsy wave earlier in the session, real payment failure help STILL shows!
         const helpAfterWave = decideStuckIntervention(
             baseInput({
@@ -206,30 +206,46 @@ describe('decideStuckIntervention', () => {
         )
         expect(helpAfterWave.show).toBe(true)
 
-        // Expired prior friction (>7d old) does not fire home_funded.
-        const expiredFriction = decideStuckIntervention(
+        // No session friction -> home_funded does not fire.
+        const noFriction = decideStuckIntervention(
             baseInput({
                 surface: 'home_funded',
                 balanceUsd: 50,
                 hasSpent: false,
                 activeIdleMs: 5_000,
-                memory: { ...createDefaultStuckMemory(), priorObservedFrictionUntil: NOW - 1 },
+                hadSessionFriction: false,
             })
         )
-        expect(expiredFriction).toEqual({ show: false, suppressedBy: 'below_threshold' })
+        expect(noFriction).toEqual({ show: false, suppressedBy: 'below_threshold' })
 
-        // Fresh prior friction (<7d old) fires home_funded.
+        // Session friction fires home_funded in treatment AND eligibleInControl in control.
         const freshFriction = decideStuckIntervention(
             baseInput({
                 surface: 'home_funded',
                 balanceUsd: 50,
                 hasSpent: false,
                 activeIdleMs: 5_000,
-                memory: { ...createDefaultStuckMemory(), priorObservedFrictionUntil: NOW + FRICTION_MEMORY_TTL_MS },
+                hadSessionFriction: true,
             })
         )
         expect(freshFriction.show).toBe(true)
         if (freshFriction.show) expect(freshFriction.surface).toBe('home_funded')
+
+        const controlParity = decideStuckIntervention(
+            baseInput({
+                uiEnabled: false,
+                surface: 'home_funded',
+                balanceUsd: 50,
+                hasSpent: false,
+                activeIdleMs: 5_000,
+                hadSessionFriction: true,
+            })
+        )
+        expect(controlParity).toEqual({
+            show: false,
+            suppressedBy: 'flag_off',
+            eligibleInControl: { surface: 'home_funded', mode: 'stuck', reason: 'funded_no_spend' },
+        })
     })
 })
 

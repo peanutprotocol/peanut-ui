@@ -13,20 +13,14 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
 import { useModalsContextOptional } from '@/context/ModalsContext'
 import { useFeatureFlags } from '@/hooks/useFeatureFlag'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { getPlatform } from '@/utils/capacitor'
 import { useAnyAppOverlayOpen } from '@/utils/overlay-visibility'
 import { redactSupportText } from '@/utils/support-context'
 import { decideStuckIntervention } from '../decideIntervention'
-import {
-    clearObservedFriction,
-    markSeenAddMoneyUnfunded,
-    readStuckMemory,
-    recordObservedFriction,
-    recordSurfaceActionCooldown,
-    recordSurfaceDismissal,
-} from '../memory'
+import { readStuckMemory, recordSurfaceActionCooldown, recordSurfaceDismissal } from '../memory'
 import {
     canonicalStuckRoute,
     isStuckExcludedPath,
@@ -38,6 +32,7 @@ import {
     clearActiveImpression,
     evaluateIdleTick,
     getStuckRuntimeSnapshot,
+    markSeenDepositDetailsUnfundedInSession,
     markSessionNudgeShown,
     markSessionWhimsyShown,
     noteElementClick,
@@ -57,7 +52,6 @@ const IDLE_POLL_MS = 5_000
 const MIN_UNFUNDED_EXIT_DWELL_MS = 10_000
 const CHECKPOINT_SECONDS = [0, 15, 30, 60] as const
 const IS_PROD_DOMAIN = BASE_URL === 'https://peanut.me'
-const QR_PAY_COUNTRIES = new Set(['AR', 'ARG', 'ARGENTINA', 'BR', 'BRA', 'BRAZIL'])
 const DIRECT_SUPPORT_SURFACES = new Set<StuckSurface>(['verify_loop', 'setup_passkey'])
 
 interface StuckBuddyCoreProps {
@@ -121,37 +115,24 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent, canUseQrPay, canUseCard
         setDismissedThisVisit(false)
     }, [effectiveRoute])
 
-    // Clear prior friction memory once a user activates so it never lingers indefinitely.
-    useEffect(() => {
-        if (!uiEnabled || !hasSpent) return
-        setMemory(clearObservedFriction(userId))
-    }, [uiEnabled, hasSpent, userId])
-
-    // Record `seenAddMoneyUnfunded` ONLY when leaving a bank-details step after >=10s dwell with verified $0 balance
-    // (never on first entry, never on brief amount edits, never when balance is loading, never while flag is off).
+    // Record `seenDepositDetailsUnfundedInSession` in memory (no localStorage write) when leaving a bank-details step
+    // after >=10s dwell with verified $0 balance so both control and treatment arms compute identical eligibility.
     const balanceUsdRef = useRef(balanceUsd)
     balanceUsdRef.current = balanceUsd
     const activeDwellRef = useRef(runtime.activeDwellMs)
     activeDwellRef.current = runtime.activeDwellMs
     useEffect(() => {
-        if (!uiEnabled || !runtime.isDepositDetailsStep) return
+        if (!runtime.isDepositDetailsStep) return
         return () => {
             if (
                 balanceUsdRef.current !== null &&
                 balanceUsdRef.current <= 0 &&
                 activeDwellRef.current >= MIN_UNFUNDED_EXIT_DWELL_MS
             ) {
-                setMemory(markSeenAddMoneyUnfunded(userId))
+                markSeenDepositDetailsUnfundedInSession()
             }
         }
-    }, [uiEnabled, runtime.isDepositDetailsStep, userId])
-
-    // Persist time-bounded (7d) factual friction only while flag is enabled.
-    const hasObservedFailure = runtime.flags.moneyFailed || runtime.flags.kycBlocked || runtime.flags.appError
-    useEffect(() => {
-        if (!uiEnabled || !hasObservedFailure || hasSpent) return
-        setMemory(recordObservedFriction(userId))
-    }, [uiEnabled, hasObservedFailure, hasSpent, userId])
+    }, [runtime.isDepositDetailsStep])
 
     // Visibility-aware dwell/idle clocks + activity (incl. capture-phase scroll inside `#scrollable-content` and touchmove)
     // + same-element rage-click listener.
@@ -245,6 +226,7 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent, canUseQrPay, canUseCard
                 activeIdleMs: runtime.activeIdleMs,
                 flags: runtime.flags,
                 hadSessionFriction: runtime.hadSessionFriction,
+                seenDepositDetailsUnfundedInSession: runtime.seenDepositDetailsUnfundedInSession,
                 memory,
                 nowMs,
                 // Once an impression lands, keep THAT buddy mounted for this visit, while blocking any second buddy on later routes.
@@ -281,7 +263,8 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent, canUseQrPay, canUseCard
         ]
     )
 
-    // Holdout comparability: log `stuck_buddy_eligible` identically in BOTH treatment and control arms.
+    // Holdout comparability: log `stuck_buddy_eligible` identically in BOTH treatment and control arms,
+    // applying the same once-per-session virtual cap in control so neither arm double-counts a session.
     const eligibleLoggedRef = useRef<string | null>(null)
     useEffect(() => {
         const eligibleMatch =
@@ -294,6 +277,13 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent, canUseQrPay, canUseCard
         const key = `${effectiveRoute}:${eligibleMatch.surface}:${eligibleMatch.reason}:${eligibleMatch.arm}`
         if (eligibleLoggedRef.current === key) return
         eligibleLoggedRef.current = key
+        if (eligibleMatch.arm === 'control') {
+            if (eligibleMatch.mode === 'whimsy') {
+                markSessionWhimsyShown()
+            } else {
+                markSessionNudgeShown()
+            }
+        }
         posthog.capture(ANALYTICS_EVENTS.STUCK_BUDDY_ELIGIBLE, {
             surface: eligibleMatch.surface,
             mode: eligibleMatch.mode,
@@ -510,10 +500,11 @@ export function StuckBuddyHost() {
     const { user } = useAuth()
     const { balance } = useWallet()
     const restrictions = useResidenceRestrictions()
+    const { isRegionRestricted } = useIdentityVerification()
     const balanceUsd = balance !== undefined ? Number(balance) / 10 ** PEANUT_WALLET_TOKEN_DECIMALS : null
     const hasSpent = Boolean(user?.user?.isActivated)
-    const country = (user?.residence?.verified?.country || user?.residence?.declared?.country || '').toUpperCase()
-    const canUseQrPay = QR_PAY_COUNTRIES.has(country)
+    // Pix QR spending is available to Brazil residents (Avenia) and eligible non-residents (Manteca); gate only on region restriction.
+    const canUseQrPay = !isRegionRestricted
     const canUseCard = !restrictions.card
 
     return (

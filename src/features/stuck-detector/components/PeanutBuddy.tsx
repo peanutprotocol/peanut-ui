@@ -208,7 +208,7 @@ export function PeanutBuddy({
                     type="button"
                     whileTap={reducedMotion ? undefined : { scale: 0.92, y: -6 }}
                     onClick={onAction}
-                    tabIndex={whimsy ? 0 : -1}
+                    tabIndex={whimsy && whimsyLanded ? 0 : -1}
                     aria-label={mascotLabel}
                     data-testid="peanut-buddy-mascot-btn"
                     className={twMerge(

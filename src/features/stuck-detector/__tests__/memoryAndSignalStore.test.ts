@@ -1,12 +1,8 @@
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import {
-    clearObservedFriction,
     DISMISS_COOLDOWN_MS,
-    FRICTION_MEMORY_TTL_MS,
     GLOBAL_QUIET_COOLDOWN_MS,
-    markSeenAddMoneyUnfunded,
     readStuckMemory,
-    recordObservedFriction,
     recordSurfaceActionCooldown,
     recordSurfaceDismissal,
 } from '../memory'
@@ -53,19 +49,11 @@ describe('stuck-detector memory', () => {
         expect(afterWave.lifetimeDismissCount).toBe(0)
     })
 
-    it('stores time-bounded observed friction and clears it cleanly on activation', () => {
-        const t0 = 1_700_000_000_000
-        expect(readStuckMemory('user-3').priorObservedFrictionUntil).toBe(0)
-        expect(recordObservedFriction('user-3', t0).priorObservedFrictionUntil).toBe(t0 + FRICTION_MEMORY_TTL_MS)
-        expect(clearObservedFriction('user-3').priorObservedFrictionUntil).toBe(0)
-        expect(markSeenAddMoneyUnfunded('user-3').seenAddMoneyUnfunded).toBe(true)
-    })
-
     it('falls back cleanly on corrupted storage JSON', () => {
         window.localStorage.setItem('peanut:stuck-memory:v2:bad', '{not-json')
         const mem = readStuckMemory('bad')
         expect(mem.lifetimeDismissCount).toBe(0)
-        expect(mem.priorObservedFrictionUntil).toBe(0)
+        expect(mem.globalQuietUntil).toBe(0)
     })
 })
 

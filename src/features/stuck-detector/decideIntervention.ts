@@ -48,7 +48,7 @@ function matchSurfaceRule(input: StuckDecisionInput): RuleMatch | null {
         case 'add_money': {
             if (!input.isDepositDetailsStep) return null
             const repeatUnfunded =
-                input.memory.seenAddMoneyUnfunded &&
+                input.seenDepositDetailsUnfundedInSession &&
                 input.balanceUsd !== null &&
                 input.balanceUsd <= 0 &&
                 input.activeDwellMs >= REPEAT_UNFUNDED_DWELL_MS
@@ -86,8 +86,7 @@ function matchSurfaceRule(input: StuckDecisionInput): RuleMatch | null {
 
         case 'home_funded': {
             const isFundedUnspent = input.balanceUsd !== null && input.balanceUsd >= 10 && !input.hasSpent
-            const hasRecentFriction = input.hadSessionFriction || input.memory.priorObservedFrictionUntil > input.nowMs
-            if (isFundedUnspent && hasRecentFriction) {
+            if (isFundedUnspent && input.hadSessionFriction) {
                 return { surface, mode: 'stuck', reason: 'funded_no_spend' }
             }
             return matchHomeWhimsy(input)

@@ -92,6 +92,10 @@ jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => ({ banking: false, card: false }),
 }))
 
+jest.mock('@/hooks/useIdentityVerification', () => ({
+    useIdentityVerification: () => ({ isRegionRestricted: false }),
+}))
+
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({ balance: BigInt(0) }),
 }))
@@ -147,6 +151,8 @@ describe('StuckBuddyHost invariants', () => {
             ANALYTICS_EVENTS.STUCK_SIGNAL_CHECKPOINT,
             expect.objectContaining({ checkpoint_s: 0, surface: 'verify_loop' })
         )
+        // Control arm enforces the same once-per-session virtual cap as treatment.
+        expect(getStuckRuntimeSnapshot().sessionNudgeShown).toBe(true)
     })
 
     it('persists dismissal cooldown even when analytics are opted out (never re-nags opted-out users)', () => {
@@ -191,8 +197,8 @@ describe('StuckBuddyHost invariants', () => {
         scroller.remove()
     })
 
-    it('records seenAddMoneyUnfunded only on leaving deposit details after >=10s dwell (N9)', () => {
-        mockFlagEnabled = true
+    it('records seenDepositDetailsUnfundedInSession only on leaving deposit details after >=10s dwell (N9, zero localStorage)', () => {
+        mockFlagEnabled = false
         mockPathname = '/add-money/germany/bank'
         const { unmount } = renderHost()
 
@@ -201,10 +207,11 @@ describe('StuckBuddyHost invariants', () => {
             const t0 = getStuckRuntimeSnapshot().lastTickAt
             evaluateIdleTick(t0 + 12_000)
         })
-        expect(readStuckMemory('u-host-test').seenAddMoneyUnfunded).toBe(false)
+        expect(getStuckRuntimeSnapshot().seenDepositDetailsUnfundedInSession).toBe(false)
 
         unmount()
-        expect(readStuckMemory('u-host-test').seenAddMoneyUnfunded).toBe(true)
+        expect(getStuckRuntimeSnapshot().seenDepositDetailsUnfundedInSession).toBe(true)
+        expect(window.localStorage.length).toBe(0)
     })
 
     it('redacts sensitive link secrets from bug report notes before sending to Sentry', () => {
