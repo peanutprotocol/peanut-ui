@@ -98,15 +98,20 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
     // a direct visit must not claim a verification it does not have (Chip on #4317), nor count as a view
     const justApproved = useRef(identityJustApproved()).current
     const access = verifiedPageAccess(user ? user.identityVerification?.status : undefined, settled, justApproved)
-    // the visit Home's reminder opened takes its accounts at once, so a visit left before it shows ends the hand-off
-    const reshown = useRef(takeReshowing()).current
+    // the visit Home's reminder opened takes its accounts on mount (before the shown effect below runs), so a
+    // visit left before it shows ends the hand-off; in an effect, not render, so a discarded render takes nothing
+    const reshown = useRef<string[] | null>(null)
+    useEffect(() => {
+        reshown.current = takeReshowing()
+    }, [])
     const shown = useRef(false)
     useEffect(() => {
         if (shown.current || readiness.isLoading || access !== 'show') return
         shown.current = true
         trackAddMoney(ANALYTICS_EVENTS.VERIFIED_PAGE_SHOWN, { entry: entry.current, variant, ...stateProps })
         // Home's reminder opened it: the re-show counts only now that the page shows
-        if (reshown) trackAddMoney(ANALYTICS_EVENTS.VERIFIED_PAGE_RESHOWN, { accounts: reshown, variant })
+        if (reshown.current)
+            trackAddMoney(ANALYTICS_EVENTS.VERIFIED_PAGE_RESHOWN, { accounts: reshown.current, variant })
         // once per view, with the rows as they first read
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [readiness.isLoading, access])
