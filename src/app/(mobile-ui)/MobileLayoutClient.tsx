@@ -14,6 +14,7 @@ import QRScannerOverlay from '@/components/Global/QRScannerOverlay'
 import SecurityVerificationOverlay from '@/components/Global/SecurityVerificationOverlay'
 import SupportDeepLink from '@/components/Global/SupportDeepLink'
 import SupportDrawer from '@/components/Global/SupportDrawer'
+import { StuckBuddyHost } from '@/features/stuck-detector/components/StuckBuddyHost'
 import { BrazilPausedDrawer } from '@/features/brazil-pause/components/BrazilPausedDrawer'
 import SetupNotificationsModal from '@/components/Notifications/SetupNotificationsModal'
 import { useRouter } from 'next/navigation'
@@ -76,7 +77,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // Smart Paperwork Verification is a full-screen setup-style flow: no bottom nav, its own insets.
     // Its screens on other routes (a feature's activation on /add-money, /withdraw, /card) hold the same shell.
     const verifyScreenOpen = useVerifyShell()
-    const isVerify = pathName === '/verify' || pathName === '/verify/' || verifyScreenOpen
+    // /verified, where a self-started check ends, is the same full-screen shell
+    const isVerify =
+        pathName === '/verify' ||
+        pathName === '/verify/' ||
+        pathName === '/verified' ||
+        pathName === '/verified/' ||
+        verifyScreenOpen
     const alignStart = isHome || isHistory || isSupport
     const router = useRouter()
 
@@ -272,6 +279,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                             <GuestLoginModal />
                             <AttentionInterrupt />
                             <SupportDrawer />
+                            <StuckBuddyHost />
                             <BrazilPausedDrawer />
                             {/* Suspense is required: nuqs reads useSearchParams, which triggers
                         a client-side-rendering bailout without a boundary. */}

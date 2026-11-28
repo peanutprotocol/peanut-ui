@@ -1779,6 +1779,39 @@ const ARS_TOP_UP_RESIDENT = {
     capabilities: MANTECA_AR_CAPABILITIES,
 }
 
+/**
+ * "ID verified" (/verified, add-money proposal): the report right after approval, by account. `wait` is a
+ * provider review, `tos` Bridge's terms; the bank feature's USD and EUR accounts share one entry.
+ */
+const VERIFIED_WAIT = { key: 'provider-wait', kind: 'wait' }
+const VERIFIED_TOS = { key: 'bridge-tos', kind: 'accept-tos' }
+type VerifiedEntry = { state: string; action?: string }
+const verifiedUser = (
+    country: 'AR' | 'BR',
+    local: Record<string, VerifiedEntry>,
+    bank: VerifiedEntry,
+    extra: Record<string, unknown> = {}
+) => ({
+    user: { username: 'lena' },
+    identityVerification: { status: 'verified' },
+    residence: {
+        verified: { country, status: 'VERIFIED', updatedAt: null },
+        declared: null,
+        secondaryDeclaredCountry: null,
+    },
+    capabilities: {
+        ...MANTECA_AR_CAPABILITIES,
+        nextActions: [VERIFIED_WAIT, VERIFIED_TOS],
+        ...extra,
+        features: {
+            qr: { state: 'on' },
+            card: { state: 'ready' },
+            local: { ...Object.values(local)[0], accounts: local },
+            bank: { ...bank, accounts: { USD: bank, EUR: bank } },
+        },
+    },
+})
+
 /** The ARS bank rail waits on the person's Manteca step (questionnaire and phone check), as the API reports it. */
 const mantecaArStepCapabilities = (code: 'manteca_action_incomplete' | 'manteca_action_expired') => {
     const userMessage =
@@ -2070,6 +2103,40 @@ const bridgeTermsResponse = (confirm: { accepted: boolean }) => ({
 const VA_READY_RESPONSE = {
     'GET /users/me': { capabilities: VA_READY_CAPABILITIES, depositAccounts: { enabled: true } },
 }
+
+// HANDOFF rule 7: a Bridge one-time transfer that lands while its bank details are
+// up ends on the success screen. Each poll answers in turn (Fixture.sequences): open, then done.
+const EUR_ONRAMP = {
+    transferId: 'fixture-onramp-eur',
+    depositInstructions: {
+        amount: '20.00',
+        currency: 'eur',
+        depositMessage: 'BRGFIXTURE20EUR',
+        bankName: 'Fixture Bank AG',
+        bankAddress: '1 Fixture Strasse, Berlin',
+        accountHolderName: 'Fixture Payments S.A.',
+        iban: 'DE00000000000000000000',
+        bic: 'FIXTDEFFXXX',
+    },
+}
+const RECEIVED_DEPOSIT_ENTRY = {
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-09-01T11:00:00.000Z'),
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    userRole: 'RECIPIENT',
+    recipientAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+}
+const eurTransferEntry = (status: string) => ({
+    ...RECEIVED_DEPOSIT_ENTRY,
+    uuid: EUR_ONRAMP.transferId,
+    status,
+    amount: '21.62',
+    senderAccount: { identifier: 'bank', type: 'BANK_IBAN', isUser: true },
+    currency: { amount: '20', code: 'EUR' },
+    extraData: { kind: 'ONRAMP', provider: 'BRIDGE', usdAmount: '21.62' },
+})
 
 /**
  * A UK top-up as the API returns it: GBP over Faster Payments, so the bank
@@ -2971,6 +3038,71 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Add money by bank: the accounts you hold, crypto, and every country you can send from.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
+    'verified-loading': {
+        route: '/verified',
+        geoCountry: 'AR',
+        isLoadingState: true,
+        about: 'Verified page right after approval: the ARS and bank rows load in place, crypto works.',
+        responses: { 'GET /users/me': verifiedUser('AR', { ARS: { state: 'pending' } }, { state: 'pending' }) },
+    },
+    'verified-not-ready': {
+        route: '/verified',
+        geoCountry: 'AR',
+        about: "Verified page: ARS under review by Manteca, the bank row needs Bridge's terms, crypto works now.",
+        responses: {
+            'GET /users/me': verifiedUser(
+                'AR',
+                { ARS: { state: 'setting_up', action: VERIFIED_WAIT.key } },
+                { state: 'action_required', action: VERIFIED_TOS.key }
+            ),
+        },
+    },
+    'verified-after-terms': {
+        route: '/verified',
+        geoCountry: 'AR',
+        about: 'Verified page after the terms: both bank rows under review, crypto works now.',
+        responses: {
+            'GET /users/me': verifiedUser(
+                'AR',
+                { ARS: { state: 'setting_up', action: VERIFIED_WAIT.key } },
+                { state: 'setting_up', action: VERIFIED_WAIT.key }
+            ),
+        },
+    },
+    'verified-not-opened': {
+        route: '/verified',
+        geoCountry: 'AR',
+        about: 'Verified page when the API opened no account on approval (`ready`, `activate`): the rows open at once.',
+        responses: {
+            'GET /users/me': verifiedUser(
+                'AR',
+                { ARS: { state: 'ready', action: 'activate' } },
+                { state: 'ready', action: 'activate' }
+            ),
+        },
+    },
+    'verified-ready': {
+        route: '/verified',
+        geoCountry: 'AR',
+        about: 'Verified page once the accounts work: every row opens, the name chip has its green check.',
+        responses: { 'GET /users/me': verifiedUser('AR', { ARS: { state: 'on' } }, { state: 'on' }) },
+    },
+    'verified-brazil': {
+        route: '/verified',
+        geoCountry: 'BR',
+        about: "Verified page in Brazil: Pix leads on Avenia's route, the bank row under review by Bridge.",
+        responses: {
+            'GET /users/me': verifiedUser(
+                'BR',
+                { BRL: { state: 'on' } },
+                { state: 'setting_up', action: VERIFIED_WAIT.key },
+                {
+                    rails: aveniaResponses('enabled')['GET /users/me'].capabilities.rails,
+                    routes: aveniaRoutes('enabled'),
+                }
+            ),
+        },
+    },
     'add-money-crypto': { route: '/add-money/crypto', about: 'Crypto deposit: the network picker.' },
     // TASK-21375: Argentina's bank transfer and Mercado Pago open the same
     // screen, so the country offers one row.
@@ -3094,6 +3226,19 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/add-money/united-kingdom/bank?step=inputAmount&amount=7',
         about: 'Add money by bank, UK: continue to the GBP bank details (sort code and account number).',
         responses: { ...VA_READY_RESPONSE, 'POST /bridge/onramp/create': GBP_ONRAMP },
+    },
+    // Tap Continue and slide to confirm: the transfer's entry reads AWAITING_FUNDS,
+    // and the next poll (15 s) PAYMENT_PROCESSED.
+    'add-money-bank-transfer-received': {
+        route: '/add-money/germany/bank?step=inputAmount&amount=20',
+        about: 'Bridge one-time transfer that lands while the bank details are up: the success screen.',
+        responses: { ...VA_READY_RESPONSE, 'POST /bridge/onramp/create': EUR_ONRAMP },
+        sequences: {
+            [`GET /history/${EUR_ONRAMP.transferId}`]: [
+                eurTransferEntry('AWAITING_FUNDS'),
+                eurTransferEntry('PAYMENT_PROCESSED'),
+            ],
+        },
     },
     // Open /add-money/spain?__fixture=add-money-country-provider-wait and tap
     // "From Bank". The euro rail is under provider review (waiting-on-provider),

@@ -6,6 +6,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/G
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { NumberedList } from '@/components/0_Bruddle/NumberedList'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { useSetupSupportClick } from '@/components/Setup/useSetupSupportClick'
 import {
     PASSKEY_NOT_SAVED_HELP,
     PASSKEY_TROUBLESHOOTING_STEPS,
@@ -52,6 +53,7 @@ export const PasskeySetupHelpDrawer = ({
 }: PasskeySetupHelpDrawerProps) => {
     const t = useTranslations('setup.passkey.help')
     const tCommon = useTranslations('common')
+    const supportLink = useSetupSupportClick({ key: 'passkeyError', errorName }, onSupport)
 
     const getTitle = (): string => {
         if (errorName === PASSKEY_NOT_SAVED_HELP) return t('titles.passkeyNotSaved')
@@ -119,7 +121,7 @@ export const PasskeySetupHelpDrawer = ({
                                 {tCommon('retry')}
                             </Button>
                             {/* support leaves the tinted box: it is a secondary action, not a caveat */}
-                            <LinkButton href="https://peanut.me/support" onClick={onSupport}>
+                            <LinkButton href={supportLink.href} onClick={() => supportLink.onClick()}>
                                 {t('stillHavingIssues')}
                             </LinkButton>
                         </div>

@@ -2,6 +2,7 @@
 import Loading from '@/components/Global/Loading'
 import { useTranslations } from 'next-intl'
 import { useModalsContext } from '@/context/ModalsContext'
+import { useOverlayVisibility } from '@/utils/overlay-visibility'
 
 /**
  * Full-screen security-verification overlay. Mounted globally; visibility
@@ -19,6 +20,7 @@ import { useModalsContext } from '@/context/ModalsContext'
 export default function SecurityVerificationOverlay() {
     const t = useTranslations('global')
     const { isSecurityVerificationOpen, securityVerificationVariant } = useModalsContext()
+    useOverlayVisibility(isSecurityVerificationOpen)
     if (!isSecurityVerificationOpen) return null
     return (
         <div

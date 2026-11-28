@@ -15,8 +15,10 @@ jest.mock('@/hooks/useIdentityVerification', () => ({
 }))
 const mockInitiateKyc = jest.fn()
 const mockRestartIdentity = jest.fn()
+let mockFlowOptions: { onIdentityVerified?: () => void } = {}
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
-    useMultiPhaseKycFlow: () => ({
+    useMultiPhaseKycFlow: (options: typeof mockFlowOptions) => ({
+        ...((mockFlowOptions = options), {}),
         handleInitiateKyc: mockInitiateKyc,
         handleRestartIdentity: mockRestartIdentity,
         isLoading: false,
@@ -30,7 +32,8 @@ jest.mock('@/context/ModalsContext', () => ({
     useModalsContextOptional: () => undefined,
 }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ logoutUser: jest.fn() }) }))
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
+const mockPush = jest.fn()
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
 jest.mock('../KYCStatusDrawerItem', () => ({
     KYCStatusDrawerItem: ({ status }: { status: string }) => <div data-testid={`status-${status}`} />,
 }))
@@ -163,5 +166,24 @@ describe('KycStatusDrawer — processing', () => {
         render(<KycStatusDrawer isOpen onClose={jest.fn()} />)
         expect(screen.queryByText(/not available/i)).not.toBeInTheDocument()
         expect(screen.queryByText('Submitted')).not.toBeInTheDocument()
+    })
+})
+
+// Kush, add-money slice 1: resuming the check from Home's status drawer is self-started, so its approval ends on
+// the verified page (the hook's own test covers which approvals call onIdentityVerified)
+describe('KycStatusDrawer — a resumed check ends on the verified page', () => {
+    it('closes the drawer and opens /verified on approval', () => {
+        const onClose = jest.fn()
+        mockIdentity = {
+            status: 'action_required',
+            identity: { status: 'action_required', rejectLabels: [] },
+            isRegionRestricted: false,
+            isTerminalFailure: false,
+            isEmailCollision: false,
+        }
+        render(<KycStatusDrawer isOpen onClose={onClose} />)
+        mockFlowOptions.onIdentityVerified?.()
+        expect(onClose).toHaveBeenCalled()
+        expect(mockPush).toHaveBeenCalledWith('/verified')
     })
 })

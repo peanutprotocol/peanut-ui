@@ -13,6 +13,7 @@ import YourCardScreen from '@/components/Card/YourCardScreen'
 import CardStopBanner from '@/components/Card/CardStopBanner'
 import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
@@ -164,17 +165,23 @@ export const CardPage: FC = () => {
             <PageContainer>
                 <div className="flex min-h-inherit w-full flex-col items-center justify-center gap-4 p-4">
                     <CenteredStatusCard title={tCommon('cardCouldNotLoad')} description={t('page.loadFailed')}>
-                        <Button
-                            onClick={() => {
-                                void refetchCardInfo()
-                                if (issuanceReadError || state === 'creating-card') void retryIssuance()
-                                else void refetchOverview()
-                            }}
-                            variant="primary"
-                            shadowSize="4"
-                        >
-                            {tCommon('retry')}
-                        </Button>
+                        <div className="flex w-full flex-col items-center gap-6">
+                            <Button
+                                onClick={() => {
+                                    void refetchCardInfo()
+                                    if (issuanceReadError || state === 'creating-card') void retryIssuance()
+                                    else void refetchOverview()
+                                }}
+                                variant="primary"
+                                shadowSize="4"
+                                className="w-full justify-center"
+                            >
+                                {tCommon('retry')}
+                            </Button>
+                            <LinkButton onClick={() => setIsSupportModalOpen(true)}>
+                                {tCommon('contactSupport')}
+                            </LinkButton>
+                        </div>
                     </CenteredStatusCard>
                 </div>
             </PageContainer>
@@ -196,9 +203,19 @@ export const CardPage: FC = () => {
             <PageContainer>
                 <div className="flex min-h-inherit w-full flex-col items-center justify-center gap-4 p-4">
                     <CenteredStatusCard title={t('status.stillCreatingTitle')}>
-                        <Button onClick={() => void retryIssuance()} variant="primary" shadowSize="4">
-                            {tCommon('retry')}
-                        </Button>
+                        <div className="flex w-full flex-col items-center gap-6">
+                            <Button
+                                onClick={() => void retryIssuance()}
+                                variant="primary"
+                                shadowSize="4"
+                                className="w-full justify-center"
+                            >
+                                {tCommon('retry')}
+                            </Button>
+                            <LinkButton onClick={() => setIsSupportModalOpen(true)}>
+                                {tCommon('contactSupport')}
+                            </LinkButton>
+                        </div>
                     </CenteredStatusCard>
                 </div>
             </PageContainer>

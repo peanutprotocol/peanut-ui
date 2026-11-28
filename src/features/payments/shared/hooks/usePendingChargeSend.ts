@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import type { Address, Hash } from 'viem'
 import { useTranslations } from 'next-intl'
 import { useAuth } from '@/context/authContext'
+import { setStuckFlowBusy } from '@/features/stuck-detector/signalStore'
 import { spendMayHaveBroadcast, type SpendBroadcast } from '@/hooks/wallet/spendBroadcast'
 import { readUserOpOutcome } from '@/utils/userop-outcome'
 import {
@@ -383,6 +384,14 @@ export function usePendingChargeSend({
     const marker = parsePendingChargeSend(raw)
     const isLocal = !!key && (claiming.has(key) || sending.has(key) || recovering.has(key))
     const isPending = marker !== null && (isLocal || !isAbandonedClaim(marker))
+
+    // Observational only (does not affect ChargeSendFlow.tla transitions): keep proactive stuck helpers
+    // off-screen while any send/withdraw charge is in flight or recovering.
+    useEffect(() => {
+        const busy = isPending || isRecovering
+        setStuckFlowBusy(busy, 'pending-charge-send')
+        return () => setStuckFlowBusy(false, 'pending-charge-send')
+    }, [isPending, isRecovering])
     return useMemo(
         () => ({
             isPending,

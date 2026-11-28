@@ -467,10 +467,8 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                     onClose={closeKycModal}
                     onVerify={async () => {
                         if (mantecaRejection.state === 'blocked') {
-                            // blocked users cannot self-heal — route to support
-                            if (typeof window !== 'undefined' && window.$crisp) {
-                                window.$crisp.push(['do', 'chat:open'])
-                            }
+                            // blocked users cannot self-heal — route to in-app support drawer (web & native)
+                            openSupportWithMessage(mantecaRejection.userMessage ?? t('title'))
                             closeKycModal()
                             return
                         }

@@ -3,7 +3,8 @@
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import NavHeader from '@/components/Global/NavHeader'
 import { useParams } from 'next/navigation'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
+import { setDepositDetailsStepActive } from '@/features/stuck-detector/signalStore'
 import { Accordion } from '@/components/0_Bruddle/Accordion'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Badge from '@/components/Global/Badges/Badge'
@@ -56,6 +57,10 @@ const MantecaDepositShareDetails = ({
     onDone: () => void
 }) => {
     const params = useParams()
+    useEffect(() => {
+        setDepositDetailsStepActive(true)
+        return () => setDepositDetailsStepActive(false)
+    }, [])
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
     const tWithdraw = useTranslations('withdraw')

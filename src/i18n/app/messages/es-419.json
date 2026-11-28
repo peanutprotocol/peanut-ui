@@ -2528,7 +2528,19 @@
         },
         "pixMaintenanceBadge": "Mantenimiento",
         "addCryptoTitle": "Agregar cripto",
-        "bankNotAvailableNote": "Las transferencias bancarias no están disponibles en tu país. Todavía puedes ingresar y retirar cripto."
+        "bankNotAvailableNote": "Las transferencias bancarias no están disponibles en tu país. Todavía puedes ingresar y retirar cripto.",
+        "verified": {
+            "title": "Identidad verificada",
+            "titleBankReady": "Cuenta bancaria lista",
+            "sub": "Agrega dinero para empezar a pagar con Peanut.",
+            "underReview": "En revisión por {provider}, te avisaremos",
+            "notApproved": "No aprobado por {provider}",
+            "actionTerms": "términos de {provider} para {currencies}",
+            "actionTermsGeneric": "términos de {provider}",
+            "actionAddress": "comprobante de domicilio",
+            "cryptoWorksNow": "Desde billeteras o exchanges, funciona ya",
+            "actionNeeded": "Acción requerida"
+        }
     },
     "withdraw": {
         "reviewUpdatedQuote": "Revisa la cotización actualizada para continuar.",
@@ -5646,5 +5658,68 @@
     "brazilPause": {
         "title": "Servicios en Brasil en pausa",
         "body": "Los depósitos y retiros en BRL no están disponibles por ahora. Los pagos con Pix no están disponibles para residentes de Brasil."
+    },
+    "stuckBuddy": {
+        "prompts": {
+            "addMoney": "¿Ayuda con la transferencia?",
+            "verifyLoop": "¿Ayuda con la verificación?",
+            "setupPasskey": "¿Problemas al guardar la passkey?",
+            "homeFunded": "¿Hacemos el primer pago?",
+            "activeIssue": "¿Hubo un problema?"
+        },
+        "ctas": {
+            "addMoney": "Ayuda con depósitos",
+            "contactSupport": "Contactar soporte",
+            "homeFunded": "Ver opciones rápidas",
+            "activeIssue": "Reportar error o chatear"
+        },
+        "a11y": {
+            "dismiss": "Cerrar ayuda",
+            "openHelper": "Abrir ayuda de Peanut"
+        },
+        "supportTopics": {
+            "addMoney": "Ayuda con depósito por transferencia bancaria",
+            "verifyLoop": "Ayuda con la verificación",
+            "setupPasskey": "Ayuda para configurar la passkey",
+            "loginRecovery": "Recuperación de inicio de sesión con passkey",
+            "passkeyError": "Ayuda con passkey ({errorName})",
+            "usernameCheck": "Error al verificar el nombre de usuario",
+            "homeFunded": "Ayuda con el primer pago",
+            "activeIssue": "Problema en la app de Peanut",
+            "bugReport": "Reporte de problema ({category}) en {route}",
+            "bugReportWithNote": "Reporte de problema ({category}) en {route}: {note}"
+        },
+        "bugCategories": {
+            "paymentFailed": "El pago falló",
+            "screenStuck": "Pantalla trabada",
+            "somethingWrong": "Algo se ve mal"
+        },
+        "drawers": {
+            "addMoney": {
+                "title": "Ayuda con depósitos",
+                "description": "Revisiones rápidas para transferencias bancarias.",
+                "step1": "¿Datos rechazados? Copia el número de cuenta o IBAN completo.",
+                "step2": "¿Enviaste desde otro nombre? Algunas transferencias requieren una cuenta propia.",
+                "step3": "¿Pasó el tiempo de llegada indicado? Comparte el comprobante con soporte.",
+                "primaryCta": "Copiar mensaje y contactar soporte",
+                "copyMessage": "Necesito ayuda con un depósito por transferencia bancaria en Peanut."
+            },
+            "homeFunded": {
+                "title": "Paga en segundos",
+                "description": "Elige la forma más rápida de hacer el primer pago.",
+                "qrCta": "Pagar con QR",
+                "cardCta": "Pedir la Peanut Card",
+                "sendCta": "Enviar dinero",
+                "tertiarySupport": "¿Problemas para pagar? Contactar soporte"
+            },
+            "activeIssue": {
+                "title": "Reportar un problema",
+                "description": "Abre el chat de soporte en la app con los detalles para ayudarte.",
+                "categoryLabel": "Tipo de problema",
+                "noteLabel": "Nota opcional",
+                "notePlaceholder": "Breve nota",
+                "submitCta": "Enviar a soporte"
+            }
+        }
     }
 }

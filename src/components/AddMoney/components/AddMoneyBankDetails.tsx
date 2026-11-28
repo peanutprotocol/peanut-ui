@@ -24,6 +24,10 @@ import { useOnrampQuote } from '@/hooks/useOnrampQuote'
 import { currencyToAccountType } from '@/utils/bridge.utils'
 import { useQueryState, parseAsString } from 'nuqs'
 import { useTranslations } from 'next-intl'
+import { setDepositDetailsStepActive } from '@/features/stuck-detector/signalStore'
+import { useHistoryEntry } from '@/hooks/useHistoryEntry'
+import { useDepositSuccessEntry } from '@/features/add-money/useDepositSuccessEntry'
+import { BankDepositSuccessView } from '@/features/add-money/components/BankDepositSuccessView'
 
 /**
  * TODO(architecture): Quote math is computed client-side instead of trusting backend.
@@ -62,6 +66,15 @@ export default function AddMoneyBankDetails({ onBack }: AddMoneyBankDetailsProps
 
     // contexts
     const { onrampData } = useOnrampFlow()
+    // no status route for a one-time transfer: its history entry is the signal, polled every 15 s while not final
+    const transferId = onrampData?.transferId
+    const { data: transferEntry } = useHistoryEntry(transferId, 'ONRAMP')
+    const depositSuccess = useDepositSuccessEntry(transferEntry, transferId)
+
+    useEffect(() => {
+        setDepositDetailsStepActive(!depositSuccess)
+        return () => setDepositDetailsStepActive(false)
+    }, [depositSuccess])
 
     // routing and country context
     const router = useRouter()
@@ -240,6 +253,10 @@ export default function AddMoneyBankDetails({ onBack }: AddMoneyBankDetailsProps
 
     if (!amount) {
         return null
+    }
+
+    if (depositSuccess) {
+        return <BankDepositSuccessView entry={depositSuccess} redirectTo={exitTarget} />
     }
 
     return (

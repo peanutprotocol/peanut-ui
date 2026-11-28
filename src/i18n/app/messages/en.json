@@ -2528,7 +2528,19 @@
         },
         "pixMaintenanceBadge": "Maintenance",
         "addCryptoTitle": "Add crypto",
-        "bankNotAvailableNote": "Bank transfers aren't available in your country. You can still add and withdraw crypto."
+        "bankNotAvailableNote": "Bank transfers aren't available in your country. You can still add and withdraw crypto.",
+        "verified": {
+            "title": "ID verified",
+            "titleBankReady": "Bank account ready",
+            "sub": "Add money to start paying with Peanut.",
+            "underReview": "Under review by {provider}, we’ll notify you",
+            "notApproved": "Not approved by {provider}",
+            "actionTerms": "{provider}’s terms for {currencies}",
+            "actionTermsGeneric": "{provider}’s terms",
+            "actionAddress": "proof of address",
+            "cryptoWorksNow": "From wallets or exchanges, works now",
+            "actionNeeded": "Action needed"
+        }
     },
     "withdraw": {
         "reviewUpdatedQuote": "Review the updated quote to continue.",
@@ -5646,5 +5658,68 @@
     "brazilPause": {
         "title": "Brazil services paused",
         "body": "BRL deposits and withdrawals are currently unavailable. Pix payments are unavailable for residents of Brazil."
+    },
+    "stuckBuddy": {
+        "prompts": {
+            "addMoney": "Need help with a bank transfer?",
+            "verifyLoop": "Need help with verification?",
+            "setupPasskey": "Trouble saving a passkey?",
+            "homeFunded": "Ready for a first payment?",
+            "activeIssue": "Running into an issue?"
+        },
+        "ctas": {
+            "addMoney": "Deposit help",
+            "contactSupport": "Contact support",
+            "homeFunded": "See quick options",
+            "activeIssue": "Report bug or chat"
+        },
+        "a11y": {
+            "dismiss": "Dismiss helper",
+            "openHelper": "Open Peanut helper"
+        },
+        "supportTopics": {
+            "addMoney": "Bank transfer deposit help",
+            "verifyLoop": "Verification help",
+            "setupPasskey": "Passkey setup help",
+            "loginRecovery": "Passkey login recovery",
+            "passkeyError": "Passkey help ({errorName})",
+            "usernameCheck": "Username check failed",
+            "homeFunded": "First payment help",
+            "activeIssue": "Issue in Peanut app",
+            "bugReport": "Bug report ({category}) on {route}",
+            "bugReportWithNote": "Bug report ({category}) on {route}: {note}"
+        },
+        "bugCategories": {
+            "paymentFailed": "Payment failed",
+            "screenStuck": "Screen stuck",
+            "somethingWrong": "Something looks wrong"
+        },
+        "drawers": {
+            "addMoney": {
+                "title": "Deposit troubleshooting",
+                "description": "Quick bank transfer checks.",
+                "step1": "Details rejected? Copy the full account number or IBAN.",
+                "step2": "Different sender? Some transfers require an account in the same legal name.",
+                "step3": "Past the arrival time on screen? Share the bank receipt with support.",
+                "primaryCta": "Copy message and contact support",
+                "copyMessage": "Need help with a bank transfer deposit in Peanut."
+            },
+            "homeFunded": {
+                "title": "Pay in seconds",
+                "description": "Pick the fastest way to make a first payment.",
+                "qrCta": "Pay by QR",
+                "cardCta": "Get Peanut Card",
+                "sendCta": "Send money",
+                "tertiarySupport": "Something blocking a payment? Contact support"
+            },
+            "activeIssue": {
+                "title": "Report an issue",
+                "description": "Opens in-app support chat with your details so the team can help.",
+                "categoryLabel": "Issue category",
+                "noteLabel": "Optional note",
+                "notePlaceholder": "Short note",
+                "submitCta": "Send to support"
+            }
+        }
     }
 }

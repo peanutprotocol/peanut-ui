@@ -147,6 +147,16 @@ export const ANALYTICS_EVENTS = {
     ADD_MONEY_COUNTRY_LIST_CLOSED: 'add_money_country_list_closed',
     ADD_MONEY_COUNTRY_SELECTED: 'add_money_country_selected',
     ADD_MONEY_BACK_TAPPED: 'add_money_back_tapped',
+    // "ID verified" (/verified), where a self-started verification ends. `entry` is the verify source,
+    // `variant` verified | bank-ready, and each bank row's state (`ars`, `pix`, `bank`: loading | ready | open |
+    // review | action | refused). `rows_resolved` carries `wait_ms`: page open (the approval) until no row loads.
+    VERIFIED_PAGE_SHOWN: 'verified_page_shown',
+    VERIFIED_PAGE_ROWS_RESOLVED: 'verified_page_rows_resolved',
+    // `method` (ars | pix | bank | crypto) and that row's `state`
+    VERIFIED_PAGE_METHOD_TAPPED: 'verified_page_method_tapped',
+    VERIFIED_PAGE_LATER: 'verified_page_later',
+    // the page shown again once a bank account is ready (the reminder, slice 5)
+    VERIFIED_PAGE_RESHOWN: 'verified_page_reshown',
     DEPOSIT_METHOD_SELECTED: 'deposit_method_selected',
     DEPOSIT_AMOUNT_ENTERED: 'deposit_amount_entered',
     DEPOSIT_CONFIRMED: 'deposit_confirmed',
@@ -560,6 +570,14 @@ export const ANALYTICS_EVENTS = {
     // camera failed. Scan results stay on qr_scanned.
     QR_SCANNER_OPENED: 'qr_scanner_opened',
     QR_CAMERA_PERMISSION: 'qr_camera_permission',
+
+    // ── Real-time stuck detection & proactive buddy ──
+    STUCK_SIGNAL_CHECKPOINT: 'stuck_signal_checkpoint',
+    STUCK_BUDDY_ELIGIBLE: 'stuck_buddy_eligible',
+    STUCK_BUDDY_SHOWN: 'stuck_buddy_shown',
+    STUCK_BUDDY_ACTION: 'stuck_buddy_action',
+    STUCK_BUDDY_DISMISSED: 'stuck_buddy_dismissed',
+    STUCK_BUG_REPORT_SUBMITTED: 'stuck_bug_report_submitted',
 } as const
 
 /**
