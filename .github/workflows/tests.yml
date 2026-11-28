@@ -588,11 +588,12 @@ jobs:
     ds-shots:
         name: ds-shots
         needs: [backdoor-scan, ds-shots-filter]
-        # `always()` because ds-shots-filter never runs on a push, and a skipped
-        # `needs` would otherwise skip this job too. `always()` would also run
-        # it after a failed backdoor-scan, so that result is checked by hand.
+        # `!cancelled()` because ds-shots-filter never runs on a push, and a
+        # skipped `needs` would otherwise skip this job too. It would also run
+        # after a failed backdoor-scan, so that result is checked by hand.
+        # Not `always()`: that ignores the cancel when a newer push lands.
         if: >-
-            always() && needs.backdoor-scan.result == 'success' &&
+            !cancelled() && needs.backdoor-scan.result == 'success' &&
             ((github.event_name == 'push' && contains(fromJSON('["main","feat/design-system"]'), github.ref_name))
             || (github.event.pull_request.base.ref != 'dev' && needs.ds-shots-filter.outputs.render == 'true'))
         runs-on: ubuntu-latest
@@ -921,10 +922,12 @@ jobs:
     i18n-overflow:
         name: i18n-overflow
         needs: [backdoor-scan, ds-shots-filter]
-        # `always()` because a skipped ds-shots-filter would skip this job too;
-        # the backdoor-scan result is checked by hand for the same reason.
+        # `!cancelled()` because a skipped ds-shots-filter would skip this job
+        # too; the backdoor-scan result is checked by hand for the same reason.
+        # Not `always()`: that keeps the job running after a newer push cancels
+        # the run, and the new run waits in the concurrency group (up to 44 min).
         if: >-
-            always() && needs.backdoor-scan.result == 'success' &&
+            !cancelled() && needs.backdoor-scan.result == 'success' &&
             needs.ds-shots-filter.outputs.render == 'true'
         runs-on: ubuntu-latest
         # Build ~6m + gate and stress gate on 4 workers. A hang past this is a bug,
