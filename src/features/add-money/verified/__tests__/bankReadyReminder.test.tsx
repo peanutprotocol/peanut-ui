@@ -1,0 +1,220 @@
+import { renderHook } from '@testing-library/react'
+import type { FeatureReport, FeatureReportEntry } from '@/types/capabilities'
+import {
+    bankReadyReminder,
+    markBankReadyShown,
+    readyAccountIds,
+    rowAccountIds,
+    shownBankReady,
+    takeReshowing,
+} from '../bankReadyReminder'
+import { resetBankReadyReminder } from '@/test-utils/bankReadyReminder'
+import { useBankReadyReminder } from '../useBankReadyReminder'
+
+const mockReplace = jest.fn()
+jest.mock('next/navigation', () => ({ useRouter: () => ({ replace: mockReplace }) }))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'u1' } } }) }))
+let mockReport: FeatureReport | undefined
+jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ capabilities: { features: mockReport } }) }))
+let mockBusy = false
+jest.mock('@/features/attention/AttentionProvider', () => ({
+    useAttentionOptional: () => ({ session: { busy: mockBusy } }),
+}))
+let mockInAppHistory = false
+jest.mock('@/hooks/useSafeBack', () => ({ hasInAppHistory: () => mockInAppHistory }))
+jest.mock('posthog-js', () => ({ capture: jest.fn() }))
+
+const on: FeatureReportEntry = { state: 'on' }
+const opening: FeatureReportEntry = { state: 'setting_up' }
+const report = (bank: Record<string, FeatureReportEntry>, local: Record<string, FeatureReportEntry> = {}) =>
+    ({
+        qr: opening,
+        card: opening,
+        bank: { state: 'setting_up', accounts: bank },
+        local: { state: 'setting_up', accounts: local },
+    }) as FeatureReport
+
+describe('readyAccountIds', () => {
+    it('lists the bank and local accounts that take money now', () => {
+        expect(readyAccountIds(report({ USD: on, EUR: opening }, { ARS: on }))).toEqual(['bank.USD', 'local.ARS'])
+        expect(readyAccountIds(undefined)).toEqual([])
+    })
+})
+
+describe('rowAccountIds', () => {
+    it('keeps only the ready accounts the page has a row for', () => {
+        const ready = ['bank.USD', 'local.ARS', 'local.BRL']
+        expect(rowAccountIds(ready, ['ars', 'bank', 'crypto'])).toEqual(['bank.USD', 'local.ARS'])
+        // pix paused: no pix row, so BRL is neither announced nor recorded
+        expect(rowAccountIds(ready, ['bank', 'crypto'])).toEqual(['bank.USD'])
+        expect(rowAccountIds(ready, ['pix', 'bank', 'crypto'])).toEqual(['bank.USD', 'local.BRL'])
+    })
+})
+
+describe('bankReadyReminder', () => {
+    const base = { shown: [] as string[], addedMoney: false, inTask: false }
+    it('shows a newly ready account', () => {
+        expect(bankReadyReminder({ ...base, ready: ['bank.USD'] })).toEqual(['bank.USD'])
+    })
+    it('never shows an account already shown', () => {
+        expect(bankReadyReminder({ ...base, ready: ['bank.USD'], shown: ['bank.USD'] })).toEqual([])
+    })
+    it('shows a second account that opens later', () => {
+        expect(bankReadyReminder({ ...base, ready: ['bank.USD', 'local.ARS'], shown: ['bank.USD'] })).toEqual([
+            'local.ARS',
+        ])
+    })
+    it('never shows to a person who added money', () => {
+        expect(bankReadyReminder({ ...base, ready: ['bank.USD'], addedMoney: true })).toEqual([])
+    })
+    it('never shows in a task', () => {
+        expect(bankReadyReminder({ ...base, ready: ['bank.USD'], inTask: true })).toEqual([])
+    })
+    it('never shows on the first load, when nothing is recorded yet', () => {
+        expect(bankReadyReminder({ ...base, ready: ['bank.USD'], shown: undefined })).toEqual([])
+    })
+})
+
+describe('useBankReadyReminder', () => {
+    let methods: string[] | undefined
+    let added: boolean | undefined
+    // one app load: Home mounts once, inputs may change while it stays
+    const openApp = () => {
+        resetBankReadyReminder()
+        return renderHook(() => useBankReadyReminder(added, methods))
+    }
+    beforeEach(() => {
+        localStorage.clear()
+        mockReplace.mockClear()
+        mockBusy = false
+        mockInAppHistory = false
+        added = false
+        mockReport = report({ USD: on })
+        methods = ['ars', 'bank', 'crypto']
+        // a person who already has a record on this device (a later load, or the verified page seen)
+        markBankReadyShown('u1', [])
+    })
+
+    it('opens the page for a newly ready account and hands its accounts to the page, recording nothing itself', () => {
+        openApp()
+        expect(mockReplace).toHaveBeenCalledWith('/verified?variant=bank-ready')
+        // the page records them once it shows (VerifiedPage.test)
+        expect(shownBankReady('u1')).toEqual([])
+        expect(takeReshowing()).toEqual(['bank.USD'])
+    })
+
+    it('never again for an account the page recorded; again for a second account that opens later', () => {
+        markBankReadyShown('u1', ['bank.USD'])
+        openApp()
+        expect(mockReplace).not.toHaveBeenCalled()
+
+        mockReport = report({ USD: on }, { ARS: on })
+        openApp()
+        expect(mockReplace).toHaveBeenCalledTimes(1)
+        expect(takeReshowing()).toEqual(['local.ARS'])
+    })
+
+    it('a page that never showed keeps the reminder for the next open', () => {
+        openApp()
+        takeReshowing() // the page took the hand-off, then left before showing: nothing recorded
+        mockReplace.mockClear()
+        openApp()
+        expect(mockReplace).toHaveBeenCalledTimes(1)
+    })
+
+    it('first load since release: accounts ready already are recorded, not shown; a later one shows once', () => {
+        localStorage.clear()
+        openApp()
+        expect(mockReplace).not.toHaveBeenCalled()
+        expect(shownBankReady('u1')).toEqual(['bank.USD'])
+
+        mockReport = report({ USD: on }, { ARS: on })
+        openApp()
+        expect(takeReshowing()).toEqual(['local.ARS'])
+    })
+
+    it('first load with nothing ready records an empty list, so the first account to open shows', () => {
+        localStorage.clear()
+        mockReport = report({ USD: opening })
+        openApp()
+        expect(shownBankReady('u1')).toEqual([])
+
+        mockReport = report({ USD: on })
+        openApp()
+        expect(mockReplace).toHaveBeenCalledWith('/verified?variant=bank-ready')
+    })
+
+    it('D1: an account that opens during the visit (capability refresh) waits for the next app open', () => {
+        mockReport = report({ USD: opening })
+        const home = openApp()
+        mockReport = report({ USD: on })
+        home.rerender()
+        expect(mockReplace).not.toHaveBeenCalled()
+
+        openApp()
+        expect(mockReplace).toHaveBeenCalledTimes(1)
+    })
+
+    it('D1: the first-load record also ends the chance, so a refresh in the same visit opens nothing', () => {
+        localStorage.clear()
+        mockReport = report({ USD: opening })
+        const home = openApp()
+        mockReport = report({ USD: on })
+        home.rerender()
+        expect(mockReplace).not.toHaveBeenCalled()
+        expect(shownBankReady('u1')).toEqual([])
+    })
+
+    it('waits for the balance, then never opens for a person who added money', () => {
+        added = undefined
+        const home = openApp()
+        expect(mockReplace).not.toHaveBeenCalled()
+        added = true
+        home.rerender()
+        expect(mockReplace).not.toHaveBeenCalled()
+        expect(takeReshowing()).toBeNull()
+    })
+
+    it('a cached $0 that turns into a live balance never opens it', () => {
+        added = undefined
+        const home = openApp()
+        added = true
+        home.rerender()
+        expect(mockReplace).not.toHaveBeenCalled()
+    })
+
+    it('waits for the picker rows, and an account with no row neither opens nor uses up the page', () => {
+        methods = undefined
+        const home = openApp()
+        expect(mockReplace).not.toHaveBeenCalled()
+        home.unmount()
+
+        methods = ['bank', 'crypto']
+        mockReport = report({}, { BRL: on })
+        openApp()
+        expect(mockReplace).not.toHaveBeenCalled()
+
+        // the pix row shows (the pause lifts): the BRL account opens the page on the next open
+        methods = ['pix', 'bank', 'crypto']
+        openApp()
+        expect(takeReshowing()).toEqual(['local.BRL'])
+    })
+
+    it('never opens when home was reached from another screen (a task), nor over an open drawer', () => {
+        mockInAppHistory = true
+        openApp()
+        mockInAppHistory = false
+        mockBusy = true
+        openApp()
+        expect(mockReplace).not.toHaveBeenCalled()
+    })
+
+    it('has one chance per app load: back on home after leaving it, it stays shut', () => {
+        mockReport = report({ USD: opening })
+        resetBankReadyReminder()
+        renderHook(() => useBankReadyReminder(undefined, methods)).unmount()
+        mockReport = report({ USD: on })
+        renderHook(() => useBankReadyReminder(false, methods))
+        expect(mockReplace).not.toHaveBeenCalled()
+    })
+})

@@ -12,7 +12,8 @@ type DepositStatus = 'not_started' | 'loading' | 'failed' | 'completed'
 
 export function useCryptoDepositPolling(
     depositAddress: string | undefined,
-    onSuccess: (amount: number, statusData?: DepositAddressStatusResponse) => void,
+    /** `seenOpen`: this screen read the deposit before it completed, so it is new, not an old one replayed */
+    onSuccess: (amount: number, statusData?: DepositAddressStatusResponse, seenOpen?: boolean) => void,
     /** The charge a request-payment address was opened for; needed to clear its status. */
     chargeId?: string,
     /**
@@ -24,6 +25,7 @@ export function useCryptoDepositPolling(
     const [isDelayComplete, setIsDelayComplete] = useState(readNow)
     const [isResetting, setIsResetting] = useState(false)
     const hasCalledSuccess = useRef(false)
+    const seenOpen = useRef(false)
     const isResettingRef = useRef(false)
     const queryClient = useQueryClient()
 
@@ -72,9 +74,12 @@ export function useCryptoDepositPolling(
     }, [statusData])
 
     useEffect(() => {
+        // a status read as not started (rhino.ts maps the API's 404 to it) or still in flight: whatever
+        // completes next was sent while on screen. A failed read says nothing, so it does not count
+        if (statusData && status !== 'completed' && status !== 'failed') seenOpen.current = true
         if (status === 'completed' && statusData?.amount && !hasCalledSuccess.current) {
             hasCalledSuccess.current = true
-            onSuccess(statusData.amount, statusData)
+            onSuccess(statusData.amount, statusData, seenOpen.current)
         }
     }, [statusData, status, onSuccess])
 

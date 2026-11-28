@@ -71,9 +71,8 @@ it('keeps a pending EUR report out of the drawer even if the rail says ready', (
     expect(mockQuery).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['deposit-accounts', 'current-owner'] }))
     expect(result.current.ready.account).toEqual([])
     expect(result.current.ready.transfer).toEqual(['USD'])
-    // bank accounts stay on offer (the owner, 15 Nov); the pending EUR is not a ready account; the
-    // ready USD transfer is on the picker only
-    expect(result.current.drawerMethods).toEqual(['account', 'crypto', 'more'])
+    // the pending EUR is not a ready account; the ready USD transfer sits behind the one bank row
+    expect(result.current.pickerMethods).toEqual(['bank', 'crypto'])
 })
 
 it('requires transfer coordinates before calling a held COP account usable', () => {
@@ -173,7 +172,7 @@ const pixDeposit = (route: Partial<CapabilityRoute>) =>
     [{ operation: 'deposit', method: 'PIX_BR', provider: 'avenia', state: 'ready', ...route }] as CapabilityRoute[]
 const residencePaused = { code: 'residence_paused', userMessage: 'Deposits and withdrawals are paused where you live.' }
 
-it('reads the Brazil pause from the Pix deposit route and keeps Pix off the drawer while it is paused', () => {
+it('reads the Brazil pause from the Pix deposit route and keeps Pix off the Add lists while it is paused', () => {
     mockRoutes = pixDeposit({ provider: null, state: 'paused', reason: residencePaused })
     const { result, rerender } = renderHook(() => useAddMoneyReadiness(true))
     expect(result.current.brazilPaused).toBe(true)
@@ -182,14 +181,13 @@ it('reads the Brazil pause from the Pix deposit route and keeps Pix off the draw
     mockRoutes = pixDeposit({ state: 'ready' })
     rerender()
     expect(result.current.brazilPaused).toBe(false)
-    expect(result.current.drawerMethods[0]).toBe('pix')
+    expect(result.current.pickerMethods[0]).toBe('pix')
 })
 
 it('leads with Pix while Avenia is setting up or reviewing: the first tap is the setup', () => {
     mockRoutes = pixDeposit({ state: 'action_required' })
     const { result } = renderHook(() => useAddMoneyReadiness(true))
     expect(result.current.pickerMethods[0]).toBe('pix')
-    expect(result.current.drawerMethods).toEqual(['pix', 'account', 'crypto'])
     // a route offered before verification is not a ready top-up: a new user still lands on the picker
     expect(result.current.entry).toBe('picker')
 })
@@ -201,7 +199,7 @@ it('keeps Pix on offer through an outage of Avenia: the Pix page shows the outag
     })
     const { result } = renderHook(() => useAddMoneyReadiness(true))
     expect(result.current.brazilPaused).toBe(false)
-    expect(result.current.drawerMethods[0]).toBe('pix')
+    expect(result.current.pickerMethods[0]).toBe('pix')
 })
 
 // The pause names no provider outside a provider's rollout, and the provider inside it for a resident not on its allowed list
@@ -211,7 +209,7 @@ it.each<CapabilityRoute['provider']>([null, 'avenia'])(
         mockRoutes = pixDeposit({ provider, state: 'paused', reason: residencePaused })
         const { result } = renderHook(() => useAddMoneyReadiness(true))
         expect(result.current.brazilPaused).toBe(true)
-        expect(result.current.drawerMethods).not.toContain('pix')
+        expect(result.current.pickerMethods).not.toContain('pix')
     }
 )
 
@@ -223,7 +221,7 @@ it.each<[string, Partial<CapabilityRoute>]>([
     mockRoutes = pixDeposit(route)
     const { result } = renderHook(() => useAddMoneyReadiness(true))
     expect(result.current.ready.pix).toEqual([])
-    expect(result.current.drawerMethods).not.toContain('pix')
+    expect(result.current.pickerMethods).not.toContain('pix')
 })
 
 // The owner, 15 Nov: the picker offers Pix by the same rule as the drawer, from the route and the residence
@@ -261,7 +259,7 @@ it('leads with ARS on a ready peso top-up, and the user is returning', () => {
     const { result } = renderHook(() => useAddMoneyReadiness(true))
     expect(result.current.ready.ars).toEqual(['ARS'])
     expect(result.current.ready.transfer).toEqual([])
-    expect(result.current.drawerMethods[0]).toBe('ars')
+    expect(result.current.pickerMethods[0]).toBe('ars')
     expect(result.current.entry).toBe('drawer')
 })
 

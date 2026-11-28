@@ -1,8 +1,14 @@
-import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
+import type {
+    BridgeKycStatus,
+    RequestChargeStatus,
+    RequestPaymentStatus,
+    SendLinkStatus,
+} from '@/constants/api-enums.generated'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import type { paths } from '@/types/api.generated'
 
-export type TStatus = 'NEW' | 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED' | 'SIGNED' | 'SUCCESSFUL' | 'CANCELLED'
+/** A charge or payment status: the timeline mixes both vocabularies. */
+export type TStatus = RequestChargeStatus | RequestPaymentStatus
 
 export interface TimelineEntry {
     status: TStatus
@@ -391,6 +397,8 @@ export interface TCreateOfframpRequest {
         achReference?: string
     }
     sendLinkPubKey?: string
+    /** Required with sendLinkPubKey: link key signature over guestBankClaimMessage(sendLinkPubKey, destination.externalAccountId). */
+    sendLinkSignature?: string
     features?: {
         allowAnyFromAddress?: boolean
     }
@@ -456,17 +464,6 @@ export interface TCreateOfframpResponse {
     deposit_chain_id: number
     deposit_token_address: string
 }
-
-export enum ESendLinkStatus {
-    creating = 'creating',
-    completed = 'completed',
-    CLAIMING = 'CLAIMING',
-    CLAIMED = 'CLAIMED',
-    CANCELLED = 'CANCELLED',
-    FAILED = 'FAILED',
-}
-
-export type SendLinkStatus = `${ESendLinkStatus}`
 
 export type SendLink = {
     pubKey: string

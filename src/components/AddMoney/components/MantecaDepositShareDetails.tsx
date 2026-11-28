@@ -3,7 +3,8 @@
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import NavHeader from '@/components/Global/NavHeader'
 import { useParams } from 'next/navigation'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
+import { setDepositDetailsStepActive } from '@/features/stuck-detector/signalStore'
 import { countryData } from '@/components/AddMoney/consts'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import ShareButton from '@/components/Global/ShareButton'
@@ -28,6 +29,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ProviderHelp } from '@/components/Provider/ProviderHelp'
 import { PROVIDERS } from '@/constants/providers.consts'
+import { RateHelpTrigger } from '@/features/rates-fees/RateInfoDrawer'
 
 const MantecaDepositShareDetails = ({
     depositDetails,
@@ -45,6 +47,10 @@ const MantecaDepositShareDetails = ({
     onDone: () => void
 }) => {
     const params = useParams()
+    useEffect(() => {
+        setDepositDetailsStepActive(true)
+        return () => setDepositDetailsStepActive(false)
+    }, [])
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
     const tWithdraw = useTranslations('withdraw')
@@ -213,7 +219,16 @@ const MantecaDepositShareDetails = ({
                         </>
                     )}
                     <PaymentInfoRow
-                        label={t('manteca.exchangeRate')}
+                        label={
+                            <span className="flex items-center gap-1">
+                                {t('manteca.exchangeRate')}
+                                <RateHelpTrigger
+                                    currency={currencySymbol}
+                                    lockedRate={Number(exchangeRate)}
+                                    lockMode="cbu"
+                                />
+                            </span>
+                        }
                         value={`1 USD = ${formatFiatRate(exchangeRate, locale)} ${currencySymbol}`}
                     />
                     <PaymentInfoRow
@@ -221,7 +236,6 @@ const MantecaDepositShareDetails = ({
                         value={networkFees}
                         moreInfoText={t('manteca.providerFeesInfo')}
                     />
-                    <PaymentInfoRow label={tCommon('peanutFee')} value={tCommon('sponsoredByPeanut')} />
                     <PaymentInfoRow label={tWithdraw('bank.arrives')} value={t('manteca.etaInstant')} />
                     <PaymentInfoRow
                         hideBottomBorder

@@ -6,6 +6,7 @@ import { pixApi } from '@/services/pix'
 import { ApiError } from '@/services/api-error'
 import { pixDepositPhase, type PixDepositPhase } from '@/features/pix/pixFlow.utils'
 import { pixDepositQueryKey } from '@/features/pix/pixDepositCode'
+import { saveLastDepositMethod } from '@/features/add-money/lastUsedAddMethod'
 
 const POLLING_INTERVAL_MS = 5000
 const SETTLED_PHASES: PixDepositPhase[] = ['completed', 'returned', 'expired']
@@ -34,13 +35,17 @@ export function usePixDeposit(intentId: string, onComplete: () => void) {
     })
     const phase = useMemo(() => pixDepositPhase(query.data), [query.data])
 
+    // the deposit this screen saw still open: an old completed deposit reopened later is not the last deposit
+    const sawOpenFor = useRef<string | undefined>(undefined)
     useEffect(() => {
+        if (query.data && !SETTLED_PHASES.includes(phase)) sawOpenFor.current = intentId
         // the query is keyed by the deposit, so a completed phase is this deposit's
         if (phase === 'completed' && completedFor.current !== intentId) {
             completedFor.current = intentId
+            if (sawOpenFor.current === intentId) saveLastDepositMethod('pix')
             onComplete()
         }
-    }, [phase, intentId, onComplete])
+    }, [phase, intentId, onComplete, query.data])
 
     return {
         deposit: query.data,

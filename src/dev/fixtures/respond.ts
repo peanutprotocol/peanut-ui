@@ -5,7 +5,7 @@
 
 import { demoRespond } from '@/utils/demo-api'
 import { FIXTURES } from './registry'
-import { ensureActiveFixture } from './active'
+import { ensureActiveFixture, nextSequenceTurn } from './active'
 import { isStressActive, stressResponse } from './stress'
 import { setFixtureBalanceUnits } from '@/utils/demo-balance'
 import { parseUnits } from 'viem'
@@ -64,6 +64,13 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
     const rejection = fixture.rejects?.[key]
     if (rejection) {
         return new Response(JSON.stringify(rejection.body), { status: rejection.status, headers: JSON_HEADERS })
+    }
+
+    const sequence = fixture.sequences?.[key]
+    if (sequence?.length) {
+        const turn = nextSequenceTurn(`${name} ${key}`)
+        const answer = sequence[Math.min(turn, sequence.length - 1)]
+        return new Response(JSON.stringify(answer), { status: 200, headers: JSON_HEADERS })
     }
 
     // Clearing a watched deposit's outcome works as Rhino's does: the next reads say nothing is on its way.

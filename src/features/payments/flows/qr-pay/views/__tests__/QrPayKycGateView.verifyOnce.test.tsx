@@ -26,7 +26,6 @@ jest.mock('../../QrPayFlowContext', () => ({
         gate: {
             kycGateState: QrKycState.REQUIRES_IDENTITY_VERIFICATION,
             sumsubFlow: { errorCooldown: null, isQrUnlockRefused: !!mockRefusal, error: mockRefusal },
-            isKycApproved: false,
             startVerification: jest.fn(),
         },
         methodIcon: undefined,

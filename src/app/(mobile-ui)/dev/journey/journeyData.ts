@@ -206,7 +206,7 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         name: 'WelcomeUnlockDrawer',
         copy: '"🎉 You\'re unlocked" + channel bullets',
         cta: { label: 'Start sending money', dest: 'closes modal (once)' },
-        condition: 'home; isKycApproved && !activationCelebratedAt',
+        condition: 'home; hasAnyEnabledRail && !activationCelebratedAt',
         sourceFile: 'src/components/Home/WelcomeUnlockDrawer/index.tsx',
         states: ['kycd-no-card'],
     },

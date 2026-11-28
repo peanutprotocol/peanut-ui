@@ -15,6 +15,7 @@ import { getExplorerUrl } from '@/utils/token.utils'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { useQueryState, parseAsStringEnum, parseAsString } from 'nuqs'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { saveLastDepositMethod } from '@/features/add-money/lastUsedAddMethod'
 
 /** An EVM transaction hash, the only shape the history route keys a receipt on. */
 const EVM_TX_HASH = /^0x[0-9a-f]{64}$/i
@@ -75,7 +76,7 @@ export function useAddMoneyCryptoFlow() {
     }, [depositAddressData])
 
     const handleSuccess = useCallback(
-        (amount: number, statusData?: DepositAddressStatusResponse) => {
+        (amount: number, statusData?: DepositAddressStatusResponse, seenOpen = false) => {
             const address = depositAddressData?.depositAddress
             captureCryptoDepositCompleted(
                 amount,
@@ -83,6 +84,8 @@ export function useAddMoneyCryptoFlow() {
                 user?.invitedBy,
                 address ? { address, txHash: statusData?.txHash } : undefined
             )
+            // the 24h address cache can replay an old completed deposit: that one is not the last deposit
+            if (seenOpen) saveLastDepositMethod('crypto')
             setDepositResult(statusData ?? { status: 'completed', amount })
             setShowSuccessView(true)
         },

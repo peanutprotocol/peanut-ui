@@ -33,7 +33,7 @@ const ibanAccount = {
 /** The view is dumb: the harness holds the reference the way the flow hook does. */
 const Harness = ({
     rail,
-    submittedTxHash = null,
+    isLoading = false,
     account = ibanAccount,
     showError = false,
     bankAmount,
@@ -42,7 +42,7 @@ const Harness = ({
     onAddBankAccountAgain,
 }: {
     rail: string
-    submittedTxHash?: string | null
+    isLoading?: boolean
     account?: Account
     showError?: boolean
     bankAmount?: { amount?: string; rate?: string; enteredInBankCurrency: boolean }
@@ -61,12 +61,10 @@ const Harness = ({
             payout={{ currency, bankConvertsTo, enteredInBankCurrency: false, ...bankAmount }}
             isRateLoading={false}
             fromSendFlow={false}
-            isLoading={false}
+            isLoading={isLoading}
             isSubmitReady={isSubmitReady}
-            submittedTxHash={submittedTxHash}
             error={{ showError, errorMessage: showError ? 'Something went wrong' : '' }}
             balanceErrorMessage={null}
-            confirmPendingCopy="processing"
             referenceSpec={spec}
             payoutNoteKey={payoutNoteForRail(rail)}
             payoutDefaultReferenceNoteKey={payoutDefaultReferenceNoteForRail(rail)}
@@ -74,7 +72,6 @@ const Harness = ({
             referenceProblem={spec ? bankReferenceProblem(reference, spec) : null}
             onReferenceChange={setReference}
             onSubmit={jest.fn()}
-            onDone={jest.fn()}
             onRetryQuote={onRetryQuote}
             onAddBankAccountAgain={onAddBankAccountAgain}
             providerId="bridge-eea"
@@ -157,8 +154,8 @@ describe('WithdrawBankReviewView — the optional reference', () => {
         }
     })
 
-    it('once the on-chain leg fired the reference is locked', () => {
-        renderWithIntl(<Harness rail="sepa" submittedTxHash="0xtx" />)
+    it('while the withdrawal runs the reference is locked', () => {
+        renderWithIntl(<Harness rail="sepa" isLoading />)
         expect(referenceInput()).toBeDisabled()
     })
 
@@ -486,10 +483,8 @@ describe('WithdrawBankReviewView — USD speed and the wire fee (TASK-23054)', (
                 fromSendFlow={false}
                 isLoading={false}
                 isSubmitReady
-                submittedTxHash={null}
                 error={{ showError: false, errorMessage: '' }}
                 balanceErrorMessage={null}
-                confirmPendingCopy="processing"
                 referenceSpec={bankReferenceSpecForRail(selected)}
                 payoutNoteKey={payoutNoteForRail(selected)}
                 payoutDefaultReferenceNoteKey={null}
@@ -497,7 +492,6 @@ describe('WithdrawBankReviewView — USD speed and the wire fee (TASK-23054)', (
                 referenceProblem={null}
                 onReferenceChange={jest.fn()}
                 onSubmit={jest.fn()}
-                onDone={jest.fn()}
                 providerId="bridge-us"
                 usdSpeed={{
                     options: [

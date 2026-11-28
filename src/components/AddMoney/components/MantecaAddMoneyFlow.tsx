@@ -20,8 +20,7 @@ import { mantecaApi } from '@/services/manteca'
 import { parseUnits } from 'viem'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { useIdentityVerification } from '@/hooks/useIdentityVerification'
-import { isVerifiedForCountry } from '@/utils/regions.utils'
+import { useVerification } from '@/hooks/useVerification'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
@@ -47,6 +46,7 @@ import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
 import { kycFeatureRefusalCopy } from '@/utils/kyc-feature-outcome.utils'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import NavHeader from '@/components/Global/NavHeader'
+import { saveLastDepositMethod } from '@/features/add-money/lastUsedAddMethod'
 
 // Step type for URL state
 type MantecaStep = 'inputAmount' | 'depositDetails'
@@ -120,6 +120,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     // an ARS transfer Manteca let lapse unpaid: the details screen says so and offers a new one
     const arsDeposit = residenceGatedCountry && step === 'depositDetails' ? depositDetails : undefined
     const { status: arsDepositStatus } = useMantecaDepositPolling(arsDeposit?.id, () => {
+        saveLastDepositMethod('ars')
         void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
         // COMPLETED means Manteca sent the USDC to the wallet; the success view says the balance has it
         void queryClient.invalidateQueries({ queryKey: ['balance'] })
@@ -133,7 +134,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     // signal directly (Sumsub-cleared the human) instead of the old
     // rail-approval proxy. Same fix-pattern as Profile/ProfileEdit.
     const { rails, nextActions, isLoading: areCapabilitiesLoading } = useCapabilities()
-    const { isVerified: isUserIdentityVerified } = useIdentityVerification()
+    const { identityVerified: isUserIdentityVerified, canUse } = useVerification()
     const mantecaRejection = useMemo(
         () =>
             deriveProviderRejection(
@@ -160,9 +161,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     // Dismissing the gate must not re-open it on the next render — same
     // one-shot prompt contract as QrPayKycGateView's kycPromptDismissed.
     const [kycGateDismissed, setKycGateDismissed] = useState(false)
-    const isUserMantecaKycApprovedForCountry = selectedCountry
-        ? isVerifiedForCountry(rails, selectedCountry.id, 'deposit')
-        : false
+    const isUserMantecaKycApprovedForCountry = selectedCountry ? canUse('deposit', selectedCountry.id) : false
     const openDeposit = useOpenMantecaDeposit(
         selectedCountry?.currency,
         !!residenceGatedCountry && step === 'inputAmount' && isUserMantecaKycApprovedForCountry
@@ -470,10 +469,8 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                     onClose={closeKycModal}
                     onVerify={async () => {
                         if (mantecaRejection.state === 'blocked') {
-                            // blocked users cannot self-heal — route to support
-                            if (typeof window !== 'undefined' && window.$crisp) {
-                                window.$crisp.push(['do', 'chat:open'])
-                            }
+                            // blocked users cannot self-heal — route to in-app support drawer (web & native)
+                            openSupportWithMessage(mantecaRejection.userMessage ?? t('title'))
                             closeKycModal()
                             return
                         }

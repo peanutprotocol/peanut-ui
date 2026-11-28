@@ -6,6 +6,10 @@
  * authorization is the link itself: every guest call carries a signature from
  * the link's key, and no sender id ever leaves the device. Refusals come back
  * with stable codes that must show their own copy.
+ *
+ * The signed-in claim at the end signs the same claim message (TASK-25241):
+ * the link's pubKey is public on chain, so the API needs the link key's proof
+ * from a signed-in claimer too.
  */
 import React from 'react'
 import { render, screen, fireEvent, act } from '@testing-library/react'
@@ -15,8 +19,8 @@ import { getCountryFromPath } from '@/utils/bridge.utils'
 import { generateKeysFromString } from '@/utils/peanut-link.utils'
 import { guestBankAccountMessage, guestBankClaimMessage } from '@/utils/guest-claim.utils'
 import { createGuestClaimExternalAccount } from '@/app/actions/external-accounts'
-import { confirmOfframp, createOfframpForGuest } from '@/app/actions/offramp'
-import { getUserById } from '@/app/actions/users'
+import { confirmOfframp, createOfframp, createOfframpForGuest } from '@/app/actions/offramp'
+import { addBankAccount, getUserById } from '@/app/actions/users'
 
 const ctx: Record<string, any> = {}
 function resetCtx() {
@@ -110,11 +114,17 @@ jest.mock('@/hooks/useDetermineBankClaimType', () => ({
         ReceiverKycNeeded: 'receiver-kyc-needed',
         GuestKycNeeded: 'guest-kyc-needed',
     },
-    useDetermineBankClaimType: () => ({ claimType: 'guest-bank-claim' }),
+    useDetermineBankClaimType: () => ({ claimType: mockSignedIn.claimType }),
 }))
+// Guest by default; the signed-in test switches all three.
+const mockSignedIn: { claimType: string; user: unknown; gateKind: string } = {
+    claimType: 'guest-bank-claim',
+    user: null,
+    gateKind: 'loading',
+}
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: null, fetchUser: jest.fn() }),
-    useOptionalAuth: () => ({ user: null }),
+    useAuth: () => ({ user: mockSignedIn.user, fetchUser: jest.fn() }),
+    useOptionalAuth: () => ({ user: mockSignedIn.user }),
 }))
 jest.mock('@/context/loadingStates.context', () => {
     const { createContext } = jest.requireActual('react')
@@ -125,7 +135,9 @@ jest.mock('@/hooks/useSavedAccounts', () => ({ __esModule: true, default: () => 
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({ handleInitiateKyc: jest.fn(), showWrapper: false, isLoading: false, error: null }),
 }))
-jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ gateFor: () => ({ kind: 'loading' }) }) }))
+jest.mock('@/hooks/useCapabilities', () => ({
+    useCapabilities: () => ({ gateFor: () => ({ kind: mockSignedIn.gateKind }) }),
+}))
 jest.mock('@/hooks/useResidenceRestrictions', () => ({ useResidenceRestrictions: () => ({ banking: false }) }))
 jest.mock('@/utils/capability-gate', () => ({
     gateRemedy: (...args: [never]) => jest.requireActual('@/utils/capability-gate').gateRemedy(...args),
@@ -205,6 +217,7 @@ function signedBy(address: string, message: string, signature: string) {
 beforeEach(() => {
     jest.clearAllMocks()
     resetCtx()
+    Object.assign(mockSignedIn, { claimType: 'guest-bank-claim', user: null, gateKind: 'loading' })
     formResult = undefined
     mockCreateAccount.mockResolvedValue({ id: 'ext-1', account_type: 'us', last_4: '6789' })
 })
@@ -275,4 +288,34 @@ test('claims on-chain to the deposit address and skips the login-only confirm ca
     expect(mockClaimLink).toHaveBeenCalledWith(expect.objectContaining({ address: '0xdeposit' }))
     expect(confirmOfframp).not.toHaveBeenCalled()
     expect(props.onCustom).toHaveBeenCalledWith('SUCCESS')
+})
+
+test('a signed-in claim signs the claim for its account with the link key', async () => {
+    Object.assign(mockSignedIn, {
+        claimType: 'user-bank-claim',
+        user: { user: { userId: 'claimer-1', bridgeCustomerId: 'cust-claimer', fullName: 'Link Claimer' } },
+        gateKind: 'ready',
+    })
+    ;(addBankAccount as jest.Mock).mockResolvedValue({
+        data: {
+            id: 'account-1',
+            type: 'us',
+            identifier: '123456789',
+            bridgeAccountId: 'ext-1',
+            details: { accountOwnerName: 'Link Claimer', countryCode: 'USA' },
+        },
+    })
+    ;(createOfframp as jest.Mock).mockResolvedValue({ error: 'stop here' })
+    render(<BankFlowManager {...props} />)
+    await reachConfirmAndClaim()
+
+    expect(createOfframp).toHaveBeenCalledTimes(1)
+    const body = (createOfframp as jest.Mock).mock.calls[0][0]
+    expect(body).toEqual(
+        expect.objectContaining({
+            sendLinkPubKey: linkPubKey,
+            destination: expect.objectContaining({ externalAccountId: 'ext-1' }),
+        })
+    )
+    expect(await signedBy(linkPubKey, guestBankClaimMessage(linkPubKey, 'ext-1'), body.sendLinkSignature)).toBe(true)
 })
