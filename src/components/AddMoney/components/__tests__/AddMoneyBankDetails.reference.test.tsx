@@ -24,10 +24,6 @@ jest.mock('nuqs', () => ({
 jest.mock('@/context/OnrampFlowContext', () => ({
     useOnrampFlow: () => ({ onrampData: { transferId: 't-1', depositInstructions: mockInstructions } }),
 }))
-jest.mock('@/context/RequestFulfillmentFlowContext', () => ({
-    useRequestFulfillmentFlow: () => ({ selectedCountry: undefined, onrampData: null }),
-    RequestFulfillmentBankFlowStep: {},
-}))
 jest.mock('@/hooks/useHistoryEntry', () => ({ useHistoryEntry: () => ({ data: undefined }) }))
 jest.mock('@/hooks/useOnrampQuote', () => ({ useOnrampQuote: () => ({ netRate: 1.1, isLoading: false }) }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))

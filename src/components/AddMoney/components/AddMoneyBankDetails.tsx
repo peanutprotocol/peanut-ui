@@ -14,7 +14,6 @@ import { shortDepositReference } from '@/utils/format.utils'
 import { applyBridgeCrossCurrencyFee, getCurrencySymbol } from '@/utils/bridge.utils'
 import { bankDepositAccountRows, bankDepositCurrency, bankDepositRail } from '@/utils/bank-deposit.utils'
 import { bankPayoutMinimum } from '@/features/withdraw/amount-validation'
-import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
@@ -50,34 +49,26 @@ import { BankDepositSuccessView } from '@/features/add-money/components/BankDepo
  * See PR description of fix/bridge-fee-display-quote for full writeup.
  */
 
-// add-money flow requires onBack (parent owns step navigation, typically
-// setUrlState({ step: 'inputAmount' })). request-fulfillment steps back internally via
-// RequestFulfillmentFlowContext.
-type AddMoneyBankDetailsProps =
-    | { flow?: 'add-money'; onBack: () => void }
-    | { flow: 'request-fulfillment'; onBack?: never }
+type AddMoneyBankDetailsProps = {
+    onBack: () => void
+}
 
-export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
-    const { flow = 'add-money' } = props
-    const isAddMoneyFlow = flow === 'add-money'
+export default function AddMoneyBankDetails({ onBack }: AddMoneyBankDetailsProps) {
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
 
     // URL state - read amount from URL query params
     const [rawReturnTo] = useQueryState(RETURN_TO_PARAM, parseAsString)
-    const exitTarget = isAddMoneyFlow
-        ? (readReturnTo({ get: (key) => (key === RETURN_TO_PARAM ? rawReturnTo : null) }) ?? '/home')
-        : '/home'
+    const exitTarget = readReturnTo({ get: (key) => (key === RETURN_TO_PARAM ? rawReturnTo : null) }) ?? '/home'
     const [amountFromUrl] = useQueryState('amount', parseAsString)
     const [countryFromQuery] = useQueryState('country', parseAsString)
 
     // contexts
-    const onrampContext = useOnrampFlow()
-    const {
-        setFlowStep: setRequestFulfilmentBankFlowStep,
-        onrampData: requestFulfilmentOnrampData,
-        selectedCountry: requestFulfilmentSelectedCountry,
-    } = useRequestFulfillmentFlow()
+    const { onrampData } = useOnrampFlow()
+    // no status route for a one-time transfer: its history entry is the signal, polled every 15 s while not final
+    const transferId = onrampData?.transferId
+    const { data: transferEntry } = useHistoryEntry(transferId, 'ONRAMP')
+    const depositSuccess = useDepositSuccessEntry(transferId, historyEntryPhase(transferEntry))
 
     // routing and country context
     const router = useRouter()
@@ -88,11 +79,8 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
     // Native routes keep the country in query state instead of a path segment.
     const currentCountryName = (params.country as string) || countryFromQuery || ''
 
-    // get country information from url params or request fulfillment context
+    // get country information from url params
     const currentCountryDetails = useMemo(() => {
-        if (!isAddMoneyFlow) {
-            return requestFulfilmentSelectedCountry
-        }
         // check if we have country params (from dynamic route)
         if (currentCountryName) {
             return countryData.find(
@@ -102,14 +90,8 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
 
         // default to us if no country is detected
         return countryData.find((c) => c.id === 'US')
-    }, [isAddMoneyFlow, requestFulfilmentSelectedCountry, currentCountryName])
+    }, [currentCountryName])
 
-    const onrampData = isAddMoneyFlow ? onrampContext.onrampData : requestFulfilmentOnrampData
-    // no status route for a one-time transfer: its history entry is the signal,
-    // polled every 15 s while not final. add money only; a request payer is not the one credited.
-    const transferId = isAddMoneyFlow ? onrampData?.transferId : undefined
-    const { data: transferEntry } = useHistoryEntry(transferId, 'ONRAMP')
-    const depositSuccess = useDepositSuccessEntry(transferId, historyEntryPhase(transferEntry))
     // The API's answer names the currency and carries the bank details, so it
     // decides which rows show; the country only stands in for an answer
     // without a currency (see bankDepositCurrency).
@@ -128,9 +110,8 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
         enabled: true,
     })
 
-    // data from URL state (add-money flow) or context (request-fulfillment flow)
-    // For add-money flow, amount is now in URL state via nuqs
-    const amount = isAddMoneyFlow ? (amountFromUrl ?? '') : requestFulfilmentOnrampData?.depositInstructions?.amount
+    // For add-money flow, amount is in URL state via nuqs
+    const amount = amountFromUrl ?? ''
     // the backend decides the matching mode; only a flexible transfer may tell
     // the user that any amount works
     const isFlexibleAmount = onrampData?.flexibleAmount === true
@@ -195,19 +176,17 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
 
     useEffect(() => {
         // if no amount is set, redirect back to add money page
-        if (isAddMoneyFlow) {
-            if (!amount || parseFloat(amount) <= 0) {
-                router.replace('/add-money')
-                return
-            }
+        if (!amount || parseFloat(amount) <= 0) {
+            router.replace('/add-money')
+            return
         }
-    }, [amount, router, isAddMoneyFlow])
+    }, [amount, router])
 
     const formattedCurrencyAmount = useMemo(() => {
         if (!amount) return ''
 
         return formatBankAmount(amount, onrampCurrency)
-    }, [amount, onrampCurrency, flow])
+    }, [amount, onrampCurrency])
 
     const generateBankDetails = async () => {
         const formattedAmount = formattedCurrencyAmount
@@ -263,11 +242,7 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
     }
 
     const handleBack = () => {
-        if (props.flow === 'request-fulfillment') {
-            setRequestFulfilmentBankFlowStep(RequestFulfillmentBankFlowStep.BankCountryList)
-        } else {
-            props.onBack()
-        }
+        onBack()
     }
 
     if (!amount) {

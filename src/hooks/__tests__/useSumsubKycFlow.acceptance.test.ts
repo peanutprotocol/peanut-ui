@@ -7,7 +7,7 @@ import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { initiateSumsubKyc } from '@/app/actions/sumsub'
 
 jest.mock('@/app/actions/kyc-workflow', () => {
-    const getKycDocumentPlan = jest.fn(async () => ({ available: false, routes: [] }))
+    const getKycDocumentPlan = jest.fn(async () => ({ available: false, flow: null, routes: [] }))
     return {
         getKycDocumentStatus: jest.fn(async () => 'IN_REVIEW'),
         getKycDocumentPlan,
@@ -69,7 +69,7 @@ describe('legacy identity selection recovery acceptance', () => {
         async (flow) => {
             const plan = selectionPlan(flow)
             jest.mocked(getKycDocumentPlan)
-                .mockResolvedValueOnce({ available: false, routes: [] } as never)
+                .mockResolvedValueOnce({ available: false, flow: null, routes: [] } as never)
                 .mockResolvedValue(plan)
             const onKycSuccess = jest.fn()
             const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
