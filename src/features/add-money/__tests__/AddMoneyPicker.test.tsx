@@ -102,7 +102,7 @@ describe('the ARS row', () => {
         const rows = screen.getAllByTestId(/^add-money-method-/)
         expect(rows[0]).toHaveAttribute('data-testid', 'add-money-method-ars')
         expect(rows[0]).toHaveTextContent('ARS')
-        expect(rows[0]).toHaveTextContent('From your Mercado Pago or bank account')
+        expect(rows[0]).toHaveTextContent('Mercado Pago or your bank')
         expect(decodeURIComponent(rows[0].querySelector('img')?.getAttribute('src') ?? '')).toContain('/flags/ar.svg')
     })
 
