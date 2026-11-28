@@ -11,7 +11,8 @@
  */
 
 import React, { createContext, useContext, useMemo, useState, useCallback, type ReactNode } from 'react'
-import { parseAsString, useQueryStates } from 'nuqs'
+import { useQueryStates } from 'nuqs'
+import { parseAsAmount } from '@/utils/amount-param'
 import { type Address, type Hash } from 'viem'
 import { type TRequestChargeResponse, type PaymentCreationResponse } from '@/services/services.types'
 import type { Person } from '@/lib/person/person.types'
@@ -92,7 +93,7 @@ export const DirectSendFlowProvider: React.FC<SendFlowProviderProps> = ({
     // (TASK-25467). Never the message: it is free text and may hold personal data. A "Send again"
     // draft is only a suggestion until the user types: the URL's own amount wins over it. `usdAmount`
     // stays in memory, so the receipt keeps it after a sent payment clears the URL.
-    const [{ amount: urlAmount }, setQuery] = useQueryStates({ amount: parseAsString })
+    const [{ amount: urlAmount }, setQuery] = useQueryStates({ amount: parseAsAmount })
     const [draftAmount, setDraftAmount] = useState<string>(initialDraft?.amount ?? '')
     const amount = urlAmount ?? draftAmount
     const setAmount = useCallback(

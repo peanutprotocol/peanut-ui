@@ -22,6 +22,12 @@ it('reads the amount back from the URL, the usd amount with it', () => {
     expect(result.current.usdAmount).toBe('12.5')
 })
 
+// review on ui#4316: parseFloat reads `5e3` as 5000 while the field shows nothing
+it.each(['5e3', 'abc'])('ignores a URL amount the amount field would not hold: %s', (bad) => {
+    const { result } = renderContext(`?amount=${bad}`)
+    expect(result.current.amount).toBe('')
+})
+
 it('writes the amount to the URL and drops the param when it is cleared', async () => {
     const { result, updates } = renderContext('?amount=12.5')
     act(() => result.current.setAmount('20'))
