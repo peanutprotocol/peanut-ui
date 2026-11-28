@@ -108,7 +108,6 @@ jest.mock('@/services/badge-campaigns', () => ({
     isConfirmedBadgeCampaignClaim: (...args: unknown[]) => mockIsConfirmedBadgeCampaignClaim(...args),
     isUnavailableBadgeCampaignClaim: (...args: unknown[]) => mockIsUnavailableBadgeCampaignClaim(...args),
 }))
-jest.mock('@/services/consent', () => ({ signupConsentDocuments: () => [] }))
 jest.mock('@/utils/auth.utils', () => ({ clearAuthState: jest.fn() }))
 jest.mock('@/utils/walletCredential.utils', () => ({
     isStaleKeyError: () => false,

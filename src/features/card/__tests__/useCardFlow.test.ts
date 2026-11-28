@@ -6,11 +6,13 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { rainApi } from '@/services/rain'
 import { useCardFlow } from '../useCardFlow'
 import { activateKycFeature } from '@/app/actions/kyc-feature-activation'
+import { findKycDocumentPlan } from '@/app/actions/kyc-workflow'
 import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
 import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 import type { RailCapability } from '@/types/capabilities'
 
 jest.mock('@/app/actions/kyc-feature-activation', () => ({ activateKycFeature: jest.fn() }))
+jest.mock('@/app/actions/kyc-workflow', () => ({ findKycDocumentPlan: jest.fn() }))
 
 const mockCapture = jest.fn()
 let mockFunded = true
@@ -21,6 +23,7 @@ let mockOverviewLoading = false
 let mockUser: { user: { userId: string }; identityVerification?: { oneShot: boolean } } | null = {
     user: { userId: 'user-1' },
 }
+let mockIdentityStatus: 'verified' | 'not_started' | undefined = 'verified'
 let mockRainRails: Array<{ id: string; reason?: { code: string; userMessage: string } }> = []
 const mockFetchUser = jest.fn()
 let mockCardPlanReason: string | undefined
@@ -80,14 +83,11 @@ const mockSerializeGrant = jest.fn()
 jest.mock('@/hooks/wallet/useGrantSessionKey', () => ({
     useGrantSessionKey: () => ({ serializeGrant: mockSerializeGrant }),
 }))
-jest.mock('@/services/consent', () => ({
-    cardConsentDocuments: jest.fn(() => []),
-}))
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
         user: mockUser && {
             ...mockUser,
-            identityVerification: { status: 'verified', ...mockUser.identityVerification },
+            identityVerification: { status: mockIdentityStatus, ...mockUser.identityVerification },
             capabilities: mockCapabilities(),
         },
         fetchUser: mockFetchUser,
@@ -151,6 +151,8 @@ const mockGetFundingAccess = rainApi.getFundingAccess as jest.Mock
 beforeEach(() => {
     mockAddress = '0xA'
     mockCardPlanReason = undefined
+    mockIdentityStatus = 'verified'
+    jest.mocked(findKycDocumentPlan).mockResolvedValue(null)
 })
 
 describe('useCardFlow', () => {
@@ -166,6 +168,46 @@ describe('useCardFlow', () => {
         mockUser = { user: { userId: 'user-1' } }
         mockRainRails = []
         window.localStorage.clear()
+    })
+
+    describe('card application identity preflight', () => {
+        beforeEach(() => {
+            mockOverview = { status: { hasApplication: false }, cards: [] }
+            jest.mocked(findKycDocumentPlan).mockRejectedValue(new Error('KYC plan unavailable'))
+            mockApplyForCard.mockResolvedValue({ status: 'terms-required', isUsResident: true })
+        })
+
+        it.each([
+            { label: 'missing', status: undefined },
+            { label: 'not_started', status: 'not_started' },
+        ] as const)(
+            'routes $label identity to /verify without applying when the plan read fails',
+            async ({ status }) => {
+                mockIdentityStatus = status
+                const { result } = renderHook(() => useCardFlow())
+
+                await act(async () => {
+                    await result.current.handleApply()
+                })
+
+                expect(findKycDocumentPlan).toHaveBeenCalledWith('entry')
+                expect(mockRouterPush).toHaveBeenCalledWith('/verify')
+                expect(mockApplyForCard).not.toHaveBeenCalled()
+            }
+        )
+
+        it('skips the plan read for verified identity and applies for the card', async () => {
+            const { result } = renderHook(() => useCardFlow())
+
+            await act(async () => {
+                await result.current.handleApply()
+            })
+
+            expect(findKycDocumentPlan).not.toHaveBeenCalledWith('entry')
+            expect(mockApplyForCard).toHaveBeenCalledTimes(1)
+            expect(mockRouterPush).not.toHaveBeenCalledWith('/verify')
+            expect(result.current.pendingTerms).toEqual({ isUsResident: true })
+        })
     })
 
     it.each(['document_country_unsupported', 'identity_document_insufficient'])(
@@ -516,7 +558,7 @@ describe('useCardFlow', () => {
             expect(order).toEqual(['apply', 'grant'])
             // handed over for exactly the user and wallet that accepted
             expect(mockGrantFunding).toHaveBeenCalledWith(CONSENT, { userId: 'user-1', connectedAddress: '0xA' })
-            expect(mockApplyForCard).toHaveBeenCalledWith({ termsAccepted: true, acceptedDocuments: [] })
+            expect(mockApplyForCard).toHaveBeenCalledWith({ termsAccepted: true })
             expect(result.current.isIssuing).toBe(false)
         })
 
@@ -749,7 +791,6 @@ describe('useCardFlow', () => {
             expect(mockSerializeGrant).toHaveBeenCalledWith({ userId: 'user-1', connectedAddress: '0xA' })
             expect(mockApplyForCard).toHaveBeenCalledWith({
                 termsAccepted: true,
-                acceptedDocuments: [],
                 serializedApproval: 'SERIALIZED_APPROVAL',
             })
             expect(mockGrantFunding).not.toHaveBeenCalled()
@@ -778,7 +819,7 @@ describe('useCardFlow', () => {
                 await result.current.handleAcceptTerms(null)
             })
             expect(mockSerializeGrant).not.toHaveBeenCalled()
-            expect(mockApplyForCard).toHaveBeenCalledWith({ termsAccepted: true, acceptedDocuments: [] })
+            expect(mockApplyForCard).toHaveBeenCalledWith({ termsAccepted: true })
             expect(mockGrantFunding).not.toHaveBeenCalled()
         })
 

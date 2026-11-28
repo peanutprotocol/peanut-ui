@@ -31,6 +31,7 @@ import { formatAmountNumber, formatFiatRate } from '@/utils/currency'
 import { useLocale, useTranslations } from 'next-intl'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
+import { RateHelpTrigger } from '@/features/rates-fees/RateInfoDrawer'
 
 const MantecaDepositShareDetails = ({
     depositDetails,
@@ -257,7 +258,16 @@ const MantecaDepositShareDetails = ({
                         <Accordion.Trigger title={t('manteca.rateFeesArrival')} />
                         <Accordion.Content className="divide-y divide-dashed divide-border-default py-0">
                             <DataRow
-                                label={t('manteca.exchangeRate')}
+                                label={
+                                    <span className="flex items-center gap-1">
+                                        {t('manteca.exchangeRate')}
+                                        <RateHelpTrigger
+                                            currency={currencySymbol}
+                                            lockedRate={Number(exchangeRate)}
+                                            lockMode="cbu"
+                                        />
+                                    </span>
+                                }
                                 value={`1 USD = ${formatFiatRate(exchangeRate, locale)} ${currencySymbol}`}
                             />
                             <DataRow
@@ -265,7 +275,6 @@ const MantecaDepositShareDetails = ({
                                 value={networkFees}
                                 moreInfoText={t('manteca.providerFeesInfo')}
                             />
-                            <DataRow label={tCommon('peanutFee')} value={tCommon('sponsoredByPeanut')} />
                             <DataRow label={tWithdraw('bank.arrives')} value={t('manteca.etaInstant')} />
                         </Accordion.Content>
                     </Accordion.Item>

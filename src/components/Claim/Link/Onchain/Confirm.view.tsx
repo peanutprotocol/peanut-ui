@@ -52,7 +52,6 @@ export const ConfirmClaimLinkView = ({
     const t = useTranslations('claim')
     const locale = useLocale()
     const tNav = useTranslations('navigation')
-    const tCommon = useTranslations('common')
     const toFriendlyError = useFriendlyError()
     const { address } = useWallet()
     const { user } = useAuth()
@@ -293,10 +292,8 @@ export const ConfirmClaimLinkView = ({
                             label={t('confirm.maxNetworkFee')}
                             feeUsd={selectedRoute?.feeUsd}
                             isCrossChain={!!selectedRoute}
+                            hideBottomBorder
                         />
-
-                        {/* Peanut fee row */}
-                        <PaymentInfoRow label={tCommon('peanutFee')} value={'$0'} hideBottomBorder />
                     </Card>
                 )}
 

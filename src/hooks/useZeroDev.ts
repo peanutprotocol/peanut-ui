@@ -39,7 +39,6 @@ import {
 } from '@/services/badge-campaigns'
 import { getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { settleCardCampaignContinuation } from '@/features/card/card-campaign-acquisition'
-import { signupConsentDocuments } from '@/services/consent'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { createNativeSignMessageCallback } from '@/utils/native-webauthn'
@@ -60,6 +59,7 @@ import {
 } from '@/features/setup/username-reservation'
 import { bindSignupDraft, discardSignupDraft, readSignupDraft } from '@/features/setup/signup-draft'
 import { AccountType } from '@/interfaces/interfaces'
+import { describeSignedUserOp, type BroadcastUserOp } from '@/hooks/wallet/spendBroadcast'
 
 // types
 type UserOpEncodedParams = {
@@ -152,11 +152,10 @@ export const useZeroDev = () => {
                         passkeyName: _getPasskeyName(username),
                         passkeyServerUrl: PASSKEY_SERVER_URL as string,
                         mode: WebAuthnMode.Register,
-                        // Consent-ledger echo (tos-v1 phase 2): the ZeroDev SDK owns the
-                        // register/verify request body, so the terms+privacy versions the
-                        // signup screen displayed ride in a header the backend ledgers.
+                        // The ZeroDev SDK owns the register/verify request body, so
+                        // what the backend needs rides in headers. Signup consent needs
+                        // none: the API ledgers its own published terms + privacy versions.
                         passkeyServerHeaders: {
-                            'x-accepted-legal': JSON.stringify(signupConsentDocuments()),
                             'x-signup-analytics-state': signupAnalyticsState(),
                             'x-username-hold': usernameHold,
                         },
@@ -370,8 +369,9 @@ export const useZeroDev = () => {
                  *  "failures after this are execution-ambiguous" boundary. A
                  *  WebAuthn ceremony rejection INSIDE the broadcast call still
                  *  proves pre-broadcast (an unsigned op cannot submit) — see
-                 *  useSpendBundle's ceremony-rejection carve-out. */
-                onBroadcastAttempt?: () => void
+                 *  useSpendBundle's ceremony-rejection carve-out. Carries the
+                 *  signed op, so a caller can find it on chain later. */
+                onBroadcastAttempt?: (userOp: BroadcastUserOp | null) => void
             }
         ): Promise<{ userOpHash: Hash; receipt: TransactionReceipt | null }> => {
             // demo mode: simulated success, no chain.
@@ -409,7 +409,9 @@ export const useZeroDev = () => {
                     const signature = await client.account!.signUserOperation(
                         preparedOp as Parameters<NonNullable<typeof client.account>['signUserOperation']>[0]
                     )
-                    opts?.onBroadcastAttempt?.()
+                    opts?.onBroadcastAttempt?.(
+                        describeSignedUserOp(client.account!, Number(chainId), preparedOp, signature)
+                    )
                     return client.sendUserOperation({
                         ...preparedOp,
                         account: client.account!,

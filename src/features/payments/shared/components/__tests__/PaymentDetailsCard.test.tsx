@@ -11,7 +11,7 @@ jest.mock('@/components/Provider/ProviderHelp', () => ({
 import { PaymentDetailsCard } from '../PaymentDetailsCard'
 
 describe('PaymentDetailsCard', () => {
-    it('shows the rate, the savings against a card, the sponsored Peanut fee, the provider fee, the exact payout and total, and the provider', () => {
+    it('shows the rate (locale-formatted with help drawer trigger), savings against a card, provider fee, payout, total, and provider — omitting zero Peanut fee', () => {
         renderWithIntl(
             <PaymentDetailsCard
                 rate={{ price: 1480, code: 'ARS' }}
@@ -23,11 +23,12 @@ describe('PaymentDetailsCard', () => {
             />
         )
         expect(screen.getByText(en.qrPay.info.exchangeRate)).toBeInTheDocument()
+        expect(screen.getByTestId('rate-help')).toBeInTheDocument()
         expect(screen.getByText('1 USD = 1,480.00 ARS')).toBeInTheDocument()
         expect(screen.getByText(en.qrPay.info.saveVsCard)).toBeInTheDocument()
         expect(screen.getByText('~$0.93')).toBeInTheDocument()
-        expect(screen.getByText(en.common.peanutFee)).toBeInTheDocument()
-        expect(screen.getByText(en.common.sponsoredByPeanut)).toBeInTheDocument()
+        expect(screen.queryByText(en.common.peanutFee)).toBeNull()
+        expect(screen.queryByText(en.common.sponsoredByPeanut)).toBeNull()
         expect(screen.getByText(en.pix.withdraw.fee)).toBeInTheDocument()
         expect(screen.getByText('ARS 750')).toBeInTheDocument()
         expect(screen.getByText(en.withdraw.bank.bankReceives)).toBeInTheDocument()
@@ -42,7 +43,7 @@ describe('PaymentDetailsCard', () => {
     it('shows only the rows it is given', () => {
         renderWithIntl(<PaymentDetailsCard rate={{ price: 5.4, code: 'BRL' }} providerId={null} />)
         expect(screen.getByText('1 USD = 5.40 BRL')).toBeInTheDocument()
-        expect(screen.getByText(en.common.sponsoredByPeanut)).toBeInTheDocument()
+        expect(screen.queryByText(en.common.sponsoredByPeanut)).toBeNull()
         expect(screen.queryByText(en.qrPay.info.saveVsCard)).toBeNull()
         expect(screen.queryByText(en.pix.withdraw.fee)).toBeNull()
         expect(screen.queryByText(en.withdraw.bank.bankReceives)).toBeNull()

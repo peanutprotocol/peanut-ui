@@ -10,10 +10,10 @@ import play_vitals_alert as alert
 NOW = datetime(2026, 9, 29, 12, tzinfo=timezone.utc).isoformat()
 
 
-def snapshot(users=1, last="2026-09-29T11:00:00Z", rate=None):
+def snapshot(users=1, last="2026-09-29T11:00:00Z", rate=None, version="21755215"):
     return {"schema": 1, "checked_at": NOW,
             "issues": [{"id": "issue-1", "users": users, "reports": users + 1,
-                        "last": last, "version": "21755215",
+                        "last": last, "version": version,
                         "url": "https://play.google.com/console/issue"}],
             "rate": rate}
 
@@ -38,6 +38,27 @@ class PlayVitalsAlertTest(unittest.TestCase):
         self.assertEqual(higher["issues"][0]["severity"], "P1")
         repeated, _ = alert.assess(snapshot(users=5), state)
         self.assertEqual(repeated["issues"][0]["severity"], "P1")
+
+    def seeded(self):
+        return alert.assess({"checked_at": NOW, "issues": [], "rate": None}, {})[1]
+
+    def test_a_fixed_crash_falls_as_its_users_fall(self):
+        # TASK-25474: the old rule never lowered a level, so a fixed crash paged P1 for days.
+        high, state = alert.assess(snapshot(users=6, last="2026-09-29T11:00:00Z"), self.seeded())
+        self.assertEqual(high["issues"][0]["severity"], "P1")
+        lower, _ = alert.assess(snapshot(users=2, last="2026-09-29T11:30:00Z"), state)
+        self.assertEqual(lower["issues"][0]["severity"], "P2")
+
+    def test_a_quiet_crash_drops_to_the_digest(self):
+        _, state = alert.assess(snapshot(users=6, last="2026-09-29T11:00:00Z"), self.seeded())
+        quiet, _ = alert.assess(snapshot(users=6, last="2026-09-28T11:00:00Z"), state)
+        self.assertEqual(quiet["issues"][0]["severity"], "P3")
+
+    def test_a_count_that_falls_without_a_new_report_falls_too(self):
+        # Chip on #4315: older reports age out of the 72 h window while the last report stays the same.
+        _, state = alert.assess(snapshot(users=6), self.seeded())
+        fallen, _ = alert.assess(snapshot(users=2), state)
+        self.assertEqual(fallen["issues"][0]["severity"], "P2")
 
     def test_rate_starts_as_digest_then_escalates_on_new_day(self):
         high = {"day": "2026-09-28", "percent": 1.20}

@@ -313,6 +313,13 @@ let nextConfig = {
         ],
     },
 
+    // The CI browser-contract builds (tests.yml) set NEXT_BUILD_SKIP_TYPECHECK: Next's own type pass
+    // took 4.6 of their ~10 min, and the `typecheck` job runs the same check (next typegen + tsc
+    // --noEmit over this tsconfig) and gates ci-success. Vercel and release builds never set it.
+    typescript: {
+        ignoreBuildErrors: process.env.NEXT_BUILD_SKIP_TYPECHECK === '1',
+    },
+
     // Turbopack configuration for faster dev builds
     turbopack: {
         resolveAlias: {

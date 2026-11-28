@@ -114,7 +114,7 @@ describe('QrPayFormView', () => {
         // BRL has no card comparison, even when a backend still publishes a rate (pricing.md B-4)
         expect(screen.queryByText(en.qrPay.info.saveVsCard)).toBeNull()
         expect(screen.queryByText('~$0.93')).toBeNull()
-        expect(screen.getByText(en.common.sponsoredByPeanut)).toBeInTheDocument()
+        expect(screen.queryByText(en.common.sponsoredByPeanut)).toBeNull()
         expect(screen.getByText(PROVIDERS['manteca-br'].brand)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: en.navigation.pay })).toBeEnabled()
     })

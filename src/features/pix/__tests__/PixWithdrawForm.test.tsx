@@ -81,8 +81,8 @@ describe('PixWithdrawForm', () => {
         expect(screen.getByText('Banco Inter')).toBeInTheDocument()
         // the review's rate, the variable fees inside (TASK-24967)
         expect(screen.getByText('1 USD = 5.45 BRL')).toBeInTheDocument()
-        expect(screen.getByText(en.common.peanutFee)).toBeInTheDocument()
-        expect(screen.getByText(en.common.sponsoredByPeanut)).toBeInTheDocument()
+        expect(screen.queryByText(en.common.peanutFee)).toBeNull()
+        expect(screen.queryByText(en.common.sponsoredByPeanut)).toBeNull()
         expect(screen.getByText(en.pix.withdraw.fee)).toBeInTheDocument()
         // the flat fee alone
         expect(screen.getByText('R$0.75')).toBeInTheDocument()

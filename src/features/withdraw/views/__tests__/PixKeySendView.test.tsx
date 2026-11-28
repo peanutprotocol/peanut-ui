@@ -12,6 +12,7 @@ import { mantecaApi } from '@/services/manteca'
 import { pixKeyToBRCode } from '@/utils/pix.utils'
 
 const mockRouterPush = jest.fn()
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'u1' }, accounts: [] } }) }))
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockRouterPush, back: jest.fn(), replace: jest.fn(), prefetch: jest.fn() }),
 }))

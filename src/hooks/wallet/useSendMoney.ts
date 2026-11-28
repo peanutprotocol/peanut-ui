@@ -11,7 +11,7 @@ import { useTranslations } from 'next-intl'
 import { notifyHaptic } from '@/utils/haptics'
 import { toError } from '@/utils/to-error'
 import type { RainCollateralKind } from '@/services/rain'
-import { useSpendBundle } from './useSpendBundle'
+import { useSpendBundle, type SpendBundleInput } from './useSpendBundle'
 import { SpendRecoveryAbortedError } from './signSpendRetry'
 import {
     InsufficientSpendableError,
@@ -42,6 +42,8 @@ type SendMoneyParams = {
      *  session-key grant (first collateral spend only). Use it to show
      *  explainer copy before the WebAuthn sheet appears. */
     onGrantRequired?: () => void
+    /** See SpendBundleInput.onBroadcast. */
+    onBroadcast?: SpendBundleInput['onBroadcast']
 }
 
 type UseSendMoneyOptions = {
@@ -80,6 +82,7 @@ export const useSendMoney = ({ address }: UseSendMoneyOptions) => {
             fundsIntentId,
             onStrategyDecided,
             onGrantRequired,
+            onBroadcast,
         }: SendMoneyParams) => {
             const amountToSend = requirePaymentMoney(amountInUsd, 'USDC', PEANUT_WALLET_TOKEN_DECIMALS).minorUnits
             const result = await spend({
@@ -91,6 +94,7 @@ export const useSendMoney = ({ address }: UseSendMoneyOptions) => {
                 fundsIntentId,
                 onStrategyDecided,
                 onGrantRequired,
+                onBroadcast,
             })
             return { ...result, amount: amountToSend }
         },

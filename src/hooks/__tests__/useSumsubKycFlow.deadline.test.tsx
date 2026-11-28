@@ -32,7 +32,7 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 
 const mockPlan = jest.mocked(getKycDocumentPlan)
 const mockInitiate = jest.mocked(initiateSumsubKyc)
-const legacyPlan = { available: false, routes: [] }
+const legacyPlan = { available: false, flow: null, routes: [] }
 const started = (token: string) => ({ data: { token, applicantId: 'app-deadline', status: 'NOT_STARTED' as const } })
 
 function deferred<T>() {

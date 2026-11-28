@@ -117,11 +117,10 @@ it('folds the rate, fees and arrival under one row with unchanged values, and ke
 
     fireEvent.click(screen.getByRole('button', { name: 'Rate, fees and arrival' }))
 
-    // label → value, exactly as the screen printed them before the redesign
+    // label → value, exactly as the unfolded screen on dev prints them (the Peanut fee row left with TASK-25349)
     const rows: [string, string][] = [
         ['Exchange rate', '1 USD = 1,000.00 ARS'],
         ['Provider fees', '< 0.01 USD'],
-        ['Peanut fee', 'Sponsored by Peanut!'],
         ['Arrives', 'Usually within minutes'],
     ]
     for (const [label, value] of rows) {

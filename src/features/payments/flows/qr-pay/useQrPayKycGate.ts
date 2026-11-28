@@ -11,13 +11,7 @@ import { qrIdentityRestartReason, qrVerificationNeedsRestart, selectQrKycGate } 
 
 // The QR-pay KYC gate: the API's QR answer (`capabilities.features.qr`), via selectQrKycGate.
 export function useQrPayKycGate() {
-    const {
-        capabilities,
-        railsForProvider,
-        nextActions,
-        isKycApproved,
-        isLoading: isLoadingCapabilities,
-    } = useCapabilities()
+    const { capabilities, railsForProvider, nextActions, isLoading: isLoadingCapabilities } = useCapabilities()
     const { isTerminalFailure } = useIdentityVerification()
     const { user, fetchUser } = useAuth()
 
@@ -103,7 +97,6 @@ export function useQrPayKycGate() {
         qrKycUserMessage,
         qrKycActionKey,
         shouldBlockPay,
-        isKycApproved,
         isTerminalFailure,
         needsIdentityRestart,
         identityRestartReason,

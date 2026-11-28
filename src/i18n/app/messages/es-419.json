@@ -909,6 +909,86 @@
         "row": {
             "approximate": "Es un estimado. El tipo de cambio se fija al convertir la transferencia, así que el monto recibido puede variar un poco.",
             "appliesWhenConverting": "Se aplica el tipo de cambio al convertir a {currency}"
+        },
+        "tabs": {
+            "rates": "Tipos de cambio",
+            "fees": "Comisiones"
+        },
+        "direction": {
+            "addShort": "Agregar dinero",
+            "withdrawShort": "Retirar",
+            "withdrawQrShort": "Retirar / QR"
+        },
+        "converter": {
+            "youSendLocal": "Envías ({currency})",
+            "youSendUsd": "Envías desde tu saldo (USD)",
+            "youReceiveUsd": "Recibes en tu saldo",
+            "youReceiveLocal": "Recibes en tu banco ({currency})",
+            "amountAria": "Monto",
+            "usdSubline": "Misma moneda · ACH: $0 · Wire saliente: $20",
+            "updatedAt": "Actualizado {time}",
+            "providerFee": "Comisión del proveedor",
+            "flatFee": "Comisión fija",
+            "achZero": "ACH: $0"
+        },
+        "compare": {
+            "title": "Comparar con otros dólares",
+            "subtitle": "Cripto, MEP, Blue, Tarjeta y Oficial",
+            "pageTitle": "Otros dólares hoy"
+        },
+        "allCurrencies": {
+            "title": "Todas las monedas y medios",
+            "subtitle": "ARS, EUR, BRL, USD, GBP, MXN y COP",
+            "pageTitle": "Todas las monedas y medios",
+            "currencyCol": "Moneda (por 1 USD)",
+            "buySellCol": "Ingresar / Retirar"
+        },
+        "currencies": {
+            "ARS": "Peso argentino",
+            "EUR": "Euro",
+            "USD": "Dólar",
+            "GBP": "Libra esterlina",
+            "MXN": "Peso mexicano",
+            "COP": "Peso colombiano",
+            "BRL": "Real brasileño"
+        },
+        "benchmarks": {
+            "heading": "Referencias del mercado",
+            "cripto": "Dólar cripto",
+            "mep": "Dólar MEP",
+            "blue": "Dólar blue",
+            "tarjeta": "Dólar tarjeta",
+            "oficial": "Dólar oficial",
+            "sourceNote": "Fuente: {source}. Valores indicativos."
+        },
+        "drawer": {
+            "title": "Cotizaciones {currency}",
+            "subtitleCbu": "Precio fijado por 30 min en esta orden.",
+            "subtitleQr": "Se fija al confirmar el pago.",
+            "subtitleLive": "Cotizaciones indicativas en vivo.",
+            "openAria": "Ver detalles del tipo de cambio de {currency}"
+        },
+        "fees": {
+            "sections": {
+                "bankTransfers": "Transferencias bancarias y Pix",
+                "card": "Tarjeta Peanut (Visa)",
+                "crypto": "Cripto (depósitos y retiros)"
+            },
+            "rows": {
+                "usdWireOut": "USD · Wire (saliente)",
+                "brlPixBr": "BRL · Pix (Brasil)",
+                "cardIssuance": "Emisión, mantenimiento y recarga",
+                "cardPayments": "Pagos con tarjeta",
+                "cryptoDeposits": "Depósitos USDC / USDT",
+                "cryptoL2Withdrawals": "Otras L2 y redes",
+                "cryptoL2Quoted": "Según cotización"
+            },
+            "notes": {
+                "bankTransfers": "USD Wire ({wireFee}) es una comisión fija de Peanut; Pix en Brasil ({pixFee}) es una comisión del proveedor. Las conversiones usan el tipo de cambio en vivo.",
+                "cardVisa": "Visa puede aplicar su tipo de cambio y comisiones de red en pagos internacionales o en otras monedas.",
+                "cryptoNetworks": "{networks} y más. Otros tokens se convierten a tasa de mercado."
+            },
+            "fullScheduleLink": "Ver detalle completo de comisiones ↗"
         }
     },
     "setup": {
@@ -1631,6 +1711,7 @@
             "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pide un nuevo enlace a quien la envió.",
             "requestClosedTitle": "Esta solicitud está cerrada",
             "externalPaymentNotConfirmed": "No se pudo confirmar este pago. Si el dinero salió de tu billetera, contacta a soporte.",
+            "paymentNotSent": "Este pago no se completó y no salió dinero de tu billetera. Puedes intentarlo de nuevo.",
             "requestTokenNotAccepted": "{symbol} no es compatible. Pide a quien lo envió un enlace en USDC o USDT.",
             "requestTokenRetired": "Esta solicitud ya no se puede pagar. Pide una nueva en USDC."
         },
@@ -3363,6 +3444,8 @@
         "qrFirstScanDescription": "Una notificación cuando se complete el pago."
     },
     "kyc": {
+        "residenceNotSupported": "Aún no podemos verificar a residentes de este país.",
+        "clientUpdateRequired": "Actualiza la app de Peanut para continuar con la verificación.",
         "statusDrawerTitle": "Estado de la verificación",
         "identityVerification": "Verificación de identidad",
         "doesntStoreDocuments": "Peanut no guarda ninguno de tus documentos",
@@ -4953,12 +5036,6 @@
         "rainCooldownRetryShortly": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en breve.",
         "rainCooldownRetryLive": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en {time}.",
         "rainCooldownRetryNow": "El enfriamiento de la tarjeta terminó. Ya puedes volver a intentarlo.",
-        "xchainWithdrawLimit": "Alcanzaste el límite de retiros a otras redes. Los retiros en Arbitrum no tienen límite, o contacta a soporte para ampliar el tuyo.",
-        "xchainWithdrawLimitRetry": "Alcanzaste el límite de retiros a otras redes. Vuelve a intentarlo en aproximadamente {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# día} other {# días}}. Los retiros en Arbitrum no tienen límite, o contacta a soporte para ampliar el tuyo.",
-        "xchainPaymentLimit": "Hiciste demasiadas transferencias a otras redes recientemente. Contacta a soporte para ampliar tu límite.",
-        "xchainPaymentLimitRetry": "Hiciste demasiadas transferencias a otras redes recientemente. Vuelve a intentarlo en aproximadamente {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# día} other {# días}}, o contacta a soporte para ampliar tu límite.",
-        "xchainWithdrawDisabled": "Los retiros a otras redes están limitados en tu cuenta. Siempre puedes retirar en Arbitrum, o contacta a soporte para recibir ayuda.",
-        "xchainPaymentDisabled": "Las transferencias a otras redes están limitadas en tu cuenta. Contacta a soporte para recibir ayuda.",
         "rainInsufficientCollateral": "Tu tarjeta no tiene suficiente colateral para este retiro.",
         "staleCardApproval": "Tu tarjeta debe reactivarse antes de que puedas retirar. Solo toma un toque con tu passkey.",
         "providerRejected": "Nuestro socio de pagos no pudo aceptar esta operación para tu cuenta. No se movió dinero. Contacta a soporte.",
