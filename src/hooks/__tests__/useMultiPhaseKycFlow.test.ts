@@ -1004,11 +1004,6 @@ describe('useMultiPhaseKycFlow — the proof of address after the identity', () 
     })
 })
 
-/**
- * Bridge's ToS page can record the signature and then move its own frame away
- * without reporting it (TASK-23881). The wrapper reports that as `returned`,
- * and Bridge's answer decides. A manual exit stays on the terms step.
- */
 describe('useMultiPhaseKycFlow — a self-started check ends on the verified page', () => {
     // a bank account that still needs Bridge's terms: today's flow opens the terms modal after approval
     const tos = {
@@ -1089,6 +1084,11 @@ describe('useMultiPhaseKycFlow — a self-started check ends on the verified pag
     })
 })
 
+/**
+ * Bridge's ToS page can record the signature and then move its own frame away
+ * without reporting it (TASK-23881). The wrapper reports that as `returned`,
+ * and Bridge's answer decides. A manual exit stays on the terms step.
+ */
 describe('useMultiPhaseKycFlow — Bridge ToS page close', () => {
     const mockGetTosLink = getBridgeTosLink as jest.MockedFunction<typeof getBridgeTosLink>
     const mockConfirm = confirmBridgeTos as jest.MockedFunction<typeof confirmBridgeTos>

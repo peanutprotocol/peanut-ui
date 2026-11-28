@@ -30,7 +30,7 @@ test('rows load in place while the accounts open; crypto works at once', async (
 
 test('a provider review says so and still opens; a step to take opens that step', async ({ page }) => {
     await open(page, 'verified-not-ready')
-    await expect(row(page, 'ars')).toContainText('Under review by Manteca. We’ll notify you.')
+    await expect(row(page, 'ars')).toContainText('Under review by Manteca, we’ll notify you')
     await expect(row(page, 'ars')).toHaveAttribute('role', 'button')
     await expect(row(page, 'ars')).not.toHaveAttribute('aria-disabled')
     await expect(row(page, 'bank')).toContainText('Action needed, Bridge’s terms for USD and EUR')
@@ -41,6 +41,13 @@ test('a provider review says so and still opens; a step to take opens that step'
     // today's terms step, over the page
     await expect(page.getByRole('dialog')).toBeVisible()
     await expect(page).toHaveURL(/\/verified/)
+})
+
+test('an account the API did not open on approval is a row that opens it, with no wait', async ({ page }) => {
+    await open(page, 'verified-not-opened')
+    await expect(row(page, 'bank')).toHaveAttribute('role', 'button')
+    await expect(row(page, 'bank')).toContainText('From your bank account')
+    await expect(page.getByTestId('name-chip')).not.toHaveAttribute('data-verified')
 })
 
 test('once an account works the chip shows its check and every row opens', async ({ page }) => {

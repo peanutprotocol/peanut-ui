@@ -2528,7 +2528,7 @@
             "title": "Identidade verificada",
             "titleBankReady": "Conta bancária pronta",
             "sub": "Adicione dinheiro para começar a pagar com o Peanut.",
-            "underReview": "Em análise pela {provider}. Vamos avisar você.",
+            "underReview": "Em análise pela {provider}, vamos avisar você",
             "notApproved": "Não aprovado pela {provider}",
             "actionTerms": "termos da {provider} para {currencies}",
             "actionTermsGeneric": "termos da {provider}",

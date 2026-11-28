@@ -44,8 +44,12 @@ export function bankRowState(gate: GateState, settled: boolean): BankRowState {
             return 'review'
         case 'pending':
             return settled ? 'review' : 'loading'
+        case 'needs-enrollment':
+            // the API's settled answer for an account not opened on approval (`ready`, `activate` for a verify-once
+            // identity): the row opens it now
+            return 'open'
         default:
-            // not read yet, or the approval not reflected yet; after the wait the row opens the bank hub
+            // not read yet, or a read that has not caught up with the approval; after the wait the row opens the hub
             return settled ? 'open' : 'loading'
     }
 }
@@ -106,7 +110,7 @@ export function identityJustApproved(): boolean {
 /**
  * Whether the page may say "verified": only to a verified identity. While the user read lags an approval (it says
  * processing, or this tab just saw the approval) the page waits; once the wait is over, or for anyone else, it
- * leaves for Home. `undefined`: the user is not read yet.
+ * leaves for Home. `undefined`: the user is not read yet, or carries no status.
  */
 export function verifiedPageAccess(
     status: IdentityVerificationStatus | undefined,
@@ -114,6 +118,33 @@ export function verifiedPageAccess(
     justApproved = false
 ): 'show' | 'wait' | 'leave' {
     if (status === 'verified') return 'show'
-    if (status === undefined || ((status === 'processing' || justApproved) && !settled)) return 'wait'
+    // no status (the read failed or carries none) or one that lags the approval: wait, then leave like anyone else
+    if (!settled && (status === undefined || status === 'processing' || justApproved)) return 'wait'
     return 'leave'
+}
+
+// One visit: from opening the page until leaving it any way but a row. A row's flow comes back with
+// `returnTo=/verified` within half an hour, and that return is the same visit, so it is no new view. A later
+// opening (the bank-ready reminder days on) is a new visit even if the row's flow never came back.
+const LEFT_THROUGH_ROW_KEY = 'peanut:verified-left-through-row'
+const SAME_VISIT_MS = 30 * 60_000
+
+/** a row was tapped: its flow's way back to the page continues this visit */
+export function markLeftThroughRow() {
+    try {
+        window.sessionStorage.setItem(LEFT_THROUGH_ROW_KEY, String(Date.now()))
+    } catch {
+        // private mode: a return counts as a new visit
+    }
+}
+
+/** whether this mount is the way back from a row; reading it ends the mark */
+export function returningFromRow(): boolean {
+    try {
+        const at = Number(window.sessionStorage.getItem(LEFT_THROUGH_ROW_KEY))
+        window.sessionStorage.removeItem(LEFT_THROUGH_ROW_KEY)
+        return !!at && Date.now() - at < SAME_VISIT_MS
+    } catch {
+        return false
+    }
 }

@@ -21,7 +21,8 @@ import { findPixRoute, pixDepositOffered } from '@/features/pix/pixRoute.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { trackAddMoney } from '../analytics'
-import { addMoneyMethodHref, useAddMoneyMethodRows } from '../useAddMoneyMethodRows'
+import { addMoneyMethodHref } from '../addMoneyMethods'
+import { useAddMoneyMethodRows } from '../useAddMoneyMethodRows'
 import { useAddMoneyReadiness } from '../useAddMoneyReadiness'
 import Loading from '@/components/Global/Loading'
 import { VerifiedArt } from './VerifiedArt'
@@ -34,6 +35,8 @@ import {
     VERIFIED_ROWS_SETTLE_MS,
     type VerifiedPageVariant,
     identityJustApproved,
+    markLeftThroughRow,
+    returningFromRow,
     verifiedPageAccess,
     verifiedRow,
 } from './verifiedRows'
@@ -93,7 +96,10 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
     // a direct visit must not claim a verification it does not have (Chip on #4317), nor count as a view
     const justApproved = useRef(identityJustApproved()).current
     const access = verifiedPageAccess(user ? user.identityVerification?.status : undefined, settled, justApproved)
-    const shown = useRef(false)
+    // a return from a row's flow is the same visit: no second shown or resolved event
+    const sameVisit = useRef<boolean | null>(null)
+    if (sameVisit.current === null) sameVisit.current = returningFromRow()
+    const shown = useRef(sameVisit.current)
     useEffect(() => {
         if (shown.current || readiness.isLoading || access !== 'show') return
         shown.current = true
@@ -101,7 +107,7 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
         // once per view, with the rows as they first read
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [readiness.isLoading, access])
-    const reportedResolve = useRef(false)
+    const reportedResolve = useRef(sameVisit.current)
     useEffect(() => {
         if (!resolved || access !== 'show' || reportedResolve.current) return
         reportedResolve.current = true
@@ -155,7 +161,7 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
                 const what = actionWhat(method)
                 return (
                     <span>
-                        <span className="underline">{t('actionNeeded')}</span>
+                        {t('actionNeeded')}
                         {what && `, ${what}`}
                     </span>
                 )
@@ -171,6 +177,7 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
             remediation.resolveGate(bank[method].gate, corridorOf(method))
             return
         }
+        markLeftThroughRow()
         router.push(addMoneyMethodHref(method, VERIFIED_PAGE_PATH, VERIFIED_PAGE_PATH))
     }
 

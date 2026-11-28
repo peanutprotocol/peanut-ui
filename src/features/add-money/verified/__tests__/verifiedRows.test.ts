@@ -9,6 +9,8 @@ import {
     isSelfStartedVerification,
     identityJustApproved,
     markIdentityApproved,
+    markLeftThroughRow,
+    returningFromRow,
     verifiedPageAccess,
     verifiedRow,
     type BankRowState,
@@ -27,8 +29,10 @@ describe('bankRowState', () => {
         [{ kind: 'pending' }, true, 'review'],
         // not read yet: loading, then the row opens the bank hub
         [{ kind: 'loading' }, false, 'loading'],
-        [{ kind: 'needs-enrollment' }, false, 'loading'],
-        [{ kind: 'needs-enrollment' }, true, 'open'],
+        // not opened on approval: the API's settled answer, so the row opens it at once
+        [{ kind: 'needs-enrollment' }, false, 'open'],
+        [{ kind: 'needs-identity' }, false, 'loading'],
+        [{ kind: 'needs-identity' }, true, 'open'],
     ]
     it.each(cases)('%o (settled %s) is %s', (gate, settled, expected) => {
         expect(bankRowState(gate, settled)).toBe(expected)
@@ -43,6 +47,8 @@ describe('verifiedRow', () => {
     it('reads the report entry: on, setting up, terms', () => {
         expect(verifiedRow({ state: 'on' }, none, false).state).toBe('ready')
         expect(verifiedRow({ state: 'setting_up' }, none, true).state).toBe('review')
+        // what the API sends for an account not opened on approval (feature-report.ts: `ready`, `activate`)
+        expect(verifiedRow({ state: 'ready', action: 'activate' }, none, false).state).toBe('open')
         const tos = {
             rails: [],
             nextActions: [{ key: 'bridge-tos', kind: 'accept-tos' }],
@@ -108,6 +114,9 @@ describe('verifiedPageAccess', () => {
             expect(verifiedPageAccess(status, false)).toBe('leave')
         expect(verifiedPageAccess('processing', true)).toBe('leave')
     })
+    it('stops waiting on a missing status once the wait is over', () => {
+        expect(verifiedPageAccess(undefined, true)).toBe('leave')
+    })
     it('waits on a stale read right after this tab saw the approval, then gives up', () => {
         for (const status of ['not_started', 'action_required'] as const) {
             expect(verifiedPageAccess(status, false, true)).toBe('wait')
@@ -125,6 +134,24 @@ describe('the approval signal', () => {
         expect(identityJustApproved()).toBe(true)
         now.mockReturnValue(1_000_000 + 2 * 60_000)
         expect(identityJustApproved()).toBe(false)
+        now.mockRestore()
+    })
+})
+
+describe('one visit', () => {
+    beforeEach(() => window.sessionStorage.clear())
+    it('treats the way back from a row as the same visit, once', () => {
+        expect(returningFromRow()).toBe(false)
+        markLeftThroughRow()
+        expect(returningFromRow()).toBe(true)
+        // the next opening, from anywhere else, is a new visit
+        expect(returningFromRow()).toBe(false)
+    })
+    it('counts a much later opening as a new visit even if the row never came back', () => {
+        const now = jest.spyOn(Date, 'now').mockReturnValue(5_000_000)
+        markLeftThroughRow()
+        now.mockReturnValue(5_000_000 + 30 * 60_000)
+        expect(returningFromRow()).toBe(false)
         now.mockRestore()
     })
 })
