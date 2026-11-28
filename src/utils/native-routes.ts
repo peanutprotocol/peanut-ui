@@ -320,6 +320,7 @@ export const NATIVE_EXPORT_ROOTS: ReadonlySet<string> = new Set([
     'send',
     'settings',
     'setup',
+    'verified',
     'verify',
     'withdraw',
 ])

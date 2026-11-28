@@ -6,6 +6,7 @@ import { KycProcessing } from './states/KycProcessing'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { Drawer, DrawerContent } from '../Global/Drawer'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { VERIFIED_PAGE_PATH } from '@/features/add-money/verified/verifiedRows'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { isPaperworkVerificationIdentity } from '@/app/actions/kyc-workflow'
@@ -67,15 +68,20 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
         onKeepMounted?.(false)
     }, [onClose, onKeepMounted])
 
+    const router = useRouter()
     const sumsubFlow = useMultiPhaseKycFlow({
         onKycSuccess: handleFlowDone,
         onManualClose: handleFlowDone,
+        // resuming from Home's status drawer is self-started (Kush): an approval ends on the verified page
+        onIdentityVerified: () => {
+            handleFlowDone()
+            router.push(VERIFIED_PAGE_PATH)
+        },
     })
 
     // A Smart Paperwork Verification identity shows its status on the /verify
     // timeline instead. This drawer opens only once that is ruled out, so the
     // two never follow each other.
-    const router = useRouter()
     const handoffRef = useRef({ onClose, router })
     handoffRef.current = { onClose, router }
     const checksTimeline = isOpen && !!user?.user?.userId && status !== 'not_started'

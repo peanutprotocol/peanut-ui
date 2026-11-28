@@ -344,3 +344,27 @@ describe('fixtureRespond capability report', () => {
         expect(otherWays.some((row) => row.labelKey === 'usd')).toBe(true)
     })
 })
+
+describe('fixtureRespond sequences', () => {
+    it('answers a polled route in turn, then repeats the last answer', async () => {
+        activateFixture('add-money-bank-transfer-received')
+        const path = '/history/fixture-onramp-eur'
+        const statuses = []
+        for (let turn = 0; turn < 3; turn++) statuses.push((await (await fixtureRespond(path)).json()).status)
+        expect(statuses).toEqual(['AWAITING_FUNDS', 'PAYMENT_PROCESSED', 'PAYMENT_PROCESSED'])
+    })
+
+    it('plays the sequence from the start again when the fixture is turned off and reopened', async () => {
+        const name = 'add-money-bank-transfer-received'
+        const path = '/history/fixture-onramp-eur'
+        const status = async () => (await (await fixtureRespond(path)).json()).status
+        window.history.replaceState({}, '', `/add-money?__fixture=${name}`)
+        await status()
+        expect(await status()).toBe('PAYMENT_PROCESSED')
+
+        window.history.replaceState({}, '', '/add-money?__fixture=off')
+        await fixtureRespond('/users/me')
+        window.history.replaceState({}, '', `/add-money?__fixture=${name}`)
+        expect(await status()).toBe('AWAITING_FUNDS')
+    })
+})

@@ -77,7 +77,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // Smart Paperwork Verification is a full-screen setup-style flow: no bottom nav, its own insets.
     // Its screens on other routes (a feature's activation on /add-money, /withdraw, /card) hold the same shell.
     const verifyScreenOpen = useVerifyShell()
-    const isVerify = pathName === '/verify' || pathName === '/verify/' || verifyScreenOpen
+    // /verified, where a self-started check ends, is the same full-screen shell
+    const isVerify =
+        pathName === '/verify' ||
+        pathName === '/verify/' ||
+        pathName === '/verified' ||
+        pathName === '/verified/' ||
+        verifyScreenOpen
     const alignStart = isHome || isHistory || isSupport
     const router = useRouter()
 
