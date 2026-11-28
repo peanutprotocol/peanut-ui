@@ -126,11 +126,14 @@ const ResidenceChangeDrawer = ({
             // before the /users/me field reaches production.
             // `null` from the server means "no second residence"; only an absent field falls back.
             const previousSecond = declaredSecond === undefined ? readSecondResidence(userId) : declaredSecond
-            const isReorder = !!declared && previousSecond === selected
+            // The compact /users/me omits `declared` when it equals the verified
+            // country, so the outgoing primary is the verified one then.
+            const outgoing = declared ?? verified
+            const isReorder = !!outgoing && previousSecond === selected
             const result = await updateUserById({
                 userId,
                 residenceCountry: selected,
-                ...(isReorder ? { secondResidenceCountry: declared } : {}),
+                ...(isReorder ? { secondResidenceCountry: outgoing } : {}),
             })
             if (result.error) {
                 setError(result.error)
@@ -141,7 +144,7 @@ const ResidenceChangeDrawer = ({
             // another surface treat an unreviewed country as authoritative.
             if (!differsFromVerified) {
                 storeDeclaredResidence(userId, selected)
-                if (isReorder) storeSecondResidence(userId, declared)
+                if (isReorder) storeSecondResidence(userId, outgoing)
             }
             posthog.capture(ANALYTICS_EVENTS.RESIDENCE_CHANGED, {
                 residence_country: selected,

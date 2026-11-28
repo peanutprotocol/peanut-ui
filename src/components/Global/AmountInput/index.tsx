@@ -8,10 +8,9 @@ import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
 import { Slider } from '../Slider'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useTranslations } from 'next-intl'
+import { finiteAmountText } from '@/utils/amount-param'
 
-// State is raw decimal text. Localized labels never enter arithmetic.
-const finiteInput = (value: string = '') =>
-    value.length <= 1024 && /^\d*\.?\d*$/.test(value) && Number.isFinite(Number(value || '0')) ? value : ''
+// State is raw decimal text (finiteAmountText). Localized labels never enter arithmetic.
 
 interface AmountInputProps {
     className?: string
@@ -96,8 +95,8 @@ const AmountInput = ({
             : primaryDenomination.symbol
 
     // Store display value for input field (what user sees when typing)
-    const [displayValue, setDisplayValue] = useState<string>(finiteInput(initialAmount))
-    const [exactAmount, setExactAmount] = useState(finiteInput(initialAmount))
+    const [displayValue, setDisplayValue] = useState<string>(finiteAmountText(initialAmount))
+    const [exactAmount, setExactAmount] = useState(finiteAmountText(initialAmount))
     // Anchor intent in the denomination last edited by the payer. A toggle is
     // presentation, not a new source amount: repeating rates cannot be stored
     // as a finite decimal and converted back without losing a minor unit.
@@ -131,7 +130,7 @@ const AmountInput = ({
     // so depending on it would re-run the sync on every keystroke.
     useEffect(() => {
         if (initialAmount && initialAmount !== displayValue && !isEditingRef.current) {
-            const rawAmount = finiteInput(initialAmount)
+            const rawAmount = finiteAmountText(initialAmount)
             setDisplayValue(rawAmount)
             setExactAmount(rawAmount)
             setExactSymbol(displaySymbol)
@@ -290,7 +289,7 @@ const AmountInput = ({
                     denominations[displaySymbol]?.decimals,
                     true
                 )
-                if (formattedAmount && finiteInput(formattedAmount)) {
+                if (formattedAmount && finiteAmountText(formattedAmount)) {
                     suggestionArmedRef.current = false
                     setDisplayValue(formattedAmount)
                     setExactAmount(formattedAmount)
@@ -321,7 +320,7 @@ const AmountInput = ({
         const holdsOnlySuggestion = !isEditingRef.current && displayValue === lastSuggestionRef.current
         if (!isUntouchedEmpty && !holdsOnlySuggestion && !suggestionArmedRef.current) return
         const formattedAmount = formatTokenAmount(defaultSliderSuggestedAmount.toString(), 2, true)
-        if (formattedAmount && finiteInput(formattedAmount)) {
+        if (formattedAmount && finiteAmountText(formattedAmount)) {
             // an emptied field takes this one suggestion; typing again owns it
             suggestionArmedRef.current = false
             lastSuggestionRef.current = formattedAmount
@@ -428,7 +427,7 @@ const AmountInput = ({
                                 const maxDecimals = denominations[displaySymbol].decimals
                                 const formattedAmount = formatTokenAmount(value, maxDecimals, true)
                                 if (formattedAmount !== undefined) {
-                                    value = formattedAmount === '.' ? '.' : finiteInput(formattedAmount)
+                                    value = formattedAmount === '.' ? '.' : finiteAmountText(formattedAmount)
                                 }
                                 // text the parser rejects leaves the field, and who owns it, as it
                                 // was: one stray letter used to wipe the whole amount (TASK-23499)

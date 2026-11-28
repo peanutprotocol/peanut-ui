@@ -147,6 +147,16 @@ export const ANALYTICS_EVENTS = {
     ADD_MONEY_COUNTRY_LIST_CLOSED: 'add_money_country_list_closed',
     ADD_MONEY_COUNTRY_SELECTED: 'add_money_country_selected',
     ADD_MONEY_BACK_TAPPED: 'add_money_back_tapped',
+    // "ID verified" (/verified), where a self-started verification ends. `entry` is the verify source,
+    // `variant` verified | bank-ready, and each bank row's state (`ars`, `pix`, `bank`: loading | ready | open |
+    // review | action | refused). `rows_resolved` carries `wait_ms`: page open (the approval) until no row loads.
+    VERIFIED_PAGE_SHOWN: 'verified_page_shown',
+    VERIFIED_PAGE_ROWS_RESOLVED: 'verified_page_rows_resolved',
+    // `method` (ars | pix | bank | crypto) and that row's `state`
+    VERIFIED_PAGE_METHOD_TAPPED: 'verified_page_method_tapped',
+    VERIFIED_PAGE_LATER: 'verified_page_later',
+    // the page shown again once a bank account is ready (the reminder, slice 5)
+    VERIFIED_PAGE_RESHOWN: 'verified_page_reshown',
     DEPOSIT_METHOD_SELECTED: 'deposit_method_selected',
     DEPOSIT_AMOUNT_ENTERED: 'deposit_amount_entered',
     DEPOSIT_CONFIRMED: 'deposit_confirmed',
@@ -368,6 +378,38 @@ export const ANALYTICS_EVENTS = {
     // when a deposit method was picked, else null. The deposit itself is the
     // server-side `deposit_completion` (peanut-api-ts, every rail).
     CARD_GATE_ADD_FUNDS_TAPPED: 'card_gate_add_funds_tapped',
+    // The add-money drawer on the funding step (TASK-25169). Codes only, no amount.
+    // `method` ∈ bank|crypto, null on the choice view; `view` ∈ methods|networks|address|rows|details|
+    // not_verified|finish_setup|not_offered|loading. Closed = dismissed without funding.
+    CARD_GATE_ADD_MONEY_DRAWER_OPENED: 'card_gate_add_money_drawer_opened',
+    CARD_GATE_ADD_MONEY_DRAWER_CLOSED: 'card_gate_add_money_drawer_closed',
+    // `network` ∈ EVM|SOL|TRON
+    CARD_GATE_ADD_MONEY_NETWORK_PICKED: 'card_gate_add_money_network_picked',
+    // `corridor` a DepositCorridor; `kind` ∈ account|page
+    CARD_GATE_ADD_MONEY_RAIL_PICKED: 'card_gate_add_money_rail_picked',
+    CARD_GATE_ADD_MONEY_VERIFY_TAPPED: 'card_gate_add_money_verify_tapped',
+    // The balance reached the minimum while the funding step showed. `in_drawer` = the
+    // drawer was open; `method` = its method, or the last one opened, else null.
+    CARD_GATE_CAME_BACK_FUNDED: 'card_gate_came_back_funded',
+    // The same add-money drawer opened from Send's short balance (TASK-25467), one funnel per
+    // place: the properties match the card's events above. Came back funded = the balance
+    // reached the amount the user tapped "Add $X" for; `in_drawer` and `method` as the card's.
+    SEND_ADD_MONEY_DRAWER_OPENED: 'send_add_money_drawer_opened',
+    SEND_ADD_MONEY_DRAWER_CLOSED: 'send_add_money_drawer_closed',
+    SEND_ADD_MONEY_NETWORK_PICKED: 'send_add_money_network_picked',
+    SEND_ADD_MONEY_RAIL_PICKED: 'send_add_money_rail_picked',
+    SEND_ADD_MONEY_VERIFY_TAPPED: 'send_add_money_verify_tapped',
+    SEND_ADD_MONEY_CAME_BACK_FUNDED: 'send_add_money_came_back_funded',
+    // A method picked in Send's choice view: `method` ∈ bank|crypto|ars|pix; `funded` as the card's.
+    SEND_ADD_MONEY_METHOD_PICKED: 'send_add_money_method_picked',
+    // the same on Send a link's short balance (TASK-25467): the amount is the link's
+    SEND_LINK_ADD_MONEY_DRAWER_OPENED: 'send_link_add_money_drawer_opened',
+    SEND_LINK_ADD_MONEY_DRAWER_CLOSED: 'send_link_add_money_drawer_closed',
+    SEND_LINK_ADD_MONEY_NETWORK_PICKED: 'send_link_add_money_network_picked',
+    SEND_LINK_ADD_MONEY_RAIL_PICKED: 'send_link_add_money_rail_picked',
+    SEND_LINK_ADD_MONEY_VERIFY_TAPPED: 'send_link_add_money_verify_tapped',
+    SEND_LINK_ADD_MONEY_CAME_BACK_FUNDED: 'send_link_add_money_came_back_funded',
+    SEND_LINK_ADD_MONEY_METHOD_PICKED: 'send_link_add_money_method_picked',
     // POST /rain/cards lifecycle. `outcome` ∈
     // pending|terms-required|incomplete|main-kyc-required|enabled|error|already-applied.
     CARD_APPLY_ATTEMPTED: 'card_apply_attempted',
@@ -547,6 +589,14 @@ export const ANALYTICS_EVENTS = {
     // camera failed. Scan results stay on qr_scanned.
     QR_SCANNER_OPENED: 'qr_scanner_opened',
     QR_CAMERA_PERMISSION: 'qr_camera_permission',
+
+    // ── Real-time stuck detection & proactive buddy ──
+    STUCK_SIGNAL_CHECKPOINT: 'stuck_signal_checkpoint',
+    STUCK_BUDDY_ELIGIBLE: 'stuck_buddy_eligible',
+    STUCK_BUDDY_SHOWN: 'stuck_buddy_shown',
+    STUCK_BUDDY_ACTION: 'stuck_buddy_action',
+    STUCK_BUDDY_DISMISSED: 'stuck_buddy_dismissed',
+    STUCK_BUG_REPORT_SUBMITTED: 'stuck_bug_report_submitted',
 } as const
 
 /**

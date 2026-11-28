@@ -67,8 +67,9 @@ export const formatUsdcBalance = (balance: bigint): string => formatAmountNumber
 /**
  * Shared balance error copy lives in the `errors` next-intl namespace:
  *  - `notEnoughBalanceAddFunds` — input-time gate, when the entered amount
- *    exceeds the full displayed balance (a real shortfall). Gates run on the
- *    DISPLAYED balance so we never block funds the live spend could route.
+ *    exceeds the live spendable total (smart + Rain collateral, read once both
+ *    terms have answered). Never the persisted display cache: a cached total
+ *    neither passes nor blocks an amount (send-link since TASK-25467).
  *  - `balanceSettling` — failure-time, when a spend that passed the gate can't
  *    be routed yet (the smart→collateral rebalance hasn't landed). Deliberately
  *    generic — it must NOT expose the card-collateral mechanic — and it nudges a
@@ -86,8 +87,11 @@ export const formatUsdcBalance = (balance: bigint): string => formatAmountNumber
  *
  * The CALLER chooses which balance to pass, and that choice is the gate policy:
  *  - DISPLAYED total (smart + landed + in-transit) for fail-late flows that take
- *    no irreversible step before spending (send-link, qr-pay, withdraw) — an
- *    in-transit amount passes and, if not yet routable, fails late.
+ *    no irreversible step before spending (qr-pay, withdraw) — an in-transit
+ *    amount passes and, if not yet routable, fails late. Send-link reads the
+ *    live total once ready (`availableSpendableBalance`, TASK-25467), so its
+ *    "Add $X" shows the real gap as the user types; it still fails late on
+ *    money in transit.
  *  - AVAILABLE-NOW (smart + landed) for flows that do something irreversible
  *    BEFORE the spend — the features/payments flows `createCharge` first, so an
  *    in-transit amount must be blocked at input or it leaves an orphan charge.

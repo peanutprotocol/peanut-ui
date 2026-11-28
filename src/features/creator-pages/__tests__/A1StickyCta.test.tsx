@@ -50,7 +50,9 @@ afterEach(() => {
 })
 
 function renderA1() {
-    const view = render(<NitaA1 {...creatorPageFixture('juanacervio', 'a1')} deviceOs="ios" liftCta={false} />)
+    const view = render(
+        <NitaA1 {...creatorPageFixture('juanacervio', 'a1')} deviceOs="ios" liftCta={false} locale="es-ar" />
+    )
     const stickyButton = view.container.querySelector('[data-cta-position="sticky"]')!
     const bar = stickyButton.parentElement!
     const hero = view.container.querySelector('[data-cta-position="hero"]')!

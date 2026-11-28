@@ -35,10 +35,10 @@ jest.mock('@/hooks/useCapabilities', () => ({
         isLoading: false,
     }),
 }))
+jest.mock('@/hooks/useVerification', () => ({ useVerification: () => ({ identityVerified: false }) }))
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({
         status: undefined,
-        isVerified: false,
         needsAction: false,
         isTerminalFailure: false,
         isRegionRestricted: false,

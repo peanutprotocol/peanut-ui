@@ -159,7 +159,6 @@ function setCapabilities(
             { rails: rails as RailCapability[], nextActions: [], restrictions: [] },
             { identity: { status: rails.some((r) => r.status === 'enabled') ? 'verified' : 'not_started' } }
         ),
-        isKycApproved: rails.some((r) => r.status === 'enabled'),
         gateFor: (op: string, scope: GateScopeArg) => {
             mockGateForOp(op, scope)
             return { kind: gateByScope?.(op, scope) ?? gateKind }
@@ -710,7 +709,10 @@ describe('restart cooldown in add and withdraw flows', () => {
         mockCooldown = { retryAt: '2026-09-08T18:57:00Z' }
         render(<AddWithdrawCountriesList flow={flow} />)
         expect(screen.getByText('Give it a little time')).toBeInTheDocument()
-        expect(screen.getByText(/You can try again after/)).toHaveTextContent(/Sep 8/)
+        expect(screen.getByText(/You can try again after/)).toHaveTextContent(
+            // the modal shows the local date, so derive it the same way or the day shifts by timezone
+            new Date('2026-09-08T18:57:00Z').toLocaleString('en-US', { month: 'short', day: 'numeric' })
+        )
         expect(screen.queryByText('Too many requests')).not.toBeInTheDocument()
         expect(screen.queryByText('Contact support')).not.toBeInTheDocument()
         fireEvent.click(screen.getByText("I'll try later"))

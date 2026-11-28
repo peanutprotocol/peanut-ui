@@ -12,7 +12,7 @@ import { formatAmountNumber } from '@/utils/currency'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { useParams } from 'next/navigation'
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { countryData } from '@/components/AddMoney/consts'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useCurrency } from '@/hooks/useCurrency'
@@ -20,8 +20,7 @@ import { mantecaApi } from '@/services/manteca'
 import { parseUnits } from 'viem'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { useIdentityVerification } from '@/hooks/useIdentityVerification'
-import { isVerifiedForCountry } from '@/utils/regions.utils'
+import { useVerification } from '@/hooks/useVerification'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
@@ -39,7 +38,7 @@ import { useBankEntryFor } from '@/hooks/useBankRows'
 import { entryAction, isLocalResidenceRefusal, isMantecaAccountClosed, refusalOf } from '@/features/kyc-features/report'
 import { useAuth } from '@/context/authContext'
 import { ResidenceRequiredScreen } from '@/features/deposit-accounts/components/ResidenceRequiredScreen'
-import { withReturnTo, readReturnTo } from '@/utils/return-to.utils'
+import { withReturnTo, readReturnTo, originPastHubs } from '@/utils/return-to.utils'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUnavailable'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -47,6 +46,7 @@ import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
 import { kycFeatureRefusalCopy } from '@/utils/kyc-feature-outcome.utils'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import NavHeader from '@/components/Global/NavHeader'
+import { saveLastDepositMethod } from '@/features/add-money/lastUsedAddMethod'
 
 // Step type for URL state
 type MantecaStep = 'inputAmount' | 'depositDetails'
@@ -109,6 +109,8 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     // otherwise to the hub itself — not the bare `/add-money/argentina` amount
     // route the user never knowingly opened.
     const onBack = useSafeBack(readReturnTo(searchParams) ?? '/add-money?method=bank')
+    // Done after the pesos arrived, and "I've sent the transfer", never reopen a hub: the origin past the Add money hubs, or Home
+    const leaveToOrigin = useReturnTo(originPastHubs(readReturnTo(searchParams), ['/add-money']) ?? '/home')
     // Argentina's Manteca top-up mints a CVU per deposit, and Manteca rejects a
     // non-resident only after amount + KYC. The API's answer for this country's
     // account comes first: a closure by Manteca, or an account the residence
@@ -118,7 +120,10 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     // an ARS transfer Manteca let lapse unpaid: the details screen says so and offers a new one
     const arsDeposit = residenceGatedCountry && step === 'depositDetails' ? depositDetails : undefined
     const { status: arsDepositStatus } = useMantecaDepositPolling(arsDeposit?.id, () => {
+        saveLastDepositMethod('ars')
         void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+        // COMPLETED means Manteca sent the USDC to the wallet; the success view says the balance has it
+        void queryClient.invalidateQueries({ queryKey: ['balance'] })
     })
     const localAccount = residenceGatedCountry ? bankEntryFor('ars') : null
     const accountRejected = isMantecaAccountClosed(localAccount ?? undefined)
@@ -129,7 +134,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     // signal directly (Sumsub-cleared the human) instead of the old
     // rail-approval proxy. Same fix-pattern as Profile/ProfileEdit.
     const { rails, nextActions, isLoading: areCapabilitiesLoading } = useCapabilities()
-    const { isVerified: isUserIdentityVerified } = useIdentityVerification()
+    const { identityVerified: isUserIdentityVerified, canUse } = useVerification()
     const mantecaRejection = useMemo(
         () =>
             deriveProviderRejection(
@@ -156,9 +161,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     // Dismissing the gate must not re-open it on the next render — same
     // one-shot prompt contract as QrPayKycGateView's kycPromptDismissed.
     const [kycGateDismissed, setKycGateDismissed] = useState(false)
-    const isUserMantecaKycApprovedForCountry = selectedCountry
-        ? isVerifiedForCountry(rails, selectedCountry.id, 'deposit')
-        : false
+    const isUserMantecaKycApprovedForCountry = selectedCountry ? canUse('deposit', selectedCountry.id) : false
     const openDeposit = useOpenMantecaDeposit(
         selectedCountry?.currency,
         !!residenceGatedCountry && step === 'inputAmount' && isUserMantecaKycApprovedForCountry
@@ -466,10 +469,8 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                     onClose={closeKycModal}
                     onVerify={async () => {
                         if (mantecaRejection.state === 'blocked') {
-                            // blocked users cannot self-heal — route to support
-                            if (typeof window !== 'undefined' && window.$crisp) {
-                                window.$crisp.push(['do', 'chat:open'])
-                            }
+                            // blocked users cannot self-heal — route to in-app support drawer (web & native)
+                            openSupportWithMessage(mantecaRejection.userMessage ?? t('title'))
                             closeKycModal()
                             return
                         }
@@ -544,6 +545,12 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                                 </Callout>
                             )
                         }
+                        // the order behind the bank details lives 30 minutes: say so before the amount is typed.
+                        // an open order already has its own callout on top, so one callout shows at a time (Kush, 28 Nov)
+                        details={
+                            residenceGatedCountry &&
+                            !openDeposit && <Callout priority="info">{t('manteca.detailsComeNext')}</Callout>
+                        }
                         providerFinePrint={residenceGatedCountry && <ProviderFinePrint providerId="manteca-ar" />}
                         // The CBU and alias are minted per order and expire, so none can show before the amount.
                         // The button names what it leads to: replays showed users leaving here, not knowing (TASK-25101).
@@ -571,6 +578,12 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                 // way the input step does, not back to `inputAmount` (which would let
                 // the user start a second deposit).
                 onBack={onBack}
+                onDone={leaveToOrigin}
+                onSent={leaveToOrigin}
+                // the order id lets support find a late transfer to reconcile by hand
+                onContactSupport={() =>
+                    openSupportWithMessage(t('manteca.supportOrderPrefill', { orderId: depositDetails.id }))
+                }
             />
         )
     }

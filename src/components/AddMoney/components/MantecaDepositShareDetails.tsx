@@ -3,46 +3,67 @@
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import NavHeader from '@/components/Global/NavHeader'
 import { useParams } from 'next/navigation'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
+import { setDepositDetailsStepActive } from '@/features/stuck-detector/signalStore'
+import { Accordion } from '@/components/0_Bruddle/Accordion'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import Badge from '@/components/Global/Badges/Badge'
+import { useExpiryCountdown } from '@/hooks/useExpiryCountdown'
 import { countryData } from '@/components/AddMoney/consts'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import ShareButton from '@/components/Global/ShareButton'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
-import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
+import { Section } from '@/components/0_Bruddle/Section'
 import { Icon } from '@/components/Global/Icons/Icon'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { Card } from '@/components/0_Bruddle/Card'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
+import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import {
     MANTECA_ARG_DEPOSIT_CUIT,
     MANTECA_ARG_DEPOSIT_NAME,
     MANTECA_COUNTRIES_CONFIG,
 } from '@/constants/manteca.consts'
-import { shortenStringLong } from '@/utils/general.utils'
+import { middleEllipsisAccount } from '@/utils/general.utils'
 import { formatAmountNumber, formatFiatRate } from '@/utils/currency'
 import { useLocale, useTranslations } from 'next-intl'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
-import { ProviderHelp } from '@/components/Provider/ProviderHelp'
-import { PROVIDERS } from '@/constants/providers.consts'
+import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
+import { RateHelpTrigger } from '@/features/rates-fees/RateInfoDrawer'
 
 const MantecaDepositShareDetails = ({
     depositDetails,
     arsStatus,
     onStartOver,
     onBack,
+    onSent,
+    onContactSupport,
+    onDone,
 }: {
     depositDetails: MantecaDepositResponseData
     arsStatus?: 'pending' | 'processing' | 'completed' | 'failed' | 'expired'
     onStartOver?: () => void
     // Parent owns step navigation — usually a setUrlState({ step: 'inputAmount' }).
     onBack: () => void
+    // "I've sent the transfer": leaves the flow, as on Bridge's bank details
+    onSent?: () => void
+    // an expired order may still get a late transfer: support reconciles it by hand
+    onContactSupport?: () => void
+    // Leaves the flow once the pesos arrived.
+    onDone: () => void
 }) => {
     const params = useParams()
+    useEffect(() => {
+        setDepositDetailsStepActive(true)
+        return () => setDepositDetailsStepActive(false)
+    }, [])
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
     const tWithdraw = useTranslations('withdraw')
-    const tProvider = useTranslations('provider')
     const locale = useLocale()
     const currentCountryName = params.country as string
 
@@ -72,7 +93,8 @@ const MantecaDepositShareDetails = ({
 
     // the fallback keeps the static path total
     const depositAddress = depositDetails.details.depositAddress ?? ''
-    const shortenedAddress = depositAddress.length > 30 ? shortenStringLong(depositAddress, 10) : depositAddress
+    // a 22-digit CVU fits one compact row as its first 10 and last 4 digits; copy and share keep it whole
+    const shortenedAddress = middleEllipsisAccount(depositAddress, 17)
     const depositAlias = depositDetails.details.depositAlias
     // The order's own amount, at the price it locked. The amount step's figure is an estimate at an earlier
     // price, so next to the locked rate it looked short (26 Nov: ARS 1.780,39 shown for a 1.777,34 order).
@@ -106,22 +128,94 @@ const MantecaDepositShareDetails = ({
         return textParts.join('\n')
     }
 
-    if (arsStatus === 'expired')
+    // the countdown runs only while the order waits for the transfer. at zero the details stop
+    // working, but only the API's own 'expired' (provider cancelled, no payment seen) may offer a
+    // new order: a new one cancels this one, and a late transfer can still be on its way.
+    const expiresAtMs = useMemo(() => {
+        if (arsStatus !== 'pending') return null
+        const ms = Date.parse(depositDetails.stages?.['1']?.expireAt ?? '')
+        return Number.isFinite(ms) ? ms : null
+    }, [arsStatus, depositDetails])
+    const countdown = useExpiryCountdown(expiresAtMs, arsStatus === 'pending')
+    const isLapsedUnconfirmed = arsStatus === 'pending' && countdown.isExpired
+
+    if (isLapsedUnconfirmed)
         return (
-            <div className="flex h-full w-full flex-col gap-6">
+            <PageStack>
                 <NavHeader title={t('title')} onPrev={onBack} />
-                <Callout priority="attention" title={t('manteca.transferExpiredTitle')}>
-                    {t('manteca.transferExpiredDescription')}
-                </Callout>
-                {onStartOver && (
-                    <Button variant="primary" shadowSize="4" className="w-full" onClick={onStartOver}>
-                        {t('manteca.startNewDeposit')}
-                    </Button>
-                )}
-            </div>
+                <ProcessingScreen
+                    title={t('manteca.orderCheckingTitle')}
+                    description={t('manteca.orderCheckingDescription')}
+                />
+            </PageStack>
         )
 
-    const transferDeadline = arsStatus === 'pending' ? Date.parse(depositDetails.stages?.['1']?.expireAt ?? '') : NaN
+    // an order that ended unpaid (expired) or did not go through (failed, cancelled, refunded):
+    // its CVU no longer works. expired offers a new order; failed leads to support
+    if (arsStatus === 'expired' || arsStatus === 'failed') {
+        const expired = arsStatus === 'expired'
+        return (
+            <PageStack>
+                <NavHeader title={t('title')} onPrev={onBack} />
+                <PageStack.Center>
+                    <Card className="flex flex-col items-center gap-4 p-6 text-center">
+                        <IconBubble icon={expired ? 'clock' : 'alert'} size="l" color={expired ? 'yellow' : 'red'} />
+                        <div className="flex flex-col gap-1">
+                            <p className="text-heading-s text-foreground-primary">
+                                {currencySymbol} {formatAmountNumber(depositAmount, 2, 2, locale)}
+                            </p>
+                            <p className="text-body-s text-foreground-secondary">
+                                {t(expired ? 'manteca.transferExpiredDescription' : 'manteca.orderFailedDescription')}
+                            </p>
+                        </div>
+                        {expired && onContactSupport && (
+                            <LinkButton onClick={onContactSupport}>{tCommon('contactSupport')}</LinkButton>
+                        )}
+                    </Card>
+                    {/* a failed order may hold pesos that arrived before the cancel: support reconciles
+                        them first, so no new order is offered (a second transfer could follow) */}
+                    {expired
+                        ? onStartOver && (
+                              <Button variant="primary" className="w-full" onClick={onStartOver}>
+                                  {t('manteca.startNewDeposit')}
+                              </Button>
+                          )
+                        : onContactSupport && (
+                              <Button variant="primary" className="w-full" onClick={onContactSupport}>
+                                  {tCommon('contactSupport')}
+                              </Button>
+                          )}
+                </PageStack.Center>
+            </PageStack>
+        )
+    }
+
+    // The pesos reached Manteca: the bank details would invite a second transfer, and back would offer the amount again.
+    if (arsStatus === 'processing')
+        return (
+            <PageStack>
+                <NavHeader title={t('title')} onPrev={onDone} />
+                <ProcessingScreen
+                    title={t('manteca.paymentReceivedTitle')}
+                    description={t('manteca.paymentReceivedDescription')}
+                />
+            </PageStack>
+        )
+
+    if (arsStatus === 'completed')
+        return (
+            <PageStack>
+                <NavHeader title={t('title')} onPrev={onDone} />
+                <PageStack.Center className="items-center text-center">
+                    <IconBubble icon="check" size="l" color="green" />
+                    <TitleBlock align="center" title={t('depositReceived')} description={t('balanceUpdated')} />
+                    <Button variant="primary" className="w-full" onClick={onDone}>
+                        {tCommon('done')}
+                    </Button>
+                </PageStack.Center>
+            </PageStack>
+        )
+
     return (
         <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
             <NavHeader title={t('title')} onPrev={onBack} />
@@ -150,68 +244,85 @@ const MantecaDepositShareDetails = ({
                         </div>
                     </div>
                 </Card>
+                {/* the section title sits 8px over its card (design.md, list title to list) */}
+                <Section title={t('manteca.sendTo')}>
+                    {/* compact label-left rows, the card draws the dashed dividers */}
+                    <Card className="divide-y divide-dashed divide-border-default px-4 py-0">
+                        {depositAddress && (
+                            <DataRow
+                                label={depositAddressLabel}
+                                value={shortenedAddress}
+                                copyValue={depositAddress}
+                                allowCopy
+                            />
+                        )}
+                        {depositAlias && <DataRow label={t('manteca.alias')} value={depositAlias} allowCopy />}
+                        {currentCountryDetails?.id === 'AR' && (
+                            <>
+                                <DataRow label={t('manteca.razonSocial')} value={MANTECA_ARG_DEPOSIT_NAME} />
+                                <DataRow label={t('manteca.cuit')} value={MANTECA_ARG_DEPOSIT_CUIT} />
+                            </>
+                        )}
+                        {/* something waits on the user: the pending badge, as on the Pix code */}
+                        {countdown.timeLeft && (
+                            <DataRow
+                                label={t('manteca.validFor')}
+                                value={<Badge status="pending" customText={countdown.timeLeft} />}
+                            />
+                        )}
+                    </Card>
+                </Section>
+                {/* rate, fees and arrival keep today's values, folded so the details lead */}
+                <Accordion type="single" collapsible>
+                    <Accordion.Item value="rate-fees">
+                        <Accordion.Trigger title={t('manteca.rateFeesArrival')} />
+                        <Accordion.Content className="divide-y divide-dashed divide-border-default py-0">
+                            <DataRow
+                                label={
+                                    <span className="flex items-center gap-1">
+                                        {t('manteca.exchangeRate')}
+                                        <RateHelpTrigger
+                                            currency={currencySymbol}
+                                            lockedRate={Number(exchangeRate)}
+                                            lockMode="cbu"
+                                        />
+                                    </span>
+                                }
+                                value={`1 USD = ${formatFiatRate(exchangeRate, locale)} ${currencySymbol}`}
+                            />
+                            <DataRow
+                                label={t('manteca.providerFees')}
+                                value={networkFees}
+                                moreInfoText={t('manteca.providerFeesInfo')}
+                            />
+                            <DataRow label={tWithdraw('bank.arrives')} value={t('manteca.etaInstant')} />
+                        </Accordion.Content>
+                    </Accordion.Item>
+                </Accordion>
+                {/* the one warning, next to the button where the user acts */}
                 <Callout priority="attention" title={t('manteca.sendOnlyOwnAccountTitle')}>
                     {t('manteca.sendOnlyOwnAccountDescription')}
                 </Callout>
-                {Number.isFinite(transferDeadline) && (
-                    <Callout priority="attention">
-                        {t('manteca.transferDeadline', {
-                            time: new Date(transferDeadline).toLocaleTimeString(locale, {
-                                hour: 'numeric',
-                                minute: '2-digit',
-                            }),
-                        })}
-                    </Callout>
-                )}
-                <h2 className="font-bold">{t('manteca.accountDetails')}</h2>
-                <Card className="space-y-0 rounded-sm px-4">
-                    {depositAddress && (
-                        <PaymentInfoRow
-                            label={depositAddressLabel}
-                            value={shortenedAddress}
-                            copyValue={depositAddress}
-                            allowCopy
-                        />
-                    )}
-                    {depositAlias && <PaymentInfoRow label={t('manteca.alias')} value={depositAlias} allowCopy />}
-                    {currentCountryDetails?.id === 'AR' && (
-                        <>
-                            <PaymentInfoRow label={t('manteca.razonSocial')} value={MANTECA_ARG_DEPOSIT_NAME} />
-                            <PaymentInfoRow label={t('manteca.cuit')} value={MANTECA_ARG_DEPOSIT_CUIT} />
-                        </>
-                    )}
-                    <PaymentInfoRow
-                        label={t('manteca.exchangeRate')}
-                        value={`1 USD = ${formatFiatRate(exchangeRate, locale)} ${currencySymbol}`}
-                    />
-                    <PaymentInfoRow
-                        label={t('manteca.providerFees')}
-                        value={networkFees}
-                        moreInfoText={t('manteca.providerFeesInfo')}
-                    />
-                    <PaymentInfoRow label={tCommon('peanutFee')} value={tCommon('sponsoredByPeanut')} />
-                    <PaymentInfoRow label={tWithdraw('bank.arrives')} value={t('manteca.etaInstant')} />
-                    <PaymentInfoRow
-                        hideBottomBorder
-                        label={
-                            <span className="flex items-center gap-1">
-                                {tProvider('label.provider')}
-                                <ProviderHelp providerId={providerId} />
-                            </span>
-                        }
-                        value={PROVIDERS[providerId].brand}
-                    />
-                </Card>
             </div>
 
-            <ShareButton
-                generateText={async () => generateShareText()}
-                title={t('manteca.shareTitle')}
-                variant="primary"
-                className="w-full"
-            >
-                {t('manteca.shareDetails')}
-            </ShareButton>
+            {/* the CTA stack: 12px between the buttons, as every pinned footer (PageStack.Footer) */}
+            <PageStack.Footer>
+                <ShareButton
+                    generateText={async () => generateShareText()}
+                    title={t('manteca.shareTitle')}
+                    variant="primary"
+                    className="w-full"
+                >
+                    {t('manteca.shareDetails')}
+                </ShareButton>
+                {onSent && (
+                    <Button variant="secondary" className="w-full" onClick={onSent}>
+                        {t('bankDetails.sentTransfer')}
+                    </Button>
+                )}
+                {/* money goes to the provider from this screen, so it stays named outside the fold (Resolution 520) */}
+                <ProviderFinePrint providerId={providerId} />
+            </PageStack.Footer>
         </div>
     )
 }

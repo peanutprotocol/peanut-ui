@@ -28,12 +28,17 @@ const order = {
     stages: { '1': { thresholdAmount: '100000', asset: 'ARS' }, '3': { amount: '57.256' } },
 } as unknown as MantecaDepositResponseData
 
-const renderIn = (locale: AppLocale) =>
+// the rate sits under the folded "Rate, fees and arrival" row
+const openRateAndFees = () => fireEvent.click(screen.getByRole('button', { name: 'Rate, fees and arrival' }))
+
+const renderIn = (locale: AppLocale) => {
     render(
         <NextIntlClientProvider locale={locale} messages={en} timeZone="UTC">
-            <MantecaDepositShareDetails depositDetails={order} onBack={jest.fn()} />
+            <MantecaDepositShareDetails depositDetails={order} onBack={jest.fn()} onDone={jest.fn()} />
         </NextIntlClientProvider>
     )
+    openRateAndFees()
+}
 
 // Argentines read "1,746.62" as 1.74 (TASK-25349)
 it('prints the rate and the amounts with Argentine separators for an es-AR user', () => {
@@ -64,9 +69,10 @@ it('shows the amount the order locked, next to the price it locked', () => {
     } as unknown as MantecaDepositResponseData
     render(
         <NextIntlClientProvider locale="es-AR" messages={en} timeZone="UTC">
-            <MantecaDepositShareDetails depositDetails={lockedOrder} onBack={jest.fn()} />
+            <MantecaDepositShareDetails depositDetails={lockedOrder} onBack={jest.fn()} onDone={jest.fn()} />
         </NextIntlClientProvider>
     )
+    openRateAndFees()
     expect(screen.getByText('ARS 1.777,34')).toBeInTheDocument()
     expect(screen.getByText('1 USD = 1.777,34 ARS')).toBeInTheDocument()
     expect(screen.getByText(/0,99 USD/)).toBeInTheDocument()

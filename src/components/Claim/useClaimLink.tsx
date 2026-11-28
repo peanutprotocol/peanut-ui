@@ -15,7 +15,8 @@ import { CLAIM_LINK, CLAIM_LINK_XCHAIN, TRANSACTIONS } from '@/constants/query.c
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { isTestnetChain } from '@/utils/general.utils'
 import { getTokenSymbol } from '@/utils/token.utils'
-import { sendLinksApi, ESendLinkStatus } from '@/services/sendLinks'
+import { sendLinksApi } from '@/services/sendLinks'
+import { SendLinkStatus } from '@/constants/api-enums.generated'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 
@@ -563,7 +564,7 @@ const useClaimLink = () => {
                 }
 
                 // Check if link failed
-                if (linkData.status === ESendLinkStatus.FAILED) {
+                if (linkData.status === SendLinkStatus.FAILED) {
                     throw new Error('Link claim failed')
                 }
             } catch (e) {

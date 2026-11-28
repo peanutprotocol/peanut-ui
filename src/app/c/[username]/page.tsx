@@ -1,19 +1,24 @@
 import type { Metadata } from 'next'
+import { cookies, headers } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
 import { creatorPageExperiment } from '@/features/creator-pages/experiments'
 import { creatorInvitePath } from '@/features/creator-pages/invite-path'
+import { creatorPageLocale } from '@/features/creator-pages/locale'
 import { selectCreatorPage } from '@/features/creator-pages/registry'
 import { creatorUsernameFromSegment } from '@/features/creator-pages/route-username'
 
-// The variant depends on the request's cookie and user agent. No loading.tsx or Suspense above the
+// The variant and the language depend on the request's cookies and headers. No loading.tsx or Suspense above the
 // page: either would turn the 307 into a soft 200 and stream the page in a hidden block.
 export const dynamic = 'force-dynamic'
 
 type CreatorPageRouteProps = { params: Promise<{ username: string }> }
 
 export async function generateMetadata({ params }: CreatorPageRouteProps): Promise<Metadata> {
-    const username = creatorUsernameFromSegment((await params).username)
-    const title = username ? creatorPageExperiment(username)?.title : undefined
+    const [{ username: segment }, cookieStore, requestHeaders] = await Promise.all([params, cookies(), headers()])
+    const username = creatorUsernameFromSegment(segment)
+    const title = username
+        ? creatorPageExperiment(username)?.title[creatorPageLocale(cookieStore, requestHeaders)]
+        : undefined
     return { ...(title ? { title } : {}), robots: { index: false, follow: false } }
 }
 

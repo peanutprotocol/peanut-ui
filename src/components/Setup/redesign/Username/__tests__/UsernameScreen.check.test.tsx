@@ -33,6 +33,13 @@ const mockHandleNext = jest.fn(async () => {})
 const mockSetScreenId = jest.fn()
 
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
+// The first suggestion starts at a random index. Unpinned, it is sometimes "mellowfox" (index 16, 116) or a chip
+// name such as "boldtiger" (69, 129): typing the name already in the field fires no change, and a counted check
+// runs twice. 77 suggests "cosmicmaple" (en) and "gatolibre" (es), which no test types or counts.
+jest.mock('@/features/setup/username-suggestions', () => ({
+    ...jest.requireActual('@/features/setup/username-suggestions'),
+    randomSuggestionStart: () => 77,
+}))
 jest.mock('@/features/setup/username-reservation', () => ({
     ...jest.requireActual('@/features/setup/username-reservation'),
     reserveUsername: (name: string) => mockReserve(name),

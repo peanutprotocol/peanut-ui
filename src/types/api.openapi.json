@@ -1,6 +1,170 @@
 {
 	"components": {
-		"schemas": {}
+		"schemas": {
+			"ApiErrorCode": {
+				"enum": [
+					"INSUFFICIENT_COLLATERAL",
+					"WITHDRAWAL_COOLDOWN_ACTIVE",
+					"WITHDRAWAL_SIGNATURE_COOLDOWN",
+					"WITHDRAWAL_SIGNATURE_EXPIRED",
+					"WITHDRAWAL_SUBMISSION_FAILED",
+					"WITHDRAWAL_PENDING_CONFIRMATION",
+					"STALE_CARD_APPROVAL",
+					"CARD_PERMISSION_MIGRATION_REQUIRED",
+					"CARD_APP_UPDATE_REQUIRED",
+					"CARD_PERMISSION_STATE_UNAVAILABLE",
+					"CARD_APPROVAL_SIGNATURE_REJECTED",
+					"WITHDRAWAL_PREPARATION_NOT_FOUND",
+					"WITHDRAWAL_STATUS_UNAVAILABLE",
+					"RAIN_CONTROLLER_CHANGED",
+					"NO_APPROVED_CARD",
+					"NO_ACTIVE_CARD",
+					"NO_COLLATERAL_CONTRACT",
+					"CARD_RETURN_BLOCKED",
+					"CARD_BALANCE_REMAINS",
+					"CARD_BALANCE_UNREADABLE",
+					"CARD_SECRETS_RATE_LIMITED",
+					"CARD_PROVISIONING_BILLING_MISSING",
+					"CARD_PROVISIONING_RATE_LIMITED",
+					"CARD_PROVISIONING_CARD_NOT_FOUND",
+					"CARD_PROVISIONING_UNAVAILABLE",
+					"CARD_PROVISIONING_FAILED",
+					"USER_OP_REVERTED",
+					"USER_OP_REJECTED",
+					"MANTECA_KYC_REQUIRED",
+					"MANTECA_SENDER_REJECTED",
+					"PAYER_BLOCKED",
+					"MERCHANT_BLOCKED",
+					"PIX_RESIDENCE_NOT_SUPPORTED",
+					"PIX_PROVIDER_MOVED",
+					"MANTECA_ACCOUNT_REJECTED",
+					"MANTECA_TEMPORARILY_UNAVAILABLE",
+					"PROVIDER_REJECTED",
+					"MANTECA_SOURCE_OVER_MONTHLY_CAP",
+					"MANTECA_MERCHANT_VOLUME_NEAR_CAP",
+					"MANTECA_MERCHANT_RECENT_REFUND",
+					"MANTECA_USER_NOT_PROVISIONED",
+					"PIX_MIN_AMOUNT",
+					"PIX_RECURRING_NOT_SUPPORTED",
+					"PAYMENT_DESTINATION_MISSING_AMOUNT",
+					"PAYMENT_DESTINATION_NOT_FOUND",
+					"PAYMENT_DESTINATION_EXPIRED",
+					"PAYMENT_DESTINATION_DECODING_ERROR",
+					"PROVIDER_UNAVAILABLE",
+					"QR_PAYMENT_CANCELLED",
+					"QR_PAYMENT_LOCK_USED",
+					"FUNDING_PENDING_CONFIRMATION",
+					"QR_INIT_IN_PROGRESS",
+					"QR_INIT_KEY_MISMATCH",
+					"QR_INIT_INVALID_KEY",
+					"TRANSFER_ALREADY_CONFIRMED",
+					"BANK_ACCOUNT_NOT_USABLE",
+					"LINK_ALREADY_CLAIMED",
+					"CLAIM_RECIPIENT_NOT_ALLOWED",
+					"DEPOSIT_ACCOUNTS_NOT_AVAILABLE",
+					"DEPOSIT_ACCOUNT_LIMIT",
+					"DEPOSIT_ACCOUNT_PROVIDER_REFUSED",
+					"DEPOSIT_ACCOUNT_NOT_ADOPTED",
+					"DEPOSIT_ACCOUNT_CLAIM_IN_FLIGHT",
+					"DEPOSIT_IN_FLIGHT",
+					"RAIL_PAUSED",
+					"CHAIN_INFRA_UNAVAILABLE",
+					"BELOW_MIN_BRIDGE_AMOUNT",
+					"VERIFIED_ADDRESS_RATE_LIMITED",
+					"USER_NOT_FOUND",
+					"REQUEST_CLOSED",
+					"REQUEST_TOKEN_NOT_STABLECOIN",
+					"RECIPIENT_NOT_PEANUT_USER",
+					"ROUTE_NOT_AVAILABLE",
+					"PIX_QUOTE_CHANGED",
+					"PIX_LIMIT_EXCEEDED",
+					"PIX_KEY_BLOCKED",
+					"PIX_KEY_LOOKUP_THROTTLED",
+					"PIX_KEY_NOT_FOUND",
+					"PIX_KEY_IS_QR_CODE",
+					"WITHDRAWAL_IN_PROGRESS",
+					"PIX_QUOTE_EXPIRED",
+					"PIX_QR_AMOUNT_FIXED",
+					"PIX_PAYMENT_EXISTS"
+				],
+				"type": "string"
+			},
+			"BridgeKycStatus": {
+				"enum": [
+					"not_started",
+					"under_review",
+					"incomplete",
+					"approved",
+					"rejected"
+				],
+				"type": "string"
+			},
+			"RailStatus": {
+				"enum": [
+					"PENDING",
+					"ENABLED",
+					"REQUIRES_INFORMATION",
+					"REQUIRES_EXTRA_INFORMATION",
+					"REQUIRES_SUPPORT",
+					"REJECTED",
+					"FAILED"
+				],
+				"type": "string"
+			},
+			"RainCardStatus": {
+				"enum": [
+					"NOT_ACTIVATED",
+					"ACTIVE",
+					"LOCKED",
+					"CANCELED"
+				],
+				"type": "string"
+			},
+			"RequestChargeStatus": {
+				"enum": [
+					"COMPLETED",
+					"EXPIRED",
+					"FAILED",
+					"NEW",
+					"PENDING",
+					"SIGNED",
+					"CANCELLED"
+				],
+				"type": "string"
+			},
+			"RequestPaymentStatus": {
+				"enum": [
+					"PENDING",
+					"SUCCESSFUL",
+					"FAILED"
+				],
+				"type": "string"
+			},
+			"SendLinkStatus": {
+				"enum": [
+					"creating",
+					"completed",
+					"CLAIMING",
+					"CLAIMED",
+					"CANCELLED",
+					"FAILED"
+				],
+				"type": "string"
+			},
+			"TransactionIntentStatus": {
+				"enum": [
+					"PENDING",
+					"AWAITING_USER_ACTION",
+					"AWAITING_SETTLEMENT",
+					"PROCESSING",
+					"COMPLETED",
+					"FAILED",
+					"CANCELLED",
+					"REFUNDED"
+				],
+				"type": "string"
+			}
+		}
 	},
 	"info": {
 		"title": "peanut-api",
@@ -1916,6 +2080,9 @@
 									"sendLinkPubKey": {
 										"type": "string"
 									},
+									"sendLinkSignature": {
+										"type": "string"
+									},
 									"source": {
 										"properties": {
 											"currency": {
@@ -3447,6 +3614,72 @@
 					}
 				},
 				"summary": "Get card geographic eligibility",
+				"tags": [
+					"card"
+				]
+			}
+		},
+		"/card/funding-pending": {
+			"post": {
+				"parameters": [
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"ok": true
+								},
+								"schema": {
+									"properties": {
+										"ok": {
+											"enum": [
+												true
+											],
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"ok"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error",
+										"message"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Mark that the user left the card funding step to send a bank transfer",
 				"tags": [
 					"card"
 				]
@@ -10099,9 +10332,373 @@
 				}
 			}
 		},
+		"/fx/fees": {
+			"get": {
+				"description": "Public per-transfer fee schedule for bank rails, Peanut Card, and crypto deposits/withdrawals. Separate from live FX conversion spreads.",
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"bankTransfers": [
+										{
+											"currency": "USD",
+											"direction": "deposit",
+											"flatFee": "0",
+											"id": "usd-deposit",
+											"payer": "peanut",
+											"rails": [
+												"ach_push",
+												"fednow",
+												"wire"
+											]
+										},
+										{
+											"currency": "USD",
+											"direction": "withdraw",
+											"flatFee": "0",
+											"id": "usd-ach-out",
+											"payer": "peanut",
+											"rails": [
+												"ach",
+												"ach_same_day"
+											]
+										},
+										{
+											"currency": "USD",
+											"direction": "withdraw",
+											"flatFee": "20.00",
+											"id": "usd-wire-out",
+											"minAmount": "21.00",
+											"payer": "provider",
+											"rails": [
+												"wire"
+											]
+										},
+										{
+											"currency": "EUR",
+											"direction": "both",
+											"flatFee": "0",
+											"id": "eur-sepa",
+											"payer": "peanut",
+											"rails": [
+												"sepa"
+											]
+										},
+										{
+											"currency": "GBP",
+											"direction": "both",
+											"flatFee": "0",
+											"id": "gbp-fps",
+											"payer": "peanut",
+											"rails": [
+												"faster_payments"
+											]
+										},
+										{
+											"currency": "MXN",
+											"direction": "both",
+											"flatFee": "0",
+											"id": "mxn-spei",
+											"payer": "peanut",
+											"rails": [
+												"spei"
+											]
+										},
+										{
+											"currency": "COP",
+											"direction": "both",
+											"flatFee": "0",
+											"id": "cop-local",
+											"payer": "peanut",
+											"rails": [
+												"bre_b"
+											]
+										},
+										{
+											"currency": "ARS",
+											"direction": "both",
+											"flatFee": "0",
+											"id": "ars-local",
+											"payer": "peanut",
+											"rails": [
+												"cbu_cvu",
+												"qr"
+											]
+										},
+										{
+											"currency": "BRL",
+											"direction": "both",
+											"flatFee": "0.75",
+											"id": "brl-pix-br",
+											"minDeposit": "20",
+											"minPayout": "5",
+											"payer": "provider",
+											"rails": [
+												"pix"
+											],
+											"residency": "BR"
+										}
+									],
+									"card": {
+										"issuanceUsd": "0",
+										"monthlyUsd": "0",
+										"peanutPaymentFeePct": "0",
+										"thirdPartyNote": "visa_network",
+										"topUpUsd": "0"
+									},
+									"crypto": {
+										"depositsUsd": "0",
+										"networkFeeWithdrawals": [
+											{
+												"chain": "SOLANA",
+												"flatFeeUsd": "0.50",
+												"minWithdrawalUsd": "1.00",
+												"pctFee": "0.0007"
+											},
+											{
+												"chain": "TRON",
+												"flatFeeUsd": "1.40",
+												"minWithdrawalUsd": "10.10",
+												"pctFee": "0.0007"
+											},
+											{
+												"chain": "ETHEREUM",
+												"flatFeeUsd": "1.50",
+												"minWithdrawalUsd": "5.05",
+												"pctFee": "0.0007"
+											}
+										],
+										"otherNetworksDeliveryFee": "live_quote",
+										"peanutFeeUsd": "0"
+									},
+									"generatedAt": "2026-01-01T00:00:00.000Z"
+								},
+								"schema": {
+									"additionalProperties": false,
+									"properties": {
+										"bankTransfers": {
+											"items": {
+												"additionalProperties": false,
+												"properties": {
+													"currency": {
+														"pattern": "^[A-Z]{3,4}$",
+														"type": "string"
+													},
+													"direction": {
+														"anyOf": [
+															{
+																"enum": [
+																	"deposit"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
+																	"withdraw"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
+																	"both"
+																],
+																"type": "string"
+															}
+														]
+													},
+													"flatFee": {
+														"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
+														"type": "string"
+													},
+													"id": {
+														"type": "string"
+													},
+													"minAmount": {
+														"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
+														"type": "string"
+													},
+													"minDeposit": {
+														"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
+														"type": "string"
+													},
+													"minPayout": {
+														"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
+														"type": "string"
+													},
+													"payer": {
+														"anyOf": [
+															{
+																"enum": [
+																	"peanut"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
+																	"provider"
+																],
+																"type": "string"
+															}
+														]
+													},
+													"rails": {
+														"items": {
+															"type": "string"
+														},
+														"type": "array"
+													},
+													"residency": {
+														"type": "string"
+													}
+												},
+												"required": [
+													"id",
+													"currency",
+													"rails",
+													"direction",
+													"flatFee",
+													"payer"
+												],
+												"type": "object"
+											},
+											"type": "array"
+										},
+										"card": {
+											"additionalProperties": false,
+											"properties": {
+												"issuanceUsd": {
+													"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
+													"type": "string"
+												},
+												"monthlyUsd": {
+													"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
+													"type": "string"
+												},
+												"peanutPaymentFeePct": {
+													"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
+													"type": "string"
+												},
+												"thirdPartyNote": {
+													"enum": [
+														"visa_network"
+													],
+													"type": "string"
+												},
+												"topUpUsd": {
+													"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
+													"type": "string"
+												}
+											},
+											"required": [
+												"issuanceUsd",
+												"monthlyUsd",
+												"topUpUsd",
+												"peanutPaymentFeePct",
+												"thirdPartyNote"
+											],
+											"type": "object"
+										},
+										"crypto": {
+											"additionalProperties": false,
+											"properties": {
+												"depositsUsd": {
+													"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
+													"type": "string"
+												},
+												"networkFeeWithdrawals": {
+													"items": {
+														"additionalProperties": false,
+														"properties": {
+															"chain": {
+																"type": "string"
+															},
+															"flatFeeUsd": {
+																"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
+																"type": "string"
+															},
+															"minWithdrawalUsd": {
+																"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
+																"type": "string"
+															},
+															"pctFee": {
+																"description": "Percentage fee expressed as a decimal fraction (for example 0.0007 = 0.07%).",
+																"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
+																"type": "string"
+															}
+														},
+														"required": [
+															"chain",
+															"flatFeeUsd",
+															"pctFee",
+															"minWithdrawalUsd"
+														],
+														"type": "object"
+													},
+													"type": "array"
+												},
+												"otherNetworksDeliveryFee": {
+													"description": "Non-listed cross-chain networks may carry a quote-dependent bridge delivery fee returned in the live quote.",
+													"enum": [
+														"live_quote"
+													],
+													"type": "string"
+												},
+												"peanutFeeUsd": {
+													"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
+													"type": "string"
+												}
+											},
+											"required": [
+												"depositsUsd",
+												"peanutFeeUsd",
+												"otherNetworksDeliveryFee",
+												"networkFeeWithdrawals"
+											],
+											"type": "object"
+										},
+										"generatedAt": {
+											"format": "date-time",
+											"type": "string"
+										}
+									},
+									"required": [
+										"bankTransfers",
+										"card",
+										"crypto",
+										"generatedAt"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			}
+		},
 		"/fx/rate": {
 			"get": {
-				"description": "Public indicative display-sell rate for one currency pair.",
+				"description": "Public indicative rates for one currency pair: rate sells one `from`, buyRate buys one `from`, both in `to` units.",
 				"parameters": [
 					{
 						"description": "ISO-style currency code or supported four-letter internal ticker",
@@ -10135,6 +10732,11 @@
 											"enum": [
 												"display_sell"
 											],
+											"type": "string"
+										},
+										"buyRate": {
+											"description": "`to` units it costs to buy one `from`.",
+											"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
 											"type": "string"
 										},
 										"effectiveAt": {
@@ -10191,6 +10793,7 @@
 											"type": "boolean"
 										},
 										"rate": {
+											"description": "`to` units one `from` sells for.",
 											"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
 											"type": "string"
 										},
@@ -10253,6 +10856,7 @@
 										"from",
 										"to",
 										"rate",
+										"buyRate",
 										"basis",
 										"indicative",
 										"selection",
@@ -10377,6 +10981,32 @@
 					"200": {
 						"content": {
 							"application/json": {
+								"example": {
+									"base": "USD",
+									"basis": "display_sell",
+									"generatedAt": "2026-01-01T00:00:00.000Z",
+									"indicative": true,
+									"rates": [
+										{
+											"baseSource": "identity",
+											"buyUnitsPerBase": "1",
+											"code": "USD",
+											"effectiveAt": null,
+											"quoteSource": "identity",
+											"selection": "identity",
+											"unitsPerBase": "1"
+										},
+										{
+											"baseSource": "identity",
+											"buyUnitsPerBase": "1509.20",
+											"code": "ARS",
+											"effectiveAt": "2026-01-01T00:00:00.000Z",
+											"quoteSource": "manteca",
+											"selection": "provider_pair",
+											"unitsPerBase": "1485.10"
+										}
+									]
+								},
 								"schema": {
 									"additionalProperties": false,
 									"properties": {
@@ -10431,6 +11061,10 @@
 																"type": "string"
 															}
 														]
+													},
+													"buyUnitsPerBase": {
+														"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
+														"type": "string"
 													},
 													"code": {
 														"pattern": "^[A-Z]{3,4}$",
@@ -10505,6 +11139,7 @@
 												"required": [
 													"code",
 													"unitsPerBase",
+													"buyUnitsPerBase",
 													"selection",
 													"baseSource",
 													"quoteSource",
@@ -10523,6 +11158,265 @@
 										"indicative",
 										"generatedAt",
 										"rates"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"properties": {
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error",
+										"message"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"properties": {
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error",
+										"message"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"properties": {
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error",
+										"message"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/fx/reference": {
+			"get": {
+				"description": "Public, server-cached local-market USD benchmarks (for example Argentine Dólar cripto, MEP, Blue, Tarjeta, Oficial). Informational only.",
+				"parameters": [
+					{
+						"description": "ISO-style currency code or supported four-letter internal ticker",
+						"in": "query",
+						"name": "currency",
+						"required": true,
+						"schema": {
+							"pattern": "^[A-Za-z]{3,4}$",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"base": "USD",
+									"benchmarks": [
+										{
+											"buy": "1490.00",
+											"effectiveAt": "2026-01-01T00:00:00.000Z",
+											"key": "cripto",
+											"sell": "1505.00"
+										},
+										{
+											"buy": "1465.00",
+											"effectiveAt": "2026-01-01T00:00:00.000Z",
+											"key": "mep",
+											"sell": "1475.00"
+										},
+										{
+											"buy": "1480.00",
+											"effectiveAt": "2026-01-01T00:00:00.000Z",
+											"key": "blue",
+											"sell": "1500.00"
+										},
+										{
+											"buy": null,
+											"effectiveAt": "2026-01-01T00:00:00.000Z",
+											"key": "tarjeta",
+											"sell": "1920.00"
+										},
+										{
+											"buy": "1420.00",
+											"effectiveAt": "2026-01-01T00:00:00.000Z",
+											"key": "oficial",
+											"sell": "1460.00"
+										}
+									],
+									"currency": "ARS",
+									"generatedAt": "2026-01-01T00:00:00.000Z",
+									"indicative": true,
+									"source": "dolarapi"
+								},
+								"schema": {
+									"additionalProperties": false,
+									"properties": {
+										"base": {
+											"enum": [
+												"USD"
+											],
+											"type": "string"
+										},
+										"benchmarks": {
+											"items": {
+												"additionalProperties": false,
+												"properties": {
+													"buy": {
+														"anyOf": [
+															{
+																"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
+													"effectiveAt": {
+														"format": "date-time",
+														"type": "string"
+													},
+													"key": {
+														"anyOf": [
+															{
+																"enum": [
+																	"cripto"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
+																	"mep"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
+																	"blue"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
+																	"tarjeta"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
+																	"oficial"
+																],
+																"type": "string"
+															}
+														]
+													},
+													"sell": {
+														"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
+														"type": "string"
+													}
+												},
+												"required": [
+													"key",
+													"buy",
+													"sell",
+													"effectiveAt"
+												],
+												"type": "object"
+											},
+											"minItems": 1,
+											"type": "array"
+										},
+										"currency": {
+											"pattern": "^[A-Z]{3,4}$",
+											"type": "string"
+										},
+										"generatedAt": {
+											"format": "date-time",
+											"type": "string"
+										},
+										"indicative": {
+											"enum": [
+												true
+											],
+											"type": "boolean"
+										},
+										"source": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"currency",
+										"base",
+										"source",
+										"indicative",
+										"benchmarks",
+										"generatedAt"
 									],
 									"type": "object"
 								}
@@ -12503,7 +13397,7 @@
 		},
 		"/manteca/qr-payment/complete-with-signed-tx": {
 			"post": {
-				"description": "Broadcasts the signed UserOp, or submits the signed Rain withdrawal via the session key, first; the Manteca payment is created only once the USDC mined at the QR deposit address and is claimed for this attempt. A payment that fails after that is recorded and its USDC refunded.",
+				"description": "Broadcasts the signed UserOp, or submits the signed Rain withdrawal via the session key, first; the Manteca payment is created only once the USDC mined at the QR deposit address and is claimed for this attempt. A payment that fails after that is recorded and its USDC refunded. One payment lock is funded at most once: while another attempt for the lock is unresolved the answer is 409 FUNDING_PENDING_CONFIRMATION, and once that attempt moved money and is final it is 409 QR_PAYMENT_LOCK_USED. Neither sends anything.",
 				"parameters": [
 					{
 						"in": "header",
@@ -21750,6 +22644,58 @@
 										"balanceUnavailable": {
 											"type": "boolean"
 										},
+										"cardState": {
+											"anyOf": [
+												{
+													"enum": [
+														"add-card"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"creating-card"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"pending"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"manual-review"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"requires-info"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"requires-support"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"rejected"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"active"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"cards": {
 											"items": {
 												"properties": {
@@ -21918,7 +22864,8 @@
 										"status",
 										"balance",
 										"balanceUnavailable",
-										"cards"
+										"cards",
+										"cardState"
 									],
 									"type": "object"
 								}
@@ -26743,21 +27690,20 @@
 					}
 				],
 				"responses": {
-					"200": {
+					"404": {
 						"content": {
 							"application/json": {
 								"schema": {
 									"properties": {
-										"joinedAt": {
+										"code": {
 											"type": "string"
 										},
-										"position": {
-											"type": "number"
+										"error": {
+											"type": "string"
 										}
 									},
 									"required": [
-										"joinedAt",
-										"position"
+										"error"
 									],
 									"type": "object"
 								}
@@ -26765,7 +27711,7 @@
 						},
 						"description": "Default Response"
 					},
-					"404": {
+					"410": {
 						"content": {
 							"application/json": {
 								"schema": {
@@ -30435,13 +31381,13 @@
 											},
 											{
 												"enum": [
-													"incomplete"
+													"under_review"
 												],
 												"type": "string"
 											},
 											{
 												"enum": [
-													"under_review"
+													"incomplete"
 												],
 												"type": "string"
 											},
@@ -32732,24 +33678,18 @@
 												}
 											},
 											"required": [
-												"slug",
-												"version"
+												"slug"
 											],
 											"type": "object"
 										},
 										"maxItems": 8,
-										"minItems": 1,
 										"type": "array"
 									}
 								},
-								"required": [
-									"documents"
-								],
 								"type": "object"
 							}
 						}
-					},
-					"required": true
+					}
 				},
 				"responses": {
 					"200": {
@@ -34825,46 +35765,64 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"properties": {
-										"code": {
-											"anyOf": [
-												{
-													"enum": [
-														"feature_setup_unavailable"
-													],
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"anyOf": [
+														{
+															"enum": [
+																"feature_setup_unavailable"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_setup_pending"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_not_open"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"error": {
 													"type": "string"
 												},
-												{
-													"enum": [
-														"feature_setup_pending"
-													],
+												"message": {
 													"type": "string"
 												},
-												{
-													"enum": [
-														"feature_not_open"
-													],
+												"userMessage": {
 													"type": "string"
 												}
-											]
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error"
+											],
+											"type": "object"
 										},
-										"error": {
-											"type": "string"
-										},
-										"message": {
-											"type": "string"
-										},
-										"userMessage": {
-											"type": "string"
+										{
+											"properties": {
+												"code": {
+													"type": "string"
+												},
+												"error": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"error"
+											],
+											"type": "object"
 										}
-									},
-									"required": [
-										"code",
-										"userMessage",
-										"message",
-										"error"
-									],
-									"type": "object"
+									]
 								}
 							}
 						},

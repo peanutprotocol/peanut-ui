@@ -1,23 +1,21 @@
 'use client'
 
 import type { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
 import { NETWORK_LABELS, CHAIN_LOGOS, TOKEN_LOGOS, type ChainName, type TokenName } from '@/constants/rhino.consts'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
 import { offerPushPrompt } from '@/hooks/useNotifications'
 import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
+import { captureCryptoDepositCompleted } from '@/features/add-money/captureCryptoDepositCompleted'
+import { useRhinoDepositAddress } from '@/features/add-money/useRhinoDepositAddress'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
-import { useWallet } from '@/hooks/wallet/useWallet'
-import { rhinoApi } from '@/services/rhino'
 import type { DepositAddressStatusResponse, RhinoChainType } from '@/services/services.types'
 import { getExplorerUrl } from '@/utils/token.utils'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
-import { useQuery } from '@tanstack/react-query'
 import { useQueryState, parseAsStringEnum, parseAsString } from 'nuqs'
-import posthog from 'posthog-js'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { saveLastDepositMethod } from '@/features/add-money/lastUsedAddMethod'
 
 /** An EVM transaction hash, the only shape the history route keys a receipt on. */
 const EVM_TX_HASH = /^0x[0-9a-f]{64}$/i
@@ -55,7 +53,6 @@ export function useAddMoneyCryptoFlow() {
     // under the origin, so back from the origin reopened the deposit
     const leaveToOrigin = useReturnTo(returnTo ?? '/add-money')
     const onBack = returnTo ? leaveToOrigin : safeBack
-    const { address: peanutWalletAddress } = useWallet()
     // no default: a bare /add-money/crypto shows the choose-network step per the
     // Add/Crypto board (17830:78020); ?network= deep-links keep working
     const [networkParam, setNetworkParam] = useQueryState(
@@ -72,30 +69,27 @@ export function useAddMoneyCryptoFlow() {
         isLoading,
         isError,
         refetch,
-    } = useQuery({
-        queryKey: ['rhino-deposit-address', user?.user.userId, peanutWalletAddress, network],
-        queryFn: () =>
-            rhinoApi.createDepositAddress(peanutWalletAddress as string, network, user?.user.userId as string),
-        enabled: !!user && !!peanutWalletAddress && !needsNetworkChoice,
-        staleTime: 1000 * 60 * 60 * 24, // 24 hours
-    })
+    } = useRhinoDepositAddress(network, !needsNetworkChoice)
 
     useEffect(() => {
         if (depositAddressData) void offerPushPrompt(PUSH_PROMPT_TRIGGERS.DEPOSIT_INTENT)
     }, [depositAddressData])
 
     const handleSuccess = useCallback(
-        (amount: number, statusData?: DepositAddressStatusResponse) => {
-            posthog.capture(ANALYTICS_EVENTS.DEPOSIT_COMPLETED, {
+        (amount: number, statusData?: DepositAddressStatusResponse, seenOpen = false) => {
+            const address = depositAddressData?.depositAddress
+            captureCryptoDepositCompleted(
                 amount,
-                chain_type: network,
-                method_type: 'crypto',
-                acquisition_source: user?.invitedBy ? 'referred' : 'organic',
-            })
+                network,
+                user?.invitedBy,
+                address ? { address, txHash: statusData?.txHash } : undefined
+            )
+            // the 24h address cache can replay an old completed deposit: that one is not the last deposit
+            if (seenOpen) saveLastDepositMethod('crypto')
             setDepositResult(statusData ?? { status: 'completed', amount })
             setShowSuccessView(true)
         },
-        [network, user?.invitedBy]
+        [network, user?.invitedBy, depositAddressData?.depositAddress]
     )
 
     // build minimal transaction details for the receipt drawer

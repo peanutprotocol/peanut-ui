@@ -6,6 +6,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { Icon } from '@/components/Global/Icons/Icon'
 import SetupTitleBlock from '@/components/Setup/components/SetupTitleBlock'
+import { clearLocalVerifyFieldError, noteLocalVerifyFieldError } from '@/features/stuck-detector/signalStore'
 import type {
     PaperworkQuestionsFeature,
     PaperworkVerificationStep,
@@ -213,6 +214,7 @@ export function QuestionStepScreen({
     const viewedAt = useRef(Date.now())
     const rejections = useRef(0)
     const flagged = useRef(new Set<string>())
+    const localAttempts = useRef<Record<string, number>>({})
     const submitting = useRef(false)
     const [handingOff, setHandingOff] = useState(false)
     const [removingLocal, setRemovingLocal] = useState(false)
@@ -332,7 +334,18 @@ export function QuestionStepScreen({
                           ? 'invalid_tax_id'
                           : 'tax_id_warning'
                       : null
-        if (!code || flagged.current.has(`${key}:${code}`)) return
+        if (!code) {
+            clearLocalVerifyFieldError()
+            return
+        }
+        // Track repeated client-side invalid blurs independently of analytics dedup (`flagged.current`)
+        // so genuine multi-attempt verification stalls signal the stuck detector (CUIT/CPF/SSN auto-format in formatTaxId).
+        const nextAttempt = (localAttempts.current[key] ?? 0) + 1
+        localAttempts.current[key] = nextAttempt
+        if (nextAttempt >= 2) {
+            noteLocalVerifyFieldError(nextAttempt)
+        }
+        if (flagged.current.has(`${key}:${code}`)) return
         flagged.current.add(`${key}:${code}`)
         track(ANALYTICS_EVENTS.KYC_PV_FIELD_ERROR, { field: key, code, source: 'typing' })
     }
@@ -341,6 +354,7 @@ export function QuestionStepScreen({
         if (!complete || removingRef.current || submitting.current) return
         tapped('continue')
         if (page < pages.length - 1) {
+            clearLocalVerifyFieldError()
             setPage(page + 1)
             return
         }

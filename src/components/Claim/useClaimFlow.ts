@@ -15,16 +15,11 @@ import { useHistoryEntry } from '@/hooks/useHistoryEntry'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import type { RecipientType } from '@/interfaces/interfaces'
-import {
-    ESendLinkStatus,
-    getParamsFromLink,
-    resolveClaimLink,
-    sendLinksApi,
-    type ClaimLinkData,
-} from '@/services/sendLinks'
+import { getParamsFromLink, resolveClaimLink, sendLinksApi, type ClaimLinkData } from '@/services/sendLinks'
+import { SendLinkStatus } from '@/constants/api-enums.generated'
 import { getInitialsFromName, isStableCoin, getChainName, getTokenLogo, getChainLogo } from '@/utils/general.utils'
 import { getTokenDetails } from '@/utils/token.utils'
-import { useCapabilities } from '@/hooks/useCapabilities'
+import { useVerification } from '@/hooks/useVerification'
 import { getUserById } from '@/app/actions/users'
 import * as Sentry from '@sentry/nextjs'
 import { useQuery } from '@tanstack/react-query'
@@ -80,8 +75,8 @@ export const useClaimFlow = () => {
     const [userId, setUserId] = useState<string | undefined>(undefined)
     const { address } = useWallet()
     const { user, isFetchingUser } = useAuth()
-    // current-user KYC gate — capability model (any enabled rail = identity cleared)
-    const { isKycApproved } = useCapabilities()
+    // a user with an enabled rail goes straight to the bank country list
+    const { hasAnyEnabledRail } = useVerification()
     const [isLinkCancelling, setisLinkCancelling] = useState(false)
     const senderId = claimLinkData?.sender?.userId
     const { interactions } = useUserInteractions(senderId ? [senderId] : [])
@@ -121,20 +116,20 @@ export const useClaimFlow = () => {
 
         let status: StatusType
         switch (claimLinkData.status) {
-            case ESendLinkStatus.creating:
-            case ESendLinkStatus.completed:
+            case SendLinkStatus.creating:
+            case SendLinkStatus.completed:
                 status = 'pending'
                 break
-            case ESendLinkStatus.CLAIMING:
+            case SendLinkStatus.CLAIMING:
                 status = 'processing'
                 break
-            case ESendLinkStatus.CLAIMED:
+            case SendLinkStatus.CLAIMED:
                 status = 'completed'
                 break
-            case ESendLinkStatus.CANCELLED:
+            case SendLinkStatus.CANCELLED:
                 status = 'cancelled'
                 break
-            case ESendLinkStatus.FAILED:
+            case SendLinkStatus.FAILED:
                 status = 'failed'
                 break
             default:
@@ -337,10 +332,10 @@ export const useClaimFlow = () => {
                 const claimTxSucceeded = !!sendLink.claim?.txHash
 
                 if (
-                    sendLink.status === ESendLinkStatus.CLAIMED ||
-                    sendLink.status === ESendLinkStatus.CANCELLED ||
-                    sendLink.status === ESendLinkStatus.CLAIMING ||
-                    (sendLink.status === ESendLinkStatus.FAILED && claimTxSucceeded)
+                    sendLink.status === SendLinkStatus.CLAIMED ||
+                    sendLink.status === SendLinkStatus.CANCELLED ||
+                    sendLink.status === SendLinkStatus.CLAIMING ||
+                    (sendLink.status === SendLinkStatus.FAILED && claimTxSucceeded)
                 ) {
                     setLinkState(_consts.claimLinkStateType.ALREADY_CLAIMED)
                     return
@@ -389,10 +384,10 @@ export const useClaimFlow = () => {
         const claimTxSucceeded = !!claimLinkData.claim?.txHash
 
         if (
-            claimLinkData.status === ESendLinkStatus.CLAIMED ||
-            claimLinkData.status === ESendLinkStatus.CANCELLED ||
-            claimLinkData.status === ESendLinkStatus.CLAIMING ||
-            (claimLinkData.status === ESendLinkStatus.FAILED && claimTxSucceeded)
+            claimLinkData.status === SendLinkStatus.CLAIMED ||
+            claimLinkData.status === SendLinkStatus.CANCELLED ||
+            claimLinkData.status === SendLinkStatus.CLAIMING ||
+            (claimLinkData.status === SendLinkStatus.FAILED && claimTxSucceeded)
         ) {
             setLinkState(_consts.claimLinkStateType.ALREADY_CLAIMED)
             return
@@ -443,10 +438,10 @@ export const useClaimFlow = () => {
 
     // redirect to bank flow if user is KYC approved and step is bank
     useEffect(() => {
-        if (isKycApproved && stepFromURL === 'bank') {
+        if (hasAnyEnabledRail && stepFromURL === 'bank') {
             setClaimBankFlowStep(ClaimBankFlowStep.BankCountryList)
         }
-    }, [isKycApproved])
+    }, [hasAnyEnabledRail])
 
     return {
         user,

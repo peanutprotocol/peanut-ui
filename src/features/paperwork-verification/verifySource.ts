@@ -3,7 +3,16 @@
  * Verify start's events, then on every kyc_paperwork_* event and today's flow's KYC events until the check ends.
  * Session storage, never the URL: a link someone shares must not carry it.
  */
-export type VerifySource = 'signup' | 'home' | 'unlock_payments' | 'guest_claim' | 'payment_methods' | 'card' | 'direct'
+export type VerifySource =
+    | 'signup'
+    | 'home'
+    | 'unlock_payments'
+    | 'guest_claim'
+    | 'payment_methods'
+    | 'card'
+    | 'send'
+    | 'send_link'
+    | 'direct'
 
 /** set by the caller just before it opens /verify; Verify start takes it when it shows */
 const PENDING_KEY = 'peanut:verify-source-pending'

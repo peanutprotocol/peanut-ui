@@ -1,5 +1,6 @@
 import type { SeverityLevel } from '@sentry/nextjs'
 import * as Sentry from '@/utils/sentry-lazy'
+import { ApiErrorCode } from '@/constants/api-enums.generated'
 
 import { type JSONValue } from '../interfaces/interfaces'
 import { isMutatingMethod } from '../../sentry.utils'
@@ -70,7 +71,7 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[]; erro
     {
         pattern: /qr-payment\/init/,
         statuses: [409],
-        errorCodes: ['PAYMENT_DESTINATION_EXPIRED', 'QR_INIT_IN_PROGRESS'],
+        errorCodes: [ApiErrorCode.PAYMENT_DESTINATION_EXPIRED, ApiErrorCode.QR_INIT_IN_PROGRESS],
     },
     // Rain card secrets endpoints are intentionally rate-limited (5/min) — a
     // 429 here is an expected outcome surfaced to the user, not a server bug.

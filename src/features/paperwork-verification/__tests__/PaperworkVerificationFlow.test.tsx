@@ -1,4 +1,6 @@
 const mockToastError = jest.fn()
+// Remind me later's profile write is useRemindLater's own suite
+jest.mock('@/components/Setup/redesign/VerifyStart/useRemindLater', () => ({ useRemindLater: () => jest.fn() }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
 jest.mock('@/constants/dev-tools.consts', () => ({ DEV_TOOLS_ENABLED: true }))
 import { setAuthToken } from '@/utils/auth-token'
@@ -20,7 +22,6 @@ import {
 } from '@/app/actions/kyc-paperwork-verification'
 import { updateUserById } from '@/app/actions/users'
 import { findKycDocumentPlan, getKycDocumentStatus, refreshKycIdentityStatus } from '@/app/actions/kyc-workflow'
-import { KycFlowHandedBackError } from '@/app/actions/kyc-flow-hand-back'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { PaperworkVerificationFlow } from '../PaperworkVerificationFlow'
 import { withFeatureReport } from '@/test-utils/featureReport.fixture'
@@ -34,6 +35,9 @@ const mockReplace = jest.fn()
 const mockExit = jest.fn()
 let mockAuthUserId = 'user-a'
 let mockCapabilities: unknown = undefined
+// null: the real follow-ups from the capabilities; a list: what the verified screen gets instead
+let mockFollowUps: unknown[] | null = null
+const mockFetchUser = jest.fn()
 jest.mock('@/utils/confetti', () => ({ confettiPresets: { success: jest.fn() } }))
 jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
 jest.mock('@/features/paperwork-verification/components/IdCardScanAnimation', () => ({
@@ -60,9 +64,17 @@ jest.mock('@/context/authContext', () => ({
     useOptionalAuth: () => ({ user: { user: { userId: mockAuthUserId } } }),
     useAuth: () => ({
         user: { user: { userId: mockAuthUserId, username: 'tester' }, capabilities: mockCapabilities },
-        fetchUser: jest.fn(),
+        fetchUser: (...args: unknown[]) => mockFetchUser(...args),
     }),
 }))
+jest.mock('@/features/paperwork-verification/followUps', () => {
+    const actual = jest.requireActual('@/features/paperwork-verification/followUps')
+    return {
+        ...actual,
+        verifiedFollowUps: (...args: Parameters<typeof actual.verifiedFollowUps>) =>
+            mockFollowUps ?? actual.verifiedFollowUps(...args),
+    }
+})
 jest.mock('@/hooks/useWebSocket', () => ({ useWebSocket: jest.fn() }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => mockExit }))
 jest.mock('@/hooks/useSumsubKycFlow', () => ({ useSumsubKycFlow: jest.fn() }))
@@ -220,7 +232,12 @@ function withSixDropdowns() {
     } satisfies PaperworkVerificationQuestions
 }
 
-function renderFlow(search = '', client = new QueryClient(), onUrlUpdate?: OnUrlUpdateFunction) {
+function renderFlow(
+    search = '',
+    client = new QueryClient(),
+    onUrlUpdate?: OnUrlUpdateFunction,
+    returnTo?: string | null
+) {
     return renderWithIntl(
         <QueryClientProvider client={client}>
             <NuqsTestingAdapter
@@ -229,7 +246,7 @@ function renderFlow(search = '', client = new QueryClient(), onUrlUpdate?: OnUrl
                 onUrlUpdate={onUrlUpdate}
                 resetUrlUpdateQueueOnMount={!onUrlUpdate}
             >
-                <PaperworkVerificationFlow />
+                <PaperworkVerificationFlow returnTo={returnTo} />
             </NuqsTestingAdapter>
         </QueryClientProvider>
     )
@@ -237,8 +254,8 @@ function renderFlow(search = '', client = new QueryClient(), onUrlUpdate?: OnUrl
 
 /** A visit with questions or the ID ahead opens on Verify start; Verify now goes on to the open step. */
 // The steps overview opens at once as a skeleton; Continue works once the server's read fills it.
-async function startFlow(search = '', client?: QueryClient) {
-    const view = renderFlow(search, client)
+async function startFlow(search = '', client?: QueryClient, returnTo?: string | null) {
+    const view = renderFlow(search, client, undefined, returnTo)
     await screen.findByTestId('setup-redesign-verify-steps')
     fireEvent.click(screen.getByTestId('verify-steps-continue'))
     return view
@@ -251,6 +268,8 @@ const settleStepUrl = () => act(async () => new Promise((resolve) => setTimeout(
 const mockStartAction = jest.fn()
 
 beforeEach(() => {
+    mockFetchUser.mockReset()
+    mockFollowUps = null
     window.sessionStorage.clear()
     mockAuthUserId = 'user-a'
     jest.clearAllMocks()
@@ -321,16 +340,6 @@ describe('PaperworkVerificationFlow: an account missing signup answers', () => {
     })
 })
 
-describe("PaperworkVerificationFlow: a user handed back to today's flow", () => {
-    it('goes to Home even when the plan read fails beside the hand-back', async () => {
-        mockQuestions.mockRejectedValueOnce(new KycFlowHandedBackError())
-        mockPlan.mockRejectedValueOnce(new Error('plan unavailable'))
-        renderFlow()
-
-        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/home'))
-    })
-})
-
 describe('PaperworkVerificationFlow: the steps overview', () => {
     it('keeps paperwork dimensions on loading Back and failed-load Retry controls', async () => {
         const capture = posthog.capture as jest.Mock
@@ -372,6 +381,7 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         expect(screen.getByTestId('verify-steps-continue')).toBeDisabled()
         expect(screen.queryByText('loading')).not.toBeInTheDocument()
 
+        await waitFor(() => expect(mockQuestions).toHaveBeenCalled())
         await act(async () => answer(build({ purpose: false }, 'purpose')))
         expect(await screen.findByTestId('setup-redesign-verify-steps')).toBeInTheDocument()
         expect(screen.getByTestId('verify-steps-continue')).toBeEnabled()
@@ -996,6 +1006,46 @@ describe('PaperworkVerificationFlow', () => {
         expect(mockReplace).toHaveBeenCalledWith('/home')
     })
 
+    // add-money proposal rule 1: a self-started check ends on the verified page, a task-started one returns to its task
+    describe('where an approval lands', () => {
+        const approveAfterPassport = async () => {
+            mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+            mockToken.mockResolvedValue({
+                kind: 'session',
+                session: {
+                    attemptId: 'attempt-1',
+                    token: 'tok',
+                    applicantId: 'app',
+                    levelName: 'base',
+                    sdkConfig: {
+                        documentDefinitions: { IDENTITY: { country: 'USA', idDocType: 'PASSPORT' } },
+                        autoSelectDocumentDefinitions: true,
+                    },
+                } as never,
+            })
+            mockMismatch.mockResolvedValue(null)
+            await startFlow()
+            fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-US'))
+            fireEvent.click(await screen.findByText('sumsub-id-step-done'))
+            const { useWebSocket } = jest.requireMock('@/hooks/useWebSocket') as { useWebSocket: jest.Mock }
+            const { onSumsubKycStatusUpdate } = useWebSocket.mock.calls.at(-1)[0]
+            act(() => onSumsubKycStatusUpdate('APPROVED'))
+        }
+
+        it('self-started (sign-up): replaces /verify with the verified page', async () => {
+            markVerifySource('signup')
+            await approveAfterPassport()
+            await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/verified'))
+        })
+
+        it('task-started (the card): keeps the verified step that returns to the task', async () => {
+            markVerifySource('card')
+            await approveAfterPassport()
+            expect(await screen.findByTestId('verify-verified-payments')).toBeInTheDocument()
+            expect(mockReplace).not.toHaveBeenCalledWith('/verified')
+        })
+    })
+
     describe("an ID Sumsub reads as another country's", () => {
         const openSumsubOnPassport = async () => {
             mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
@@ -1147,6 +1197,57 @@ describe('PaperworkVerificationFlow', () => {
         mockStatus.mockResolvedValue('IN_REVIEW')
         fireEvent.click(continueButton())
         expect(await screen.findByTestId('verify-review-home')).toBeInTheDocument()
+    })
+
+    describe('a first-time check opened with returnTo (the card step, TASK-25169 option B)', () => {
+        const reachReview = async (returnTo?: string | null) => {
+            mockSave.mockResolvedValue({ kind: 'conflict', code: 'identity_submitted' })
+            await startFlow('', undefined, returnTo)
+            await screen.findByTestId('verify-pick-annualSalary')
+            mockStatus.mockResolvedValue('IN_REVIEW')
+            fireEvent.click(continueButton())
+            fireEvent.click(await screen.findByTestId('verify-review-home'))
+        }
+
+        it('says Continue, not "Back to Home", when it returns to where it was opened from', async () => {
+            mockSave.mockResolvedValue({ kind: 'conflict', code: 'identity_submitted' })
+            await startFlow('', undefined, '/card?card_step=funding')
+            await screen.findByTestId('verify-pick-annualSalary')
+            mockStatus.mockResolvedValue('IN_REVIEW')
+            fireEvent.click(continueButton())
+            const cta = await screen.findByTestId('verify-review-home')
+            expect(cta).toHaveTextContent('Continue')
+            expect(cta).not.toHaveTextContent('Back to Home')
+        })
+
+        it('keeps "Back to Home" without returnTo', async () => {
+            mockSave.mockResolvedValue({ kind: 'conflict', code: 'identity_submitted' })
+            await startFlow()
+            await screen.findByTestId('verify-pick-annualSalary')
+            mockStatus.mockResolvedValue('IN_REVIEW')
+            fireEvent.click(continueButton())
+            expect(await screen.findByTestId('verify-review-home')).toHaveTextContent('Back to Home')
+        })
+
+        it('ends on the card step it was opened from', async () => {
+            await reachReview('/card?card_step=funding')
+            await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/card?card_step=funding'))
+            expect(mockReplace).not.toHaveBeenCalledWith('/home')
+        })
+
+        it('ends on Home without returnTo, as every other entry (sign-up included) does today', async () => {
+            markVerifySource('signup')
+            await reachReview()
+            expect(mockReplace).toHaveBeenCalledWith('/home')
+        })
+
+        it.each(['//evil.example/x', '/verify', 'https://evil.example/', '/verify/?step=tax'])(
+            'ends on Home for an unsafe returnTo: %s',
+            async (returnTo) => {
+                await reachReview(returnTo)
+                expect(mockReplace).toHaveBeenCalledWith('/home')
+            }
+        )
     })
 
     it('the review asks the API to re-read Sumsub every fourth poll, so a lost webhook cannot hold it', async () => {
@@ -1380,6 +1481,71 @@ describe('PaperworkVerificationFlow', () => {
         expect(screen.getByText(/^Your ID isn’t from/)).toBeInTheDocument()
     })
 
+    describe('a verified user with a step left (a card proof of address)', () => {
+        const cardAddress = { label: 'cardAddress', note: 'home.pendingTasks.cardAddressDescription', href: '/card' }
+        beforeEach(() => {
+            mockFollowUps = [cardAddress]
+            mockStatus.mockResolvedValue('APPROVED')
+            mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+        })
+        afterEach(() => {
+            mockFollowUps = null
+        })
+
+        it('lists the step and goes to it without returnTo', async () => {
+            renderFlow('')
+            const cta = await screen.findByTestId('verify-verified-payments')
+            expect(within(screen.getByTestId('verify-steps')).getByText('Add a proof of address')).toBeInTheDocument()
+            fireEvent.click(cta)
+            expect(mockPush).toHaveBeenCalledWith('/card')
+        })
+
+        it('with returnTo, lists no step it will not lead to and goes back to the opener', async () => {
+            renderFlow('', undefined, undefined, '/card?card_step=funding')
+            const cta = await screen.findByTestId('verify-verified-payments')
+            expect(
+                within(screen.getByTestId('verify-steps')).queryByText('Add a proof of address')
+            ).not.toBeInTheDocument()
+            fireEvent.click(cta)
+            await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/card?card_step=funding'))
+            expect(mockPush).not.toHaveBeenCalled()
+        })
+    })
+
+    it('a session that changes while the user is read again does not leave for returnTo', async () => {
+        let finishRead: () => void = () => undefined
+        mockFetchUser.mockImplementationOnce(() => new Promise<void>((resolve) => (finishRead = resolve)))
+        mockStatus.mockResolvedValue('APPROVED')
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+        renderFlow('', undefined, undefined, '/card?card_step=funding')
+        fireEvent.click(await screen.findByTestId('verify-verified-payments'))
+        // another account signs in during the read
+        mockAuthUserId = 'user-b'
+        setAuthToken(`x.${btoa(JSON.stringify({ userId: 'user-b' }))}.y`)
+        await act(async () => finishRead())
+        expect(mockReplace).not.toHaveBeenCalledWith('/card?card_step=funding')
+    })
+
+    it('an approved user with no returnTo keeps "Set up payments"', async () => {
+        mockStatus.mockResolvedValue('APPROVED')
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+        renderFlow('')
+        expect(await screen.findByTestId('verify-verified-payments')).toHaveTextContent('Set up payments')
+    })
+
+    it('an approved user opened from the card step goes back there on Continue, not to payments', async () => {
+        mockStatus.mockResolvedValue('APPROVED')
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+        renderFlow('', undefined, undefined, '/card?card_step=funding')
+        const cta = await screen.findByTestId('verify-verified-payments')
+        // the target is not payments: a neutral label
+        expect(cta).toHaveTextContent('Continue')
+        expect(cta).not.toHaveTextContent('Set up payments')
+        fireEvent.click(cta)
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/card?card_step=funding'))
+        expect(mockPush).not.toHaveBeenCalledWith('/profile/payments')
+    })
+
     // TASK-24968: Bridge refused the bank accounts for good; the timeline must not read as all unlocked.
     it('a verified user whose bank accounts Bridge refused sees why above the button', async () => {
         const support = {
@@ -1511,8 +1677,8 @@ describe('account-bound queued answer saves', () => {
 })
 
 describe('initial paperwork reads belong to the mounted account', () => {
-    it.each(['unavailable questions', 'legacy plan', 'handed-back questions'] as const)(
-        'late initial %s hand-back after unmount never navigates Home',
+    it.each(['unavailable questions', 'legacy plan', 'existing verification conflict'] as const)(
+        'late initial %s response after unmount never navigates Home',
         async (outcome) => {
             let finishQuestions!: (questions: PaperworkVerificationQuestions) => void
             let failQuestions!: (error: Error) => void
@@ -1536,16 +1702,24 @@ describe('initial paperwork reads belong to the mounted account', () => {
             )
             const view = renderFlow()
             await waitFor(() => {
-                expect(mockQuestions).toHaveBeenCalled()
                 expect(mockPlan).toHaveBeenCalled()
-                expect(mockStatus).toHaveBeenCalled()
             })
+            await act(async () =>
+                finishPlan(outcome === 'legacy plan' ? { ...plan, available: false, flow: null } : plan)
+            )
+            expect(mockQuestions).toHaveBeenCalled()
+            expect(mockStatus).toHaveBeenCalled()
             expect(mockReplace).not.toHaveBeenCalled()
             view.unmount()
             await act(async () => {
-                if (outcome === 'handed-back questions') failQuestions(new KycFlowHandedBackError())
-                else finishQuestions({ ...build(), available: outcome !== 'unavailable questions' })
-                finishPlan(outcome === 'legacy plan' ? { ...plan, available: false, flow: null } : plan)
+                if (outcome === 'existing verification conflict') {
+                    failQuestions(
+                        Object.assign(new Error('KYC questions unavailable'), {
+                            status: 409,
+                            code: 'existing_verification',
+                        })
+                    )
+                } else finishQuestions({ ...build(), available: outcome !== 'unavailable questions' })
                 finishStatus('NOT_STARTED')
             })
             expect(mockReplace).not.toHaveBeenCalled()

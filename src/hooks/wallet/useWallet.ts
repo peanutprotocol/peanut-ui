@@ -19,7 +19,7 @@ import {
     isRainBalanceKnown,
     formatUsdcBalance,
 } from '@/utils/balance.utils'
-import { useSpendBundle } from './useSpendBundle'
+import { useSpendBundle, type SpendBundleInput } from './useSpendBundle'
 import type { SpendStrategy } from './spendPreflight'
 import type { RainCollateralKind } from '@/services/rain'
 import { isDemoMode } from '@/utils/demo'
@@ -51,6 +51,8 @@ type SendTransactionsOptions = {
      *  `requiredUsdcAmount` is set (i.e. the bundle may touch Rain collateral). */
     kind?: RainCollateralKind
     onStrategyDecided?: (strategy: Exclude<SpendStrategy, 'insufficient'>) => void
+    /** See SpendBundleInput.onBroadcast. Only on the requiredUsdcAmount path. */
+    onBroadcast?: SpendBundleInput['onBroadcast']
 }
 
 export const useWallet = () => {
@@ -108,7 +110,12 @@ export const useWallet = () => {
         async (
             toAddress: Address,
             amountInUsd: string,
-            options?: { kind?: RainCollateralKind; chargeId?: string; fundsIntentId?: string }
+            options?: {
+                kind?: RainCollateralKind
+                chargeId?: string
+                fundsIntentId?: string
+                onBroadcast?: SpendBundleInput['onBroadcast']
+            }
         ) => {
             const result = await sendMoneyMutation.mutateAsync({
                 toAddress,
@@ -116,6 +123,7 @@ export const useWallet = () => {
                 kind: options?.kind,
                 chargeId: options?.chargeId,
                 fundsIntentId: options?.fundsIntentId,
+                onBroadcast: options?.onBroadcast,
             })
             // `strategy` lets same-chain callers distinguish "funds left the smart
             // account" (smart-only) from "funds left Rain collateral" (collateral-
@@ -165,6 +173,7 @@ export const useWallet = () => {
                     rainSpendingPower,
                     kind: options.kind ?? 'OTHER',
                     onStrategyDecided: options.onStrategyDecided,
+                    onBroadcast: options.onBroadcast,
                 })
                 // `subsequentCalls` is non-empty here (we just passed `params`), so
                 // the collateral-only branch inside useSpendBundle is never taken:
@@ -303,6 +312,9 @@ export const useWallet = () => {
     // that failed with no data stops loading while the balance is still unknown.
     const isSpendableBalanceReady =
         isRainReady && availableSpendableBalance !== undefined && (demoMode || isAddressReady)
+    // ready, and neither read is refetching: the raw sum cannot be a mid-move skew (money counted in
+    // both the smart account and Rain). A "funded" decision waits for this; the gates do not.
+    const isSpendableBalanceSettled = isSpendableBalanceReady && (demoMode || !anyFetching)
 
     // formatted balance for display (e.g. "1,234.56"). Smart-account only —
     // use `formattedSpendableBalance` below for user-facing widgets that
@@ -346,6 +358,8 @@ export const useWallet = () => {
         balance,
         spendableBalance,
         spendableBalanceDecimal,
+        /** the LIVE spendable total that `hasSufficientSpendableBalance` gates on; undefined until both terms read */
+        availableSpendableBalance,
         formattedBalance,
         formattedSpendableBalance,
         hasSufficientSpendableBalance,
@@ -357,5 +371,6 @@ export const useWallet = () => {
         isFetchingSpendableBalance: isSpendableBalanceLoading,
         isSpendableBalanceStale,
         isSpendableBalanceReady,
+        isSpendableBalanceSettled,
     }
 }

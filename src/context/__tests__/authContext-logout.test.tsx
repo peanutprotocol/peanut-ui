@@ -179,6 +179,19 @@ describe('logoutUser', () => {
         expect(readSignupDraft()).toBeNull()
     })
 
+    it("keeps the user's send link passwords, so their share links stay in Activity (dev behaviour)", async () => {
+        localStorage.setItem('sendLink::password::0xlinkkey', JSON.stringify('secret'))
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+
+        expect(clearAuthToken).toHaveBeenCalled()
+        expect(localStorage.getItem('sendLink::password::0xlinkkey')).toBe(JSON.stringify('secret'))
+    })
+
     it('restores cached flag properties after reset without a fresh async lookup or duplicate reload', async () => {
         stubLocation()
         const { result } = renderHook(() => useAuth(), { wrapper })

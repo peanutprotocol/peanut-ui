@@ -506,13 +506,7 @@ function PixWithdrawFormSurface({ variant }: { variant: 'quote-moved' | 'after-i
     )
 }
 
-function WithdrawReviewSurface({
-    isProcessing = false,
-    alreadySpent = false,
-}: {
-    isProcessing?: boolean
-    alreadySpent?: boolean
-}) {
+function WithdrawReviewSurface({ isProcessing = false }: { isProcessing?: boolean }) {
     return (
         <AppPageSurface>
             <ConfirmWithdrawView
@@ -534,7 +528,6 @@ function WithdrawReviewSurface({
                 onBack={noop}
                 insufficientBalance
                 isProcessing={isProcessing}
-                alreadySpent={alreadySpent}
             />
         </AppPageSurface>
     )
@@ -1626,10 +1619,6 @@ export const SURFACES: Record<string, Surface> = {
     '90-f-withdraw-review-processing': {
         ...SURFACE_META['90-f-withdraw-review-processing'],
         render: () => <WithdrawReviewSurface isProcessing />,
-    },
-    '91-f-withdraw-review-spent': {
-        ...SURFACE_META['91-f-withdraw-review-spent'],
-        render: () => <WithdrawReviewSurface alreadySpent />,
     },
     '92-f-deposit-account-closed': {
         ...SURFACE_META['92-f-deposit-account-closed'],

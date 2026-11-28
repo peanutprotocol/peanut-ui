@@ -2,10 +2,11 @@
 
 import { useTranslations } from 'next-intl'
 import Loading from '@/components/Global/Loading'
-import { Icon } from '@/components/Global/Icons/Icon'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
+import { NameChip } from '@/components/Setup/redesign/shell/NameChip'
 import { SetupScreen } from '@/components/Setup/redesign/shell/SetupScreen'
+import { useRemindLater } from '@/components/Setup/redesign/VerifyStart/useRemindLater'
 import { useAuth } from '@/context/authContext'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useSignupControl } from '@/features/setup/useSignupControl'
@@ -22,7 +23,8 @@ import { useVerifyStartEligible } from './useVerifyStartEligible'
  * claim link says it goes back to the link (`claim-link`); the redirect itself is dev's. Contract P4 § 5.
  * A default sign-up may instead get buttons (`buttons`, signup v7, Konrad's counterproposal): the same copy, and in
  * place of the wait a white "Verify now · 3 min" (the pink primary would vanish on pink) that opens the one verify
- * screen (Verify start on /verify, as Home's Verify row does), and a "Remind me later" link to Home.
+ * screen (Verify start on /verify, as Home's Verify row does), and a "Remind me later" link to Home that schedules
+ * tomorrow morning's reminder (useRemindLater).
  */
 export function CelebrationScreen({ quiet = false }: { quiet?: boolean }) {
     const t = useTranslations('setupRedesign.done')
@@ -33,6 +35,7 @@ export function CelebrationScreen({ quiet = false }: { quiet?: boolean }) {
     const { track } = useSignupControl()
     const buttons = useVerifyStartEligible(signupCompleted)
     const verify = useCelebrationVerify()
+    const remindLater = useRemindLater()
     // a quiet exit never shows the buttons, so it never holds the redirect for them
     useCelebrationRedirect(signupCompleted, buttons && !quiet, quiet)
 
@@ -72,6 +75,7 @@ export function CelebrationScreen({ quiet = false }: { quiet?: boolean }) {
                                   <LinkButton
                                       onClick={() => {
                                           track('celebration-remind-later', 'tap')
+                                          void remindLater()
                                           handleRedirect({ isNewAccount: true })
                                       }}
                                   >
@@ -101,19 +105,7 @@ export function CelebrationScreen({ quiet = false }: { quiet?: boolean }) {
                         <h1 className="text-heading-l text-balance signup-sm:text-heading-s">
                             {t(claim ? 'claimTitle' : 'title')}
                         </h1>
-                        {username && (
-                            <span
-                                className={`text-label-l ${twMerge(
-                                    'shadow-2 mt-2 inline-flex h-7 -rotate-3 items-center gap-1 rounded-sm border border-border-default bg-background-default px-2',
-                                    !claim && 'mt-4'
-                                )}`}
-                            >
-                                <span className="flex size-5 items-center justify-center rounded-full bg-background-icon-bubble-green text-foreground-inverse">
-                                    <Icon name="check" size={14} strokeWidth={3} />
-                                </span>
-                                {`@${username}`}
-                            </span>
-                        )}
+                        {username && <NameChip username={username} className={claim ? 'mt-2' : 'mt-4'} />}
                         <p
                             // ds text tokens stay outside twMerge: it reads them as colours and drops the size. Mock .sub: 16/26, 14/20 small
                             className={`text-body-m leading-[1.625rem] text-foreground-primary signup-sm:text-body-s signup-sm:leading-5 ${twMerge('mt-2.5 signup-sm:mt-2', !claim && 'mt-4')}`}

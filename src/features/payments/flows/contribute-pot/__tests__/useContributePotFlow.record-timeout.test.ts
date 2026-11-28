@@ -101,6 +101,8 @@ function expectNoReplayOrGenericFailure() {
 beforeEach(() => {
     jest.useFakeTimers()
     jest.clearAllMocks()
+    // a pending-send marker left by an earlier case belongs to another device
+    window.localStorage.clear()
     resetCtx()
     Object.assign(ctx, {
         currentView: 'INITIAL',
@@ -159,24 +161,26 @@ it('keeps exhausted pending read-back in confirming without replay or generic fa
     expectNoReplayOrGenericFailure()
 })
 
-it.each(['FAILED', 'CANCELLED'])('allows generic failure after authoritative %s', async (status) => {
+it.each(['FAILED', 'CANCELLED'])('keeps a mined contribution confirming when the charge reads %s', async (status) => {
+    // The transfer is mined: a closed charge cannot book it, and a retry would
+    // contribute twice (ChargeSendFlow.tla, trace D).
     mockFetchCharge.mockResolvedValue(openCharge({ status }))
     const { done } = await startContribution()
     await finishContribution(done, 0)
     expect(mockFetchCharge).toHaveBeenCalledWith('charge-1')
-    expect(ctx.setError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+    expect(ctx.setCurrentView).toHaveBeenLastCalledWith('STATUS')
     expect(ctx.setIsSuccess).not.toHaveBeenCalledWith(true)
-    expect(mockSendMoney).toHaveBeenCalledTimes(1)
-    expect(mockRecordPayment).toHaveBeenCalledTimes(1)
+    expectNoReplayOrGenericFailure()
 })
 
-it('keeps a no-response recording timeout as failure without read-back', async () => {
+it('reconciles a no-response recording timeout instead of offering a retry', async () => {
     mockRecordPayment.mockRejectedValue(timeoutError(false))
     const { done } = await startContribution()
-    await finishContribution(done, 0)
-    expect(mockFetchCharge).not.toHaveBeenCalled()
-    expect(unknownSetter).not.toHaveBeenCalledWith(true)
-    expect(ctx.setError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+    await finishContribution(done)
+    expect(mockFetchCharge).toHaveBeenCalledWith('charge-1')
+    expect(unknownSetter).toHaveBeenLastCalledWith(true)
+    expect(ctx.setCurrentView).toHaveBeenLastCalledWith('STATUS')
+    expectNoReplayOrGenericFailure()
 })
 
 it('does not reconcile charge-creation response uncertainty before spending', async () => {

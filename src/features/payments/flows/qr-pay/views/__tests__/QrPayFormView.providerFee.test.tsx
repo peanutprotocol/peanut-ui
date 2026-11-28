@@ -1,5 +1,5 @@
 /** @jest-environment jsdom */
-import { screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 import { PROVIDERS } from '@/constants/providers.consts'
@@ -30,9 +30,15 @@ jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ openSup
 jest.mock('@/components/Provider/ProviderHelp', () => ({
     ProviderHelp: ({ providerId }: { providerId: string }) => <span>help {providerId}</span>,
 }))
+const mockPush = jest.fn()
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
 let mockProviderFee: string | null = null
 let mockShownRate: number | null = null
 let mockHideRate = false
+let mockBalanceErrorMessage: string | null = null
+let mockIsShortOfBalance = false
+let mockIsLoading = false
+let mockIsBlockingError = false
 jest.mock('../../QrPayFlowContext', () => ({
     useQrPayFlow: () => ({
         qrPayment: null,
@@ -65,13 +71,14 @@ jest.mock('../../QrPayFlowContext', () => ({
         usdAmount: '18.52',
         errorMessage: null,
         errorInitiatingPayment: null,
-        isBlockingError: false,
-        balanceErrorMessage: null,
+        isBlockingError: mockIsBlockingError,
+        balanceErrorMessage: mockBalanceErrorMessage,
+        isShortOfBalance: mockIsShortOfBalance,
         rateUnavailable: false,
         retryRate: jest.fn(),
         shouldBlockPay: false,
-        isLoading: false,
-        loadingState: 'idle',
+        isLoading: mockIsLoading,
+        loadingState: mockIsLoading ? 'Approve transaction' : 'Idle',
         quoteUpdatedNotice: null,
         isQuoteRecovering: false,
         amountInputRevision: 0,
@@ -88,6 +95,11 @@ describe('QrPayFormView', () => {
         mockProviderFee = null
         mockShownRate = null
         mockHideRate = false
+        mockBalanceErrorMessage = null
+        mockIsShortOfBalance = false
+        mockIsLoading = false
+        mockIsBlockingError = false
+        mockPush.mockClear()
     })
 
     // the shared form (ruling 2026-11-12): the look the Pix withdrawal copies
@@ -102,7 +114,7 @@ describe('QrPayFormView', () => {
         // BRL has no card comparison, even when a backend still publishes a rate (pricing.md B-4)
         expect(screen.queryByText(en.qrPay.info.saveVsCard)).toBeNull()
         expect(screen.queryByText('~$0.93')).toBeNull()
-        expect(screen.getByText(en.common.sponsoredByPeanut)).toBeInTheDocument()
+        expect(screen.queryByText(en.common.sponsoredByPeanut)).toBeNull()
         expect(screen.getByText(PROVIDERS['manteca-br'].brand)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: en.navigation.pay })).toBeEnabled()
     })
@@ -134,5 +146,37 @@ describe('QrPayFormView', () => {
         renderWithIntl(<QrPayFormView />)
         expect(screen.queryByText(en.qrPay.info.exchangeRate)).toBeNull()
         expect(screen.queryByText(/^1 USD =/)).toBeNull()
+    })
+
+    // TASK-25444: a balance that cannot cover the amount was a dead end with a disabled Pay
+    it('offers Add money in place of Pay when the balance is short, and keeps the scanned QR as the way back', () => {
+        mockBalanceErrorMessage = en.errors.notEnoughBalanceAddFunds
+        mockIsShortOfBalance = true
+        window.history.replaceState(null, '', '/qr-pay?qrCode=00020101&type=PIX&t=1')
+        renderWithIntl(<QrPayFormView />)
+        expect(screen.getByText(en.errors.notEnoughBalanceAddFunds)).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: en.navigation.pay })).toBeNull()
+        fireEvent.click(screen.getByRole('button', { name: en.qrPay.addMoney }))
+        expect(mockPush).toHaveBeenCalledWith(
+            `/add-money?returnTo=${encodeURIComponent('/qr-pay?qrCode=00020101&type=PIX&t=1')}`
+        )
+    })
+
+    it('keeps the in-flight Pay button while a payment is loading, even if the balance reads short', () => {
+        mockBalanceErrorMessage = en.errors.notEnoughBalanceAddFunds
+        mockIsShortOfBalance = true
+        mockIsLoading = true
+        renderWithIntl(<QrPayFormView />)
+        expect(screen.queryByRole('button', { name: en.qrPay.addMoney })).toBeNull()
+        expect(screen.getByTestId('qr-pay-confirm')).toBeInTheDocument()
+    })
+
+    it('keeps the disabled Pay when something other than the balance blocks it: adding money would not unblock it', () => {
+        mockBalanceErrorMessage = en.errors.notEnoughBalanceAddFunds
+        mockIsShortOfBalance = true
+        mockIsBlockingError = true
+        renderWithIntl(<QrPayFormView />)
+        expect(screen.queryByRole('button', { name: en.qrPay.addMoney })).toBeNull()
+        expect(screen.getByRole('button', { name: en.navigation.pay })).toBeDisabled()
     })
 })

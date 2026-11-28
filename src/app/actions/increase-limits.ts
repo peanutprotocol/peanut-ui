@@ -13,6 +13,7 @@ export interface IncreaseLimitsResponse {
 export const initiateIncreaseLimits = async (): Promise<{
     data?: IncreaseLimitsResponse
     error?: string
+    code?: string
     reverification?: FeatureReverificationConflict
 }> => {
     try {
@@ -27,7 +28,14 @@ export const initiateIncreaseLimits = async (): Promise<{
         if (!response.ok) {
             const reverification = featureReverificationConflict(response.status, responseJson)
             if (reverification) return { reverification }
-            return { error: responseJson.message || responseJson.error || 'Failed to initiate limit increase' }
+            return {
+                code: responseJson.code,
+                error:
+                    responseJson.userMessage ||
+                    responseJson.message ||
+                    responseJson.error ||
+                    'Failed to initiate limit increase',
+            }
         }
 
         return { data: responseJson }

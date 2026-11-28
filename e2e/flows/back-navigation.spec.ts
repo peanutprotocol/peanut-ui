@@ -106,18 +106,15 @@ test.describe('back navigation', () => {
         expect(pathOf(page)).toBe('/home')
     })
 
-    test('ready bank account picker: back lands on closed Home and does not reopen the picker', async ({ page }) => {
+    test('bank transfer hub: back lands on closed Home and does not reopen the drawer', async ({ page }) => {
         await blockExternal(page, 'home-add-drawer')
         await page.addInitScript(seenOnceModals)
         await page.goto('/home?__fixture=home-add-drawer', { waitUntil: 'domcontentloaded' })
         // The same test ID is a picker link while funding readiness is loading.
         const add = page.getByRole('button').and(page.getByTestId('home-submenu-add'))
         await add.click({ timeout: 60_000 })
-        await page.getByTestId('home-drawer-add-account').click()
-        await page.waitForURL(
-            (url) => url.pathname === '/add-money/options' && url.searchParams.get('method') === 'account'
-        )
-        expect(new URL(page.url()).searchParams.get('ready')).toBe('1')
+        await page.getByTestId('home-drawer-add-bank').click()
+        await page.waitForURL((url) => url.pathname === '/add-money' && url.searchParams.get('method') === 'bank')
         await expect(page.getByTestId('deposit-account-SEPA_EU')).toBeVisible()
 
         await navBack(page)

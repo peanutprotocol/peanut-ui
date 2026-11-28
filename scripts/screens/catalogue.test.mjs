@@ -35,7 +35,7 @@ test('open selectors are separate checkpoints and require a visible selected opt
     for (const id of ['fixture-home-add-drawer', 'p41-home-add-drawer', '51-d-homeactiondrawers'])
         assert.equal(
             screens.find((screen) => screen.id === id)?.expectSelector,
-            '[role="dialog"][data-state="open"] [data-testid="home-drawer-add-more"]',
+            '[role="dialog"][data-state="open"] [data-testid="home-drawer-add-bank"]',
             id
         )
 })

@@ -1,3 +1,4 @@
+import type { Locale } from '@/i18n/types'
 import type { DeviceOs } from './environment'
 import type { CreatorPageProps } from './types'
 
@@ -10,4 +11,6 @@ export type CreatorPageVariantProps = CreatorPageProps & {
     deviceOs: DeviceOs
     /** The in-app browser covers the bottom of the page (`coversPageBottom`): the page lifts its bottom button. */
     liftCta: boolean
+    /** The page language, by the landing-page rule (`creatorPageLocale`). Presentation only. */
+    locale: Locale
 }

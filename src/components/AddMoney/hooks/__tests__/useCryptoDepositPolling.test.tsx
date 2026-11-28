@@ -68,6 +68,46 @@ test('reset clears failed data, accepts absent status and resumes polling throug
     expect(onSuccess).toHaveBeenCalledTimes(1)
 })
 
+// the last deposit method reads this: a completed deposit replayed from the 24h address cache is old
+test('reports a deposit seen open before it completed, and not one already completed at the first read', async () => {
+    let status = 'pending'
+    mockFetch.mockImplementation(async () => response(200, { status, amount: status === 'completed' ? 5 : undefined }))
+    const fresh = jest.fn()
+    renderHook(() => useCryptoDepositPolling('sda-fresh', fresh, undefined, { readNow: true }), { wrapper })
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(100)
+    })
+    status = 'completed'
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(5_100)
+    })
+    await waitFor(() => expect(fresh).toHaveBeenCalledWith(5, expect.anything(), true))
+
+    const replayed = jest.fn()
+    renderHook(() => useCryptoDepositPolling('sda-old', replayed, undefined, { readNow: true }), { wrapper })
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(100)
+    })
+    await waitFor(() => expect(replayed).toHaveBeenCalledWith(5, expect.anything(), false))
+})
+
+test('a failed first read does not count as seeing the deposit open', async () => {
+    let fail = true
+    mockFetch.mockImplementation(async () =>
+        fail ? response(500, { error: 'Unexpected upstream error' }) : response(200, { status: 'completed', amount: 5 })
+    )
+    const onSuccess = jest.fn()
+    renderHook(() => useCryptoDepositPolling('sda-flaky', onSuccess, undefined, { readNow: true }), { wrapper })
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(100)
+    })
+    fail = false
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(5_100)
+    })
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(5, expect.anything(), false))
+})
+
 test.each([404, 500])('does not treat unrelated HTTP %s errors as an absent deposit', async (status) => {
     mockFetch.mockResolvedValue(response(status, { error: 'Unexpected upstream error' }))
     await expect(rhinoApi.getDepositAddressStatus('sda-test')).rejects.toThrow('Failed to fetch deposit address status')
@@ -102,4 +142,81 @@ test.each([
         await result.current.resetStatus()
     })
     expect(mockFetch).toHaveBeenCalledWith(url, expect.objectContaining({ method: 'POST' }))
+})
+
+// TASK-25169: the card drawer opens on an address the user may already have sent to, so it reads
+// the status at once; the add-money pages keep the 15s delay.
+test.each([
+    ['by default', undefined, false],
+    ['with readNow', { readNow: true }, true],
+])('reads the status at once only with readNow: %s', async (_label, options, readsAtOnce) => {
+    mockFetch.mockResolvedValue(response(200, { status: 'pending' }))
+    const { result } = renderHook(() => useCryptoDepositPolling('sda-test', jest.fn(), undefined, options), {
+        wrapper,
+    })
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(100)
+    })
+    expect(result.current.isStatusRead).toBe(readsAtOnce)
+    expect(result.current.status).toBe(readsAtOnce ? 'loading' : 'not_started')
+    expect(mockFetch).toHaveBeenCalledTimes(readsAtOnce ? 1 : 0)
+})
+
+test("after a reset, the clear's own not_started is not a read: only the API's next answer is", async () => {
+    let status = 'completed'
+    let readsFail = false
+    mockFetch.mockImplementation(async (_url, options) => {
+        if (options?.method === 'POST') {
+            status = 'not_started'
+            return response(200, { message: 'Status reset successfully' })
+        }
+        if (readsFail) return response(500, { error: 'down' })
+        return response(200, { status, amount: status === 'completed' ? 5 : undefined })
+    })
+    const { result } = renderHook(() => useCryptoDepositPolling('sda-test', jest.fn(), undefined, { readNow: true }), {
+        wrapper,
+    })
+    await waitFor(() => expect(result.current.isStatusRead).toBe(true))
+    // the re-read after the clear fails: "not started" is ours, so the status is unknown
+    readsFail = true
+    await act(async () => {
+        await result.current.resetStatus()
+        await jest.advanceTimersByTimeAsync(100)
+    })
+    expect(result.current.status).toBe('not_started')
+    expect(result.current.isStatusRead).toBe(false)
+    expect(result.current.statusError).toBe(true)
+    // the API answers again: now it is a read
+    readsFail = false
+    await act(async () => {
+        await result.current.refetchStatus()
+        await jest.advanceTimersByTimeAsync(100)
+    })
+    expect(result.current.isStatusRead).toBe(true)
+    expect(result.current.statusError).toBe(false)
+})
+
+test('a poll that fails after a real answer says so, so a deposit it cannot see never hides behind the address', async () => {
+    let readsFail = false
+    mockFetch.mockImplementation(async () =>
+        readsFail ? response(500, { error: 'down' }) : response(200, { status: 'not_started' })
+    )
+    const { result } = renderHook(() => useCryptoDepositPolling('sda-test', jest.fn(), undefined, { readNow: true }), {
+        wrapper,
+    })
+    await waitFor(() => expect(result.current.isStatusRead).toBe(true))
+    expect(result.current.statusFailing).toBe(false)
+    readsFail = true
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(5_100)
+    })
+    await waitFor(() => expect(result.current.statusFailing).toBe(true))
+    // the earlier answer is kept, but it is no longer current
+    expect(result.current.status).toBe('not_started')
+    readsFail = false
+    await act(async () => {
+        await result.current.refetchStatus()
+        await jest.advanceTimersByTimeAsync(100)
+    })
+    await waitFor(() => expect(result.current.statusFailing).toBe(false))
 })

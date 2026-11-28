@@ -9,8 +9,13 @@ jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }), use
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: jest.fn() }) }))
 let mockPickerMethods = ['pix', 'bank', 'crypto']
+let mockMethodsLoading = false
 jest.mock('../useAddMoneyReadiness', () => ({
-    useAddMoneyReadiness: () => ({ pickerMethods: mockPickerMethods }),
+    useAddMoneyReadiness: () => ({
+        pickerMethods: mockPickerMethods,
+        isLoading: mockMethodsLoading,
+        residenceIso2s: [],
+    }),
 }))
 jest.mock('@/utils/capacitor', () => ({
     ...jest.requireActual('@/utils/capacitor'),
@@ -22,7 +27,16 @@ const tap = (key: string) => fireEvent.click(screen.getByTestId(`add-money-metho
 beforeEach(() => {
     mockPush.mockClear()
     mockPickerMethods = ['pix', 'bank', 'crypto']
+    mockMethodsLoading = false
     jest.mocked(isCapacitor).mockReturnValue(false)
+})
+
+// Aleks, 26 Nov (TASK-25444): Pix or ARS appeared above Bank transfer after the rows were tappable
+it('shows no tappable row until the methods resolve', () => {
+    mockMethodsLoading = true
+    renderWithIntl(<AddMoneyPicker onBack={jest.fn()} origin={null} />)
+    expect(screen.getByTestId('add-money-methods-loading')).toHaveAttribute('aria-busy', 'true')
+    expect(screen.queryAllByTestId(/^add-money-method-/)).toHaveLength(0)
 })
 
 // Aleks, 2026-11-16 (TASK-25033): Pix opened a "Pix" screen with one BRL row to tap again.
@@ -88,7 +102,7 @@ describe('the ARS row', () => {
         const rows = screen.getAllByTestId(/^add-money-method-/)
         expect(rows[0]).toHaveAttribute('data-testid', 'add-money-method-ars')
         expect(rows[0]).toHaveTextContent('ARS')
-        expect(rows[0]).toHaveTextContent('From your Mercado Pago or bank account')
+        expect(rows[0]).toHaveTextContent('Mercado Pago or your bank')
         expect(decodeURIComponent(rows[0].querySelector('img')?.getAttribute('src') ?? '')).toContain('/flags/ar.svg')
     })
 

@@ -345,7 +345,8 @@
             "shareRequestLink": "Compartir un enlace de solicitud",
             "shareRequestLinkDescription": "Solicita un monto con un enlace para compartir",
             "shareBankDetails": "Compartir datos bancarios",
-            "shareBankDetailsDescription": "Recibe pagos en EUR, USD y más con datos bancarios."
+            "shareBankDetailsDescription": "Recibe pagos en EUR, USD y más con datos bancarios.",
+            "lastUsed": "Último usado"
         },
         "postVerification": {
             "title": "¡Verificación completa!",
@@ -880,12 +881,12 @@
         "warningCard": {
             "blockingTitle": "Este monto supera el límite",
             "attentionTitle": "Cerca del límite",
-            "addUpTo": "Puedes agregar hasta {amount}",
-            "addUpToPerTransaction": "Puedes agregar hasta {amount} por transacción",
-            "withdrawUpTo": "Puedes retirar hasta {amount}",
-            "withdrawUpToPerTransaction": "Puedes retirar hasta {amount} por transacción",
-            "payUpTo": "Puedes pagar hasta {amount}",
-            "payUpToPerTransaction": "Puedes pagar hasta {amount} por transacción",
+            "addUpTo": "Puedes agregar hasta {amount}.",
+            "addUpToPerTransaction": "Puedes agregar hasta {amount} por transacción.",
+            "withdrawUpTo": "Puedes retirar hasta {amount}.",
+            "withdrawUpToPerTransaction": "Puedes retirar hasta {amount} por transacción.",
+            "payUpTo": "Puedes pagar hasta {amount}.",
+            "payUpToPerTransaction": "Puedes pagar hasta {amount} por transacción.",
             "resetsInDays": "Tu límite se restablece en {days, plural, one {# día} other {# días}}.",
             "checkLimits": "Ver límites"
         }
@@ -909,6 +910,86 @@
         "row": {
             "approximate": "Es un estimado. El tipo de cambio se fija al convertir la transferencia, así que el monto recibido puede variar un poco.",
             "appliesWhenConverting": "Se aplica el tipo de cambio al convertir a {currency}"
+        },
+        "tabs": {
+            "rates": "Tipos de cambio",
+            "fees": "Comisiones"
+        },
+        "direction": {
+            "addShort": "Agregar dinero",
+            "withdrawShort": "Retirar",
+            "withdrawQrShort": "Retirar / QR"
+        },
+        "converter": {
+            "youSendLocal": "Envías ({currency})",
+            "youSendUsd": "Envías desde tu saldo (USD)",
+            "youReceiveUsd": "Recibes en tu saldo",
+            "youReceiveLocal": "Recibes en tu banco ({currency})",
+            "amountAria": "Monto",
+            "usdSubline": "Misma moneda · ACH: $0 · Wire saliente: $20",
+            "updatedAt": "Actualizado {time}",
+            "providerFee": "Comisión del proveedor",
+            "flatFee": "Comisión fija",
+            "achZero": "ACH: $0"
+        },
+        "compare": {
+            "title": "Comparar con otros dólares",
+            "subtitle": "Cripto, MEP, Blue, Tarjeta y Oficial",
+            "pageTitle": "Otros dólares hoy"
+        },
+        "allCurrencies": {
+            "title": "Todas las monedas y medios",
+            "subtitle": "ARS, EUR, BRL, USD, GBP, MXN y COP",
+            "pageTitle": "Todas las monedas y medios",
+            "currencyCol": "Moneda (por 1 USD)",
+            "buySellCol": "Ingresar / Retirar"
+        },
+        "currencies": {
+            "ARS": "Peso argentino",
+            "EUR": "Euro",
+            "USD": "Dólar",
+            "GBP": "Libra esterlina",
+            "MXN": "Peso mexicano",
+            "COP": "Peso colombiano",
+            "BRL": "Real brasileño"
+        },
+        "benchmarks": {
+            "heading": "Referencias del mercado",
+            "cripto": "Dólar cripto",
+            "mep": "Dólar MEP",
+            "blue": "Dólar blue",
+            "tarjeta": "Dólar tarjeta",
+            "oficial": "Dólar oficial",
+            "sourceNote": "Fuente: {source}. Valores indicativos."
+        },
+        "drawer": {
+            "title": "Cotizaciones {currency}",
+            "subtitleCbu": "Precio fijado por 30 min en esta orden.",
+            "subtitleQr": "Se fija al confirmar el pago.",
+            "subtitleLive": "Cotizaciones indicativas en vivo.",
+            "openAria": "Ver detalles del tipo de cambio de {currency}"
+        },
+        "fees": {
+            "sections": {
+                "bankTransfers": "Transferencias bancarias y Pix",
+                "card": "Tarjeta Peanut (Visa)",
+                "crypto": "Cripto (depósitos y retiros)"
+            },
+            "rows": {
+                "usdWireOut": "USD · Wire (saliente)",
+                "brlPixBr": "BRL · Pix (Brasil)",
+                "cardIssuance": "Emisión, mantenimiento y recarga",
+                "cardPayments": "Pagos con tarjeta",
+                "cryptoDeposits": "Depósitos USDC / USDT",
+                "cryptoL2Withdrawals": "Otras L2 y redes",
+                "cryptoL2Quoted": "Según cotización"
+            },
+            "notes": {
+                "bankTransfers": "USD Wire ({wireFee}) es una comisión fija de Peanut; Pix en Brasil ({pixFee}) es una comisión del proveedor. Las conversiones usan el tipo de cambio en vivo.",
+                "cardVisa": "Visa puede aplicar su tipo de cambio y comisiones de red en pagos internacionales o en otras monedas.",
+                "cryptoNetworks": "{networks} y más. Otros tokens se convierten a tasa de mercado."
+            },
+            "fullScheduleLink": "Ver detalle completo de comisiones ↗"
         }
     },
     "setup": {
@@ -1248,7 +1329,7 @@
             "desc": "Una Visa virtual para gastar tu saldo donde se acepte Visa. Ah, y es <pink>rosa</pink>."
         },
         "residence": {
-            "sentence": "Mi país de residencia <nw>es <residence></residence>,</nw> <nw>el de nacionalidad</nw> <nw>es <nationality></nationality>.</nw>",
+            "sentence": "Mi país de residencia <nw>es <residence></residence>,</nw> <nw>el de nacionalidad</nw> <nw>es <nationality></nationality></nw>",
             "choose": "Elegir",
             "sheetResidence": "¿Dónde vives?",
             "sheetNationality": "¿Cuál es tu nacionalidad?",
@@ -1349,7 +1430,9 @@
             "stepPhoto": "Foto de tu documento y selfie",
             "verifyNow": "Verificar ahora · 3 min",
             "verifyNowIdOnly": "Verificar ahora · 2 min",
-            "remindLater": "Recordármelo más tarde"
+            "remindLater": "Recordármelo más tarde",
+            "remindSet": "Te lo recordaremos mañana a las {at, time, short}.",
+            "remindFailed": "No pudimos programar el recordatorio. Puedes verificar cuando quieras desde Inicio."
         }
     },
     "loadingStates": {
@@ -1629,6 +1712,7 @@
             "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pide un nuevo enlace a quien la envió.",
             "requestClosedTitle": "Esta solicitud está cerrada",
             "externalPaymentNotConfirmed": "No se pudo confirmar este pago. Si el dinero salió de tu billetera, contacta a soporte.",
+            "paymentNotSent": "Este pago no se completó y no salió dinero de tu billetera. Puedes intentarlo de nuevo.",
             "requestTokenNotAccepted": "{symbol} no es compatible. Pide a quien lo envió un enlace en USDC o USDT.",
             "requestTokenRetired": "Esta solicitud ya no se puede pagar. Pide una nueva en USDC."
         },
@@ -1771,6 +1855,7 @@
     },
     "qrPay": {
         "youArePaying": "Pagando",
+        "addMoney": "Agregar dinero",
         "reviewUpdatedQuote": "Revisa la cotización actualizada para continuar.",
         "paymentMethodAlt": "Método de pago",
         "peanutManAlt": "Peanut Man",
@@ -2231,17 +2316,45 @@
             "addFunds": "Agregar dinero",
             "issuedTitle": "Conoce tu Peanut Card.",
             "issuedBody": "Está lista para pagos en línea y sin contacto.",
-            "viewCard": "Ver tarjeta"
+            "viewCard": "Ver tarjeta",
+            "fundingBodyGap": "Tu tarjeta necesita {minimum} en tu saldo. Tienes {balance}, así que agrega {gap}. El dinero sigue siendo tuyo."
         },
         "addressStep": {
             "required": "Para continuar con la solicitud de tu tarjeta, agrega tu dirección de residencia.",
             "rejected": "Revisa tu dirección de residencia y envíala de nuevo para continuar con la solicitud de tu tarjeta.",
             "in_review": "Estamos revisando tu dirección. Podrás continuar con la solicitud de tu tarjeta cuando sea aceptada.",
             "unavailable": "No pudimos cargar el paso de dirección. Inténtalo de nuevo."
+        },
+        "addMoney": {
+            "pickNetwork": "Elige la red desde la que envías. Si envías desde un exchange, elige la red en la que retiras allí.",
+            "networkOnlyTitle": "Enviar solo en {network}",
+            "sendAsk": "Envía {amount}",
+            "raisedToMinimum": "El mínimo por transferencia en {network} es {minimum}. Los {extra} de más se suman a tu saldo.",
+            "waiting": "Esperando el depósito…",
+            "doneTitle": "Dinero agregado",
+            "stillLandingBody": "Recibimos tu depósito y todavía se está acreditando. Puede tardar unos minutos.",
+            "sendMore": "Enviar más",
+            "stillLandingSupportMessage": "¡Hola! Envié un depósito en cripto por {network} para mi tarjeta y todavía no llegó a mi saldo. ¿Me ayudan a revisarlo?",
+            "stillLandingSupportMessageBalance": "¡Hola! Envié un depósito en cripto por {network} y todavía no llegó a mi saldo. ¿Me ayudan a revisarlo?",
+            "shortReceived": "Recibimos {received}",
+            "shortStillNeeded": "Todavía faltan {remaining}.",
+            "sendAbout": "Envía unos {amount}. El monto exacto depende del tipo de cambio.",
+            "sendInCurrency": "Envía {currency} desde tu banco. Llega en dólares.",
+            "notVerifiedTitle": "Todavía no hay una cuenta bancaria lista",
+            "notVerifiedBody": "Verifica tu identidad una sola vez para obtener los datos bancarios.",
+            "finishSetupTitle": "Falta un paso para la transferencia bancaria",
+            "finishSetupBody": "Termínalo en la página del banco.",
+            "useCryptoInstead": "Mejor agregar dinero con cripto",
+            "bankSentPending": "Tu transferencia de {amount} está en camino. Te avisamos cuando llegue.",
+            "bankSentPendingNoAmount": "Tu transferencia está en camino. Te avisamos cuando llegue.",
+            "statusCheckFailedTitle": "No pudimos revisar esta dirección",
+            "statusCheckFailedBody": "Puede que haya un depósito en camino. Intenta de nuevo antes de enviar."
         }
     },
     "addMoney": {
         "title": "Agregar dinero",
+        "addAmount": "Agregar {amount}",
+        "anotherWay": "Agregar dinero de otra forma",
         "transferDetails": "Datos de la transferencia",
         "selectYourCountry": "Selecciona el país",
         "addMoneyVia": "Agregar dinero con",
@@ -2255,7 +2368,7 @@
         "methods": {
             "moreWays": "Más formas de agregar dinero",
             "pixDetails": "Escanea o copia el código",
-            "arsDetails": "Desde tu cuenta de Mercado Pago o de tu banco",
+            "arsDetails": "Mercado Pago o tu banco",
             "cryptoDetails": "Desde billeteras o exchanges",
             "openAccount": "Abrir una cuenta bancaria",
             "crypto": "Cripto",
@@ -2263,7 +2376,7 @@
             "bankTransfer": "Transferencia bancaria",
             "bankDetails": "Desde tu cuenta bancaria",
             "kycRequired": "Requiere verificación",
-            "bankTransferDescription": "Datos bancarios reutilizables para cobrar",
+            "bankTransferDescription": "Desde tu banco",
             "mercadoPagoOrBank": "Mercado Pago o Banco",
             "mercadoPago": "Mercado Pago",
             "pix": "Pix",
@@ -2327,15 +2440,22 @@
         "manteca": {
             "youreAdding": "Agregando",
             "sendOnlyOwnAccountTitle": "Envía solo desde una cuenta a tu nombre",
-            "transferDeadline": "Transfiere antes de las {time}.",
-            "transferExpiredTitle": "La orden de depósito venció",
-            "transferExpiredDescription": "¿Ya enviaste dinero? Contacta a soporte.",
+            "transferExpiredDescription": "Esta orden de depósito venció. ¿Ya enviaste dinero? Contacta a soporte.",
+            "orderFailedDescription": "Esta orden de depósito no se completó. ¿Ya enviaste dinero? Contacta a soporte.",
+            "supportOrderPrefill": "La orden de depósito en pesos {orderId} terminó. Puede que haya enviado dinero.",
+            "sendTo": "Enviar a",
+            "validFor": "Válido por",
+            "rateFeesArrival": "Tipo de cambio, comisiones y llegada",
+            "detailsComeNext": "Luego verás los datos bancarios. Sirven por 30 minutos.",
+            "orderCheckingTitle": "Revisando la orden",
+            "orderCheckingDescription": "Estamos revisando si llegó una transferencia.",
             "startNewDeposit": "Iniciar un nuevo depósito",
+            "paymentReceivedTitle": "Pago recibido",
+            "paymentReceivedDescription": "Lo estamos sumando a tu saldo.",
             "openTransferTitle": "Tu transferencia sigue abierta",
             "openTransferDescription": "{currency} {amount} esperan tu transferencia bancaria. Un nuevo monto la reemplaza.",
             "openTransferCta": "Ver datos de la transferencia",
             "sendOnlyOwnAccountDescription": "No se admiten depósitos desde cuentas de terceros y los fondos se pueden perder.",
-            "accountDetails": "Datos bancarios",
             "depositAddress": "Dirección de depósito",
             "alias": "Alias",
             "razonSocial": "Razón Social",
@@ -2355,9 +2475,9 @@
         },
         "processingDepositTitle": "Procesando el depósito",
         "processingDepositBody": "Estamos confirmando tu depósito.",
+        "depositReceived": "¡Depósito recibido!",
+        "balanceUpdated": "Tu saldo se actualizó.",
         "pix": {
-            "depositReceived": "¡Depósito recibido!",
-            "balanceUpdated": "Tu saldo se actualizó.",
             "qrExpired": "Este código QR venció.",
             "scanWithBankApp": "Escanea con la app de tu banco o copia el código Pix."
         },
@@ -2369,7 +2489,7 @@
         "bankDetails": {
             "amountToSend": "Monto a enviar",
             "sendExactAmount": "¡Envía exactamente este monto!",
-            "sendAnyAmount": "Envía cualquier monto. Incluye la referencia.",
+            "sendAnyAmount": "Envía cualquier monto desde {minimum}. Incluye la referencia.",
             "depositReference": "Referencia del depósito",
             "pasteInReferenceField": "Obligatoria: pégala en el campo de referencia del banco. Sin ella, la transferencia no se puede asociar y podría devolverse.",
             "title": "Datos bancarios",
@@ -2412,7 +2532,19 @@
         },
         "pixMaintenanceBadge": "Mantenimiento",
         "addCryptoTitle": "Agregar cripto",
-        "bankNotAvailableNote": "Las transferencias bancarias no están disponibles en tu país. Todavía puedes ingresar y retirar cripto."
+        "bankNotAvailableNote": "Las transferencias bancarias no están disponibles en tu país. Todavía puedes ingresar y retirar cripto.",
+        "verified": {
+            "title": "Identidad verificada",
+            "titleBankReady": "Cuenta bancaria lista",
+            "sub": "{variant, select, bankReady {{count, plural, one {Tu cuenta en {accounts} está abierta.} other {Tus cuentas en {accounts} están abiertas.}} Agrega dinero.} other {Agrega dinero para empezar a pagar con Peanut.}}",
+            "underReview": "En revisión por {provider}, te avisaremos",
+            "notApproved": "No aprobado por {provider}",
+            "actionTerms": "términos de {provider} para {currencies}",
+            "actionTermsGeneric": "términos de {provider}",
+            "actionAddress": "comprobante de domicilio",
+            "cryptoWorksNow": "Desde billeteras o exchanges, funciona ya",
+            "actionNeeded": "Acción requerida"
+        }
     },
     "withdraw": {
         "reviewUpdatedQuote": "Revisa la cotización actualizada para continuar.",
@@ -2593,6 +2725,7 @@
             "invalidAmount": "Ingresa un monto válido.",
             "minimumSend": "El monto mínimo de envío es {amount}.",
             "minimumWithdrawal": "El retiro mínimo es {amount}.",
+            "minimumCryptoWithdrawal": "El mínimo de esta red es {amount}.",
             "countryUnresolved": "No pudimos determinar el país de esta cuenta. Contacta a soporte.",
             "setupFailed": "Algo salió mal al configurar tu retiro. Contacta a soporte.",
             "amountMissing": "Falta el monto del retiro.",
@@ -2864,6 +2997,8 @@
             "pay": "Pagar",
             "rejectRequest": "Rechazar solicitud",
             "moreActions": "Más acciones",
+            "sendAgain": "Enviar de nuevo",
+            "withdrawAgain": "Retirar de nuevo",
             "splitBill": "Dividir esta cuenta",
             "shareReceipt": "Compartir comprobante",
             "sharePdf": "Compartir comprobante (PDF)",
@@ -3327,6 +3462,8 @@
         "qrFirstScanDescription": "Una notificación cuando se complete el pago."
     },
     "kyc": {
+        "residenceNotSupported": "Aún no podemos verificar a residentes de este país.",
+        "clientUpdateRequired": "Actualiza la app de Peanut para continuar con la verificación.",
         "statusDrawerTitle": "Estado de la verificación",
         "identityVerification": "Verificación de identidad",
         "doesntStoreDocuments": "Peanut no guarda ninguno de tus documentos",
@@ -4878,7 +5015,7 @@
     },
     "errors": {
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Inténtalo de nuevo en unos segundos.",
-        "notEnoughBalanceAddFunds": "Saldo insuficiente. Agrega fondos para continuar.",
+        "notEnoughBalanceAddFunds": "Saldo insuficiente. Agrega dinero para continuar.",
         "balanceShortBy": "A tu saldo le faltan ${amount}. Agrega dinero para continuar.",
         "insufficientFunds": "No tienes fondos suficientes.",
         "userRejectedTransaction": "Confirma la transacción en tu billetera.",
@@ -4917,18 +5054,13 @@
         "rainCooldownRetryShortly": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en breve.",
         "rainCooldownRetryLive": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en {time}.",
         "rainCooldownRetryNow": "El enfriamiento de la tarjeta terminó. Ya puedes volver a intentarlo.",
-        "xchainWithdrawLimit": "Alcanzaste el límite de retiros a otras redes. Los retiros en Arbitrum no tienen límite, o contacta a soporte para ampliar el tuyo.",
-        "xchainWithdrawLimitRetry": "Alcanzaste el límite de retiros a otras redes. Vuelve a intentarlo en aproximadamente {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# día} other {# días}}. Los retiros en Arbitrum no tienen límite, o contacta a soporte para ampliar el tuyo.",
-        "xchainPaymentLimit": "Hiciste demasiadas transferencias a otras redes recientemente. Contacta a soporte para ampliar tu límite.",
-        "xchainPaymentLimitRetry": "Hiciste demasiadas transferencias a otras redes recientemente. Vuelve a intentarlo en aproximadamente {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# día} other {# días}}, o contacta a soporte para ampliar tu límite.",
-        "xchainWithdrawDisabled": "Los retiros a otras redes están limitados en tu cuenta. Siempre puedes retirar en Arbitrum, o contacta a soporte para recibir ayuda.",
-        "xchainPaymentDisabled": "Las transferencias a otras redes están limitadas en tu cuenta. Contacta a soporte para recibir ayuda.",
         "rainInsufficientCollateral": "Tu tarjeta no tiene suficiente colateral para este retiro.",
         "staleCardApproval": "Tu tarjeta debe reactivarse antes de que puedas retirar. Solo toma un toque con tu passkey.",
         "providerRejected": "Nuestro socio de pagos no pudo aceptar esta operación para tu cuenta. No se movió dinero. Contacta a soporte.",
         "mantecaAccountRejected": "Los depósitos y retiros en este país no están disponibles para tu cuenta. Los pagos con QR siguen funcionando. El equipo de soporte puede ayudarte.",
         "mantecaAccountRejectedForCountry": "No puedes agregar ni retirar dinero en {country}. Puedes seguir pagando con QR.",
         "bankAccountNotUsable": "Esta cuenta bancaria ya no se puede usar. Agrégala de nuevo.",
+        "belowMinBridgeAmount": "Este monto está por debajo del mínimo para esta red. Prueba con un monto mayor o con otra red.",
         "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Espera un momento e inténtalo de nuevo.",
         "linkTransactionHashFetch": "No pudimos cargar la transacción de este enlace. Actualiza la página e inténtalo de nuevo.",
         "cardApprovalCancelled": "Aprobación cancelada: puedes volver a intentarlo cuando quieras.",
@@ -5172,7 +5304,10 @@
             "notOfferedHereBody": "Es posible que esta cuenta no esté disponible donde vives. Soporte puede revisarlo.",
             "residenceRestrictedBody": "Las cuentas en {currency} no están disponibles para residentes de tu país.",
             "regionUnavailableBody": "Nuestro socio de pagos no ofrece cuentas en {currency} donde vives. Tus otras cuentas y tus fondos en Peanut no se ven afectados.",
-            "notOpenBody": "Las cuentas en {currency} todavía no están abiertas para ti.",
+            "notOpenTitle": "No disponible por ahora",
+            "notOpenBody": "Por ahora no estamos abriendo cuentas en {currency}.",
+            "copPausedTitle": "Apertura de cuentas en COP pausada",
+            "copPausedBody": "Bridge, nuestro socio de pagos, pausó las nuevas transferencias en COP por ahora.",
             "residenceMissingBody": "Las cuentas en {currency} dependen de dónde vives. Indica tu residencia para comprobarlo.",
             "uncheckedTitle": "No pudimos revisar la cuenta en {currency}",
             "uncheckedBody": "Vuelve a intentarlo en un momento.",
@@ -5181,7 +5316,7 @@
             "badgeReady": "Lista",
             "badgeActive": "Activo",
             "badgeSetUp": "Configurar",
-            "badgeVerifyId": "Verificar",
+            "badgeVerifyId": "Verificar ID",
             "badgeNotOffered": "No disponible",
             "badgeRevoked": "Revocada",
             "accountCounter": "{used} de {cap} usadas",
@@ -5527,5 +5662,68 @@
     "brazilPause": {
         "title": "Servicios en Brasil en pausa",
         "body": "Los depósitos y retiros en BRL no están disponibles por ahora. Los pagos con Pix no están disponibles para residentes de Brasil."
+    },
+    "stuckBuddy": {
+        "prompts": {
+            "addMoney": "¿Ayuda con la transferencia?",
+            "verifyLoop": "¿Ayuda con la verificación?",
+            "setupPasskey": "¿Problemas al guardar la passkey?",
+            "homeFunded": "¿Hacemos el primer pago?",
+            "activeIssue": "¿Hubo un problema?"
+        },
+        "ctas": {
+            "addMoney": "Ayuda con depósitos",
+            "contactSupport": "Contactar soporte",
+            "homeFunded": "Ver opciones rápidas",
+            "activeIssue": "Reportar error o chatear"
+        },
+        "a11y": {
+            "dismiss": "Cerrar ayuda",
+            "openHelper": "Abrir ayuda de Peanut"
+        },
+        "supportTopics": {
+            "addMoney": "Ayuda con depósito por transferencia bancaria",
+            "verifyLoop": "Ayuda con la verificación",
+            "setupPasskey": "Ayuda para configurar la passkey",
+            "loginRecovery": "Recuperación de inicio de sesión con passkey",
+            "passkeyError": "Ayuda con passkey ({errorName})",
+            "usernameCheck": "Error al verificar el nombre de usuario",
+            "homeFunded": "Ayuda con el primer pago",
+            "activeIssue": "Problema en la app de Peanut",
+            "bugReport": "Reporte de problema ({category}) en {route}",
+            "bugReportWithNote": "Reporte de problema ({category}) en {route}: {note}"
+        },
+        "bugCategories": {
+            "paymentFailed": "El pago falló",
+            "screenStuck": "Pantalla trabada",
+            "somethingWrong": "Algo se ve mal"
+        },
+        "drawers": {
+            "addMoney": {
+                "title": "Ayuda con depósitos",
+                "description": "Revisiones rápidas para transferencias bancarias.",
+                "step1": "¿Datos rechazados? Copia el número de cuenta o IBAN completo.",
+                "step2": "¿Enviaste desde otro nombre? Algunas transferencias requieren una cuenta propia.",
+                "step3": "¿Pasó el tiempo de llegada indicado? Comparte el comprobante con soporte.",
+                "primaryCta": "Copiar mensaje y contactar soporte",
+                "copyMessage": "Necesito ayuda con un depósito por transferencia bancaria en Peanut."
+            },
+            "homeFunded": {
+                "title": "Paga en segundos",
+                "description": "Elige la forma más rápida de hacer el primer pago.",
+                "qrCta": "Pagar con QR",
+                "cardCta": "Pedir la Peanut Card",
+                "sendCta": "Enviar dinero",
+                "tertiarySupport": "¿Problemas para pagar? Contactar soporte"
+            },
+            "activeIssue": {
+                "title": "Reportar un problema",
+                "description": "Abre el chat de soporte en la app con los detalles para ayudarte.",
+                "categoryLabel": "Tipo de problema",
+                "noteLabel": "Nota opcional",
+                "notePlaceholder": "Breve nota",
+                "submitCta": "Enviar a soporte"
+            }
+        }
     }
 }

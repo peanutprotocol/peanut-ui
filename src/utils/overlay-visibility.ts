@@ -68,6 +68,7 @@ export function useOverlayVisibility(open: boolean, owner?: symbol): void {
 }
 
 const anyUserOverlayOpen = () => Array.from(openOverlays.values()).some((entry) => !entry.manager)
+const anyAppOverlayOpen = () => openOverlays.size > 0
 
 /** Whether a manager prompt has a modal or drawer on screen. */
 export const isManagerOverlayOpen = (): boolean => Array.from(openOverlays.values()).some((entry) => entry.manager)
@@ -75,4 +76,9 @@ export const isManagerOverlayOpen = (): boolean => Array.from(openOverlays.value
 /** Whether a user-opened modal or drawer is open: the manager opens nothing new while one is. */
 export function useAnyOverlayOpen(): boolean {
     return useSyncExternalStore(subscribe, anyUserOverlayOpen, () => false)
+}
+
+/** Reactive subscription for non-manager helpers (such as PeanutBuddy) that must yield to both user AND manager overlays. */
+export function useAnyAppOverlayOpen(): boolean {
+    return useSyncExternalStore(subscribe, anyAppOverlayOpen, () => false)
 }

@@ -1,15 +1,17 @@
 // How to change the split, add a creator and read the result: mono engineering/ui/creator-pages.md
 // Plain data per creator, no components: the route reads the title and the experiment from here, and the components live in page-components.ts.
 
+import type { Locale } from '@/i18n/types'
+
 export type CreatorPageExperiment = {
     /** Must pass `isCreatorPageLabel` (`^[a-z0-9][a-z0-9-]{0,31}$`). Recorded as `experiment_id`. Change it whenever the variants or weights below change: a new id re-randomises visitors and separates the results. */
     id: string
     /**
      * The browser-tab title, which an in-app browser shows in its top bar. One per creator, the same
      * for every variant, so the arms do not differ before the page is seen. It is copy, not part of
-     * the test: changing it needs no new experiment id.
+     * the test: changing it needs no new experiment id. One per landing-page locale.
      */
-    title: string
+    title: Record<Locale, string>
     variants: {
         /** Same rule. Recorded as `variant`. Its component is in page-components.ts. */
         id: string
@@ -22,7 +24,12 @@ export type CreatorPageExperiment = {
 export const CREATOR_PAGE_EXPERIMENTS: Record<string, CreatorPageExperiment> = {
     juanacervio: {
         id: 'nita-2026-11-a',
-        title: 'Invitación de Nita',
+        title: {
+            'es-ar': 'Invitación de Nita',
+            'es-419': 'Invitación de Nita',
+            en: 'Nita’s invite',
+            'pt-br': 'Convite da Nita',
+        },
         variants: [
             { id: 'a1', weight: 1 },
             { id: 'g2', weight: 1 },

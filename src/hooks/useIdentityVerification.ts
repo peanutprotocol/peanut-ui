@@ -8,6 +8,9 @@ import { identityDocumentRestartAction } from '@/utils/provider-rejection.utils'
 import { useMemo } from 'react'
 
 /**
+ * "Is the identity verified?" is answered by useVerification(); this hook holds the
+ * check's other states (in review, needs action, failed and why).
+ *
  * Thin selector over the backend-computed identity-verification status — the
  * second KYC read-model, embedded TOP-LEVEL on /get-user (`user.identityVerification`,
  * sibling of `capabilities`).
@@ -28,7 +31,6 @@ export interface UseIdentityVerificationResult {
     /** The raw identity block (not_started while loading / for logged-out users). */
     identity: IdentityVerification
     status: IdentityVerificationStatus
-    isVerified: boolean
     isProcessing: boolean
     /** retryable — user can resubmit/add documents. */
     needsAction: boolean
@@ -83,7 +85,6 @@ export function useIdentityVerification(): UseIdentityVerificationResult {
         return {
             identity,
             status,
-            isVerified: status === 'verified',
             isProcessing: status === 'processing',
             needsAction: status === 'action_required',
             isFailed: status === 'failed',

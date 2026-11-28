@@ -65,7 +65,6 @@ jest.mock('@/services/badge-campaigns', () => ({
     isConfirmedBadgeCampaignClaim: jest.fn(),
     isUnavailableBadgeCampaignClaim: jest.fn(),
 }))
-jest.mock('@/services/consent', () => ({ signupConsentDocuments: () => [] }))
 jest.mock('@/utils/auth.utils', () => ({ clearAuthState: jest.fn() }))
 // Only `currentCeremonyId` is stubbed: the guard's own module-level window
 // stays real, so a test that does NOT claim a ceremony still runs one for real.

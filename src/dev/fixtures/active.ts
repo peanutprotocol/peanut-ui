@@ -36,7 +36,19 @@ function stored(): string | null {
     }
 }
 
+// answers served per fixture sequence; a fixture's start and end reset them,
+// so reopening it plays its polled states from the first one again
+const sequenceTurns = new Map<string, number>()
+
+/** The next turn of a fixture sequence (Fixture.sequences), from 0. */
+export function nextSequenceTurn(key: string): number {
+    const turn = sequenceTurns.get(key) ?? 0
+    sequenceTurns.set(key, turn + 1)
+    return turn
+}
+
 function activate(name: string): void {
+    sequenceTurns.clear()
     try {
         window.sessionStorage.setItem(FIXTURE_STORAGE_KEY, name)
     } catch {}
@@ -55,6 +67,7 @@ function jwtCookieValue(): string | null {
 /** Drops the fixture and the fake session, so the tab behaves normally again. */
 export function clearFixture(): void {
     if (typeof window === 'undefined') return
+    sequenceTurns.clear()
     try {
         window.sessionStorage.removeItem(FIXTURE_STORAGE_KEY)
     } catch {}

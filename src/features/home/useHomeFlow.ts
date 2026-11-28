@@ -4,7 +4,7 @@ import { useAuth } from '@/context/authContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
 import { useCardInfo } from '@/hooks/useCardInfo'
-import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { useVerification } from '@/hooks/useVerification'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useEffect } from 'react'
 import { useAccount, useDisconnect } from 'wagmi'
@@ -15,10 +15,11 @@ import { useBalanceVisibility } from './useBalanceVisibility'
  * stay dumb (same model as features/payments/flows/semantic-request).
  */
 export function useHomeFlow() {
-    const { address, spendableBalance, isFetchingSpendableBalance, isSpendableBalanceStale } = useWallet()
+    const { address, spendableBalance, isFetchingSpendableBalance, isSpendableBalanceStale, isSpendableBalanceReady } =
+        useWallet()
     const { user, isFetchingUser, fetchUser } = useAuth()
     const { isActivated, onboarding, isOnboardingComplete } = useActivationStatus()
-    const { isVerified: isIdentityVerified } = useIdentityVerification()
+    const { identityVerified: isIdentityVerified } = useVerification()
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
     const { isConnected: isWagmiConnected } = useAccount()
     const { disconnect: disconnectWagmi } = useDisconnect()
@@ -62,6 +63,7 @@ export function useHomeFlow() {
         spendableBalance,
         isFetchingSpendableBalance,
         isSpendableBalanceStale,
+        isSpendableBalanceReady,
         isBalanceHidden,
         toggleBalanceVisibility,
     }

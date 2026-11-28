@@ -38,18 +38,18 @@ describe('paperworkVerificationEntryRoute', () => {
             '/verify?feature=local'
         )
 
-        // today's flow, or a plan that cannot be read: the start modal stays
+        // Confirmed legacy stays in the modal. A failed read goes to verification recovery.
         jest.mocked(findKycDocumentPlan).mockResolvedValue(plan({ available: false, flow: null }))
         await expect(paperworkVerificationEntryRoute({ corridor: 'SEPA_EU' })).resolves.toBeNull()
         jest.mocked(findKycDocumentPlan).mockRejectedValue(new Error('KYC plan unavailable'))
-        await expect(paperworkVerificationEntryRoute({ corridor: 'SEPA_EU' })).resolves.toBeNull()
+        await expect(paperworkVerificationEntryRoute({ corridor: 'SEPA_EU' })).resolves.toBe('/verify')
     })
 })
 
 describe('paperworkVerificationRoute', () => {
     it('keeps today’s flow when the server does not put the user on Smart Paperwork Verification', async () => {
         await expect(paperworkVerificationRoute(plan({ available: false, flow: null }), null)).resolves.toBeNull()
-        await expect(paperworkVerificationRoute(null, null)).resolves.toBeNull()
+        await expect(paperworkVerificationRoute(null, null)).resolves.toBe('/verify')
         expect(mockStatus).not.toHaveBeenCalled()
     })
 
@@ -57,6 +57,30 @@ describe('paperworkVerificationRoute', () => {
         await expect(paperworkVerificationRoute(plan(), 'bank')).resolves.toBe('/verify')
         mockStatus.mockResolvedValue('IN_REVIEW')
         await expect(paperworkVerificationRoute(plan(), null)).resolves.toBe('/verify')
+    })
+
+    it('treats a failed status read as unknown: retries once, then keeps today\u2019s start', async () => {
+        // one blip: the retry answers
+        mockStatus.mockRejectedValueOnce(new Error('network')).mockResolvedValueOnce('APPROVED')
+        await expect(paperworkVerificationRoute(plan(), 'bank')).resolves.toBe('/verify?feature=bank')
+        expect(mockStatus).toHaveBeenCalledTimes(2)
+
+        mockStatus.mockClear()
+        // still failing: a verified user must not land on /verify
+        mockStatus.mockRejectedValue(new Error('server error'))
+        await expect(paperworkVerificationRoute(plan(), 'bank')).resolves.toBeNull()
+        await expect(paperworkVerificationRoute(plan(), null)).resolves.toBeNull()
+        expect(mockStatus).toHaveBeenCalledTimes(4)
+    })
+
+    it('does not retry a status read the caller aborted', async () => {
+        const controller = new AbortController()
+        mockStatus.mockImplementation(async () => {
+            controller.abort()
+            throw new Error('aborted')
+        })
+        await expect(paperworkVerificationRoute(plan(), 'bank', undefined, controller.signal)).rejects.toBeDefined()
+        expect(mockStatus).toHaveBeenCalledTimes(1)
     })
 
     it('keeps retry and final rejection in Smart Paperwork Verification', async () => {

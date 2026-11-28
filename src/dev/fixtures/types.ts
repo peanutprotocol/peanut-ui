@@ -1,5 +1,5 @@
 export const OPEN_DIALOG = '[role="dialog"]:not([aria-modal="false"])'
-export const HOME_ADD_DRAWER_CHECKPOINT = '[role="dialog"][data-state="open"] [data-testid="home-drawer-add-more"]'
+export const HOME_ADD_DRAWER_CHECKPOINT = '[role="dialog"][data-state="open"] [data-testid="home-drawer-add-bank"]'
 export type CaptureRecipe = {
     /** Optional stable control(s) to reach the state before capture. */
     actions?: Array<
@@ -51,6 +51,12 @@ export type Fixture = {
      * So an empty state is `{ entries: [] }` and a renamed user is one line.
      */
     responses?: Record<string, unknown>
+    /**
+     * Complete answers served in turn, one per call, keyed `METHOD /path`; the
+     * last one repeats. For a screen that polls until the state changes, such as
+     * a deposit that completes while its bank details are up.
+     */
+    sequences?: Record<string, unknown[]>
     /** Entries in responses that specify the entire answer, including which fields are absent. */
     completeResponses?: string[]
     /**
@@ -59,6 +65,12 @@ export type Fixture = {
      * (the Home checklist's "Add money") says it here.
      */
     balance?: string
+    /**
+     * The balance once a watched crypto deposit lands: after a `GET /rhino/status/*`
+     * answer reads `completed`, the fixture serves this instead of `balance`, as
+     * the backend would credit the deposit. For a screen that reacts to the new balance.
+     */
+    balanceAfterDeposit?: string
     /** ISO 3166-1 alpha-2 country to seed for IP geolocation in screenshots. */
     geoCountry?: string
     /** `METHOD /path` keys that answer 500, for error-state screens. */

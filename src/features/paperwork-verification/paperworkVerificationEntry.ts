@@ -11,6 +11,15 @@ import { currentReverificationDestination, featureReverificationPath } from '@/u
 
 export const paperworkVerificationFeaturePath = (feature: PaperworkVerificationFeature) =>
     `/verify?${new URLSearchParams({ feature })}`
+// These redirects carry display context only. The API authorizes verification.
+export const RESIDENCE_NOT_SUPPORTED_PATH = '/verify?reason=residence_not_supported'
+
+export function identityStartRefusalPath(code?: string): string | null {
+    if (code === 'paperwork_verification_required') return '/verify'
+    if (code === 'residence_not_supported') return RESIDENCE_NOT_SUPPORTED_PATH
+    return null
+}
+
 export const paperworkVerificationDocumentPath = () => `/verify?${new URLSearchParams({ step: 'id' })}`
 export const VERIFY_RESTART_PARAM = 'restart'
 /** The ID screen for a verified user's new identity check, on the documents the restart plan offers. */
@@ -44,7 +53,7 @@ export function entryFeature({
  * Where a Verify tap goes for a Smart Paperwork Verification user: /verify before approval,
  * the add-later screen for a feature the API's report says is not opened yet or
  * refused (it asks what the feature still misses, or explains the refusal), or
- * null for today's flow or a feature already underway.
+ * null for today's flow, a feature already underway, or a status that cannot be read.
  */
 export async function paperworkVerificationRoute(
     plan: KycDocumentPlan | null,
@@ -52,14 +61,23 @@ export async function paperworkVerificationRoute(
     report?: FeatureReport,
     signal?: AbortSignal
 ): Promise<string | null> {
+    if (plan?.unavailableReason === 'residence_not_supported') return RESIDENCE_NOT_SUPPORTED_PATH
     if (plan?.entry?.kind === 'reverify_for_feature')
         return featureReverificationPath(plan.entry, currentReverificationDestination())
-    if (plan?.flow !== PAPERWORK_VERIFICATION_FLOW) return null
-    const status = await getKycDocumentStatus(signal).catch(() => undefined)
+    if (!plan || plan.flow === undefined) return '/verify'
+    if (plan.flow !== PAPERWORK_VERIFICATION_FLOW) return null
+    const readStatus = () => getKycDocumentStatus(signal)
+    // a failed read is unknown, not unverified: retry once, then keep today's start,
+    // which the API refuses with paperwork_verification_required if /verify is still due
+    const status = await readStatus()
+        .catch(() => (signal?.aborted ? null : readStatus()))
+        .catch(() => null)
     if (signal?.aborted) throw signal.reason
+    if (status === null) return null
     if (!status || !APPROVED_STATUSES.has(status)) return '/verify'
     if (!feature) return null
-    const state = report?.[feature].state
+    const state = report?.[feature]?.state
+    if (!state && typeof plan.features?.[feature] !== 'boolean') return '/verify'
     const opensAddLater = state ? state === 'ready' || state === 'refused' : !plan.features[feature]
     return opensAddLater ? paperworkVerificationFeaturePath(feature) : null
 }
@@ -74,9 +92,7 @@ export interface PaperworkVerificationEntry {
 
 /**
  * Where an entry point's Verify goes for a Smart Paperwork Verification user,
- * read before any start modal opens; null keeps today's start. A plan that
- * cannot be read keeps it too: the API refuses that start for a Smart Paperwork
- * Verification user, and the start then opens /verify.
+ * read before any start modal opens. A failed read goes to verification recovery.
  */
 export async function paperworkVerificationEntryRoute(
     entry: PaperworkVerificationEntry,
@@ -84,16 +100,27 @@ export async function paperworkVerificationEntryRoute(
 ): Promise<string | null> {
     const feature = entry.feature ?? entryFeature(entry)
     // The report read at the tap: fresh, and a failed read falls back to the plan's saved features.
-    const [plan, report] = await Promise.all([
-        (feature ? findKycDocumentPlan('entry', signal, feature) : findKycDocumentPlan('entry')).catch(() => null),
-        Promise.resolve()
-            .then(() => getKycFeatures())
-            .catch(() => undefined),
-    ])
-    return paperworkVerificationRoute(
-        feature === 'qr' && plan?.entry ? { ...plan, entry: undefined } : plan,
-        feature === 'qr' ? null : feature,
-        report,
-        signal
-    )
+    try {
+        const plan = await (feature
+            ? findKycDocumentPlan('entry', signal, feature)
+            : signal
+              ? findKycDocumentPlan('entry', signal)
+              : findKycDocumentPlan('entry'))
+        const report =
+            plan?.flow === PAPERWORK_VERIFICATION_FLOW && !plan.unavailableReason && !plan.entry
+                ? await Promise.resolve()
+                      .then(() => (signal ? getKycFeatures(signal) : getKycFeatures()))
+                      .catch(() => undefined)
+                : undefined
+        if (signal?.aborted) throw signal.reason
+        return await paperworkVerificationRoute(
+            feature === 'qr' && plan?.entry ? { ...plan, entry: undefined } : plan,
+            feature === 'qr' ? null : feature,
+            report,
+            signal
+        )
+    } catch (error) {
+        if (signal?.aborted) throw signal.reason
+        return identityStartRefusalPath((error as { code?: string } | null)?.code) ?? '/verify'
+    }
 }

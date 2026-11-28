@@ -30,15 +30,17 @@ export const FUNNEL_STATES: FunnelState[] = [
         id: 'access-pre-kyc',
         label: 'Application, pre-KYC',
         description: 'Card application started, identity verification not approved yet.',
-        specStages: ['verify'],
+        // finish_verify's nudge is kyc.reminder, listed under the push reminders
+        specStages: ['start_verify', 'finish_verify'],
         includesWelcome: true,
+        includesReminder: true,
         includesPushReminder: true,
     },
     {
         id: 'kycd-no-card',
         label: "KYC'd, no card",
         description: 'Sumsub approved, no (non-canceled) Rain card yet.',
-        specStages: ['create_card'],
+        specStages: ['add_money', 'no_method'],
     },
     {
         id: 'application-in-flight',
@@ -52,7 +54,8 @@ export const FUNNEL_STATES: FunnelState[] = [
         id: 'card-active-unfunded',
         label: 'Card active, unfunded',
         description: 'ACTIVE card, no completed ONRAMP/CRYPTO_DEPOSIT.',
-        specStages: ['fund'],
+        specStages: [],
+        noEmailReason: 'add_money (column 3) nudges every verified, unfunded user, card or not (api#2307).',
     },
     {
         id: 'funded-no-spend',
@@ -203,7 +206,7 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         name: 'WelcomeUnlockDrawer',
         copy: '"🎉 You\'re unlocked" + channel bullets',
         cta: { label: 'Start sending money', dest: 'closes modal (once)' },
-        condition: 'home; isKycApproved && !activationCelebratedAt',
+        condition: 'home; hasAnyEnabledRail && !activationCelebratedAt',
         sourceFile: 'src/components/Home/WelcomeUnlockDrawer/index.tsx',
         states: ['kycd-no-card'],
     },

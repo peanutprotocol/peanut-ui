@@ -604,7 +604,7 @@ describe('PixWithdrawFlow form', () => {
         expect(await screen.findByText('Ana Souza')).toBeInTheDocument()
         expect(screen.getByText('Banco Inter')).toBeInTheDocument()
         expect(await screen.findByText('1 USD = 5.45 BRL')).toBeInTheDocument()
-        expect(screen.getByText(en.common.sponsoredByPeanut)).toBeInTheDocument()
+        expect(screen.queryByText(en.common.sponsoredByPeanut)).toBeNull()
         expect(screen.getByText(en.pix.withdraw.fee)).toBeInTheDocument()
         expect(screen.getByText('R$0.75')).toBeInTheDocument()
         expect(screen.queryByText(en.qrPay.info.saveVsCard)).toBeNull()

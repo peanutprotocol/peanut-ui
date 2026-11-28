@@ -18,6 +18,7 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { DEPOSIT_ACCOUNTS_QUERY_KEY } from '@/features/deposit-accounts/useDepositAccounts'
 import en from '@/i18n/app/messages/en.json'
 
 // ---------- module-level mocks (must be before imports that depend on them) ----------
@@ -146,16 +147,6 @@ jest.mock('@/context/ModalsContext', () => ({
     }),
 }))
 
-jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
-    useMultiPhaseKycFlow: () => ({
-        isLoading: false,
-        error: null,
-        showWrapper: false,
-        handleInitiateKyc: jest.fn(),
-        handleSelfHealResubmit: jest.fn(),
-    }),
-}))
-
 const mockUseCurrency = jest.fn()
 jest.mock('@/hooks/useCurrency', () => ({
     useCurrency: (...args: any[]) => mockUseCurrency(...args),
@@ -214,16 +205,6 @@ const mockOnrampFlow = {
 }
 jest.mock('@/context/OnrampFlowContext', () => ({
     useOnrampFlow: () => mockOnrampFlow,
-}))
-
-// RequestFulfillmentFlowContext
-jest.mock('@/context/RequestFulfillmentFlowContext', () => ({
-    RequestFulfillmentBankFlowStep: { BankCountryList: 'BankCountryList' },
-    useRequestFulfillmentFlow: () => ({
-        setFlowStep: jest.fn(),
-        onrampData: null,
-        selectedCountry: null,
-    }),
 }))
 
 // Manteca API
@@ -540,7 +521,12 @@ jest.mock('@/components/AddMoney/components/OnrampConfirmationModal', () => ({
 jest.mock('@/components/0_Bruddle/ListItem', () => ({
     ListItem: (props: any) => (
         <div
-            data-testid={props['data-testid'] ?? `action-card-${props.title?.toLowerCase().replace(/\s+/g, '-')}`}
+            data-testid={
+                props['data-testid'] ??
+                (typeof props.title === 'string'
+                    ? `action-card-${props.title.toLowerCase().replace(/\s+/g, '-')}`
+                    : undefined)
+            }
             onClick={props.onClick}
         >
             <span>{props.title}</span>
@@ -678,14 +664,6 @@ jest.mock('@/features/payments/shared/components/PaymentSuccessView', () => ({
     ),
 }))
 
-// Hooks used by auto-truncated address
-jest.mock('@/hooks/useAutoTruncatedAddress', () => ({
-    useAutoTruncatedAddress: (address: string) => ({
-        containerRef: { current: null },
-        truncatedAddress: address ? address.slice(0, 8) + '...' + address.slice(-6) : '',
-    }),
-}))
-
 jest.mock('@/hooks/useTransactionHistory', () => ({
     EHistoryUserRole: { RECIPIENT: 'RECIPIENT' },
 }))
@@ -798,7 +776,6 @@ type Gate =
 function setGate(kind: Gate) {
     let rails: any[] = []
     let nextActions: any[] = []
-    let isKycApproved = false
     let gateState: any = { kind: 'loading' }
 
     switch (kind) {
@@ -813,7 +790,6 @@ function setGate(kind: Gate) {
                     status: 'enabled',
                 },
             ]
-            isKycApproved = true
             gateState = { kind: 'ready' }
             break
         case 'accept-tos':
@@ -873,7 +849,6 @@ function setGate(kind: Gate) {
                     status: 'enabled',
                 },
             ]
-            isKycApproved = true
             gateState = { kind: 'needs-enrollment' }
             break
         case 'needs-identity':
@@ -883,7 +858,6 @@ function setGate(kind: Gate) {
         // the rail is provisioning: nothing for the user to do but wait
         case 'pending':
             rails = []
-            isKycApproved = true
             gateState = { kind: 'pending' }
             break
         // capabilities have not answered yet
@@ -913,7 +887,6 @@ function setGate(kind: Gate) {
         rails,
         capabilities: {},
         nextActions,
-        isKycApproved,
         gateFor: () => gateState,
         bankRails: () =>
             rails.filter((r) =>
@@ -934,6 +907,12 @@ function createQueryClient() {
 
 function renderWithProviders(component: React.ReactElement) {
     const queryClient = createQueryClient()
+    // the Add lists hold their rows until the deposit-accounts read resolves: answer it as "no accounts"
+    queryClient.setQueryData([...DEPOSIT_ACCOUNTS_QUERY_KEY, 'user-123'], {
+        accounts: [],
+        claimable: [],
+        unavailable: [],
+    })
     return render(
         <IntlWrapper>
             <QueryClientProvider client={queryClient}>{component}</QueryClientProvider>
@@ -946,6 +925,7 @@ function renderWithProviders(component: React.ReactElement) {
 function applyDefaults() {
     mockUseAuth.mockReturnValue({
         user: { user: { username: 'test-user', userId: 'user-123' } },
+        userId: 'user-123',
         isFetchingUser: false,
         fetchUser: jest.fn(),
     })

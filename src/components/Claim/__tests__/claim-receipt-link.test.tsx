@@ -27,7 +27,7 @@ jest.mock('@/context/authContext', () => ({ useAuth: () => mockUseAuth() }))
 jest.mock('@/hooks/wallet/useWallet', () => ({ useWallet: () => ({ address: '0xWALLET' }) }))
 jest.mock('@/hooks/useUserInteractions', () => ({ useUserInteractions: () => ({ interactions: {} }) }))
 jest.mock('use-haptic', () => ({ useHaptic: () => ({ triggerHaptic: jest.fn() }) }))
-jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ isKycApproved: false }) }))
+jest.mock('@/hooks/useVerification', () => ({ useVerification: () => ({ hasAnyEnabledRail: false }) }))
 jest.mock('@/context/ClaimBankFlowContext', () => ({
     ClaimBankFlowStep: {},
     useClaimBankFlow: () => ({ setFlowStep: jest.fn(), flowStep: null }),
@@ -42,14 +42,6 @@ jest.mock('@/app/actions/tokens', () => ({
 jest.mock('@/services/tokens-price', () => ({ fetchTokenPrice: jest.fn(() => Promise.resolve({ price: 1 })) }))
 const mockGetSendLink = jest.fn()
 jest.mock('@/services/sendLinks', () => ({
-    ESendLinkStatus: {
-        creating: 'creating',
-        completed: 'completed',
-        CLAIMING: 'CLAIMING',
-        CLAIMED: 'CLAIMED',
-        CANCELLED: 'CANCELLED',
-        FAILED: 'FAILED',
-    },
     sendLinksApi: { get: (...args: unknown[]) => mockGetSendLink(...args) },
     getParamsFromLink: () => ({ password: 'testpassword' }),
     resolveClaimLink: (link: string) => link,
@@ -101,6 +93,7 @@ jest.mock('@/components/TransactionDetails/useReceiptPdfFile', () => ({
 }))
 jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }) }))
 jest.mock('@/components/TransactionDetails/useReceiptReferralAction', () => ({ useReceiptReferralAction: () => null }))
+jest.mock('@/components/TransactionDetails/useRepeatPayment', () => ({ useRepeatPayment: () => null }))
 jest.mock('@/components/Setup/components/PasskeyDocsLink', () => ({ PasskeyDocsLink: () => null }))
 jest.mock('@/components/TransactionDetails/provider-actions/CancelDepositActions', () => ({
     CancelDepositActions: () => null,

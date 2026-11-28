@@ -23,8 +23,11 @@ describe('PostHog flag variants in the Screen Library', () => {
 
     it('starts each boolean flag at its registered default, except a nonProdBypass read', () => {
         for (const [flag, value] of Object.entries(FLAG_DEFAULTS)) {
-            if (flag === 'user-interviews-invite') expect(FLAGS[flag].baseline).toBe(true)
-            else expect(FLAGS[flag].baseline).toBe(value)
+            if (flag === 'user-interviews-invite' || flag === 'stuck-buddy-interventions') {
+                expect(FLAGS[flag].baseline).toBe(true)
+            } else {
+                expect(FLAGS[flag].baseline).toBe(value)
+            }
         }
     })
 

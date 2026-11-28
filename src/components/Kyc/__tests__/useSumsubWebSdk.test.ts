@@ -54,6 +54,14 @@ describe('useSumsubWebSdk', () => {
         delete (window as unknown as { snsWebSdk?: unknown }).snsWebSdk
     })
 
+    it('uses the one Peanut appearance set, whatever the level picks', () => {
+        const { result } = renderHookWithIntl(() => useSumsubWebSdk(baseArgs()))
+        act(() => result.current.setSdkContainer(document.createElement('div')))
+        expect(configure).toHaveBeenCalledWith(
+            expect.objectContaining({ theme: 'light', customizationName: 'Peanut_DS_20261123' })
+        )
+    })
+
     it('launches the SDK once the container attaches', () => {
         const { result } = renderHookWithIntl(() => useSumsubWebSdk(baseArgs()))
         expect(launch).not.toHaveBeenCalled()
@@ -164,5 +172,70 @@ describe('SDK credential lifecycle', () => {
         sessionKey = 'session:1'
         rerender()
         expect(launch).toHaveBeenCalledTimes(2)
+    })
+})
+
+describe('SDK script load failure (TASK-21426)', () => {
+    const sdkScript = () => document.getElementById('sumsub-websdk')
+    const failScript = () => act(() => void sdkScript()!.dispatchEvent(new Event('error')))
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.useFakeTimers()
+        delete (window as unknown as { snsWebSdk?: unknown }).snsWebSdk
+    })
+    afterEach(() => {
+        jest.useRealTimers()
+        sdkScript()?.remove()
+        delete (window as unknown as { snsWebSdk?: unknown }).snsWebSdk
+    })
+
+    it('removes the failed script and reloads it once before it reports an error', () => {
+        const { result } = renderHookWithIntl(() => useSumsubWebSdk(baseArgs()))
+        const first = sdkScript()
+        expect(first).not.toBeNull()
+
+        failScript()
+        expect(sdkScript()).toBeNull()
+        expect(result.current.sdkLoadError).toBe(false)
+
+        act(() => void jest.advanceTimersByTime(2_000))
+        const second = sdkScript()
+        expect(second).not.toBeNull()
+        expect(second).not.toBe(first)
+
+        failScript()
+        expect(sdkScript()).toBeNull()
+        expect(result.current.sdkLoadError).toBe(true)
+    })
+
+    it('launches the SDK when the reloaded script arrives', () => {
+        const { result } = renderHookWithIntl(() => useSumsubWebSdk(baseArgs()))
+        act(() => result.current.setSdkContainer(document.createElement('div')))
+        failScript()
+        act(() => void jest.advanceTimersByTime(2_000))
+
+        installSdk()
+        act(() => void sdkScript()!.dispatchEvent(new Event('load')))
+
+        expect(launch).toHaveBeenCalledTimes(1)
+        expect(result.current.sdkLoadError).toBe(false)
+    })
+
+    it('loads the script again when the modal opens after a failed preload', () => {
+        const args = baseArgs()
+        const { result, rerender } = renderHookWithIntl(
+            ({ visible }: { visible: boolean }) => useSumsubWebSdk({ ...args, visible }),
+            { initialProps: { visible: false } }
+        )
+        failScript()
+        act(() => void jest.advanceTimersByTime(2_000))
+        failScript()
+        expect(result.current.sdkLoadError).toBe(true)
+
+        rerender({ visible: true })
+
+        expect(result.current.sdkLoadError).toBe(false)
+        expect(sdkScript()).not.toBeNull()
     })
 })

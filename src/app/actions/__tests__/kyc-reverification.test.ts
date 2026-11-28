@@ -19,7 +19,7 @@ const response = (status: number, body: unknown) => ({ status, ok: status < 400,
 beforeEach(() => fetch.mockReset())
 
 it('reads the feature plan with v3 and preserves the entry alongside the old fields', async () => {
-    const plan = { available: true, routes: [], entry }
+    const plan = { available: true, flow: null, routes: [], entry }
     fetch.mockResolvedValueOnce(response(200, plan))
     await expect(getKycDocumentPlan(false, undefined, 'bank')).resolves.toEqual(plan)
     expect(fetch).toHaveBeenCalledWith(
@@ -117,6 +117,12 @@ it('preserves the original internal path, query and fragment', () => {
         returnTo: destination,
         targetProvider: 'BRIDGE',
     })
+})
+
+it('removes consumed Sumsub reload state from the return destination', () => {
+    expect(safeReverificationReturnTo('/withdraw/bank?kyc=resume&currency=EUR#amount')).toBe(
+        '/withdraw/bank?currency=EUR#amount'
+    )
 })
 
 it.each([

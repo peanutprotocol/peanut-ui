@@ -11,6 +11,8 @@
  */
 
 import React, { createContext, useContext, useMemo, useState, useCallback, type ReactNode } from 'react'
+import { useQueryStates } from 'nuqs'
+import { parseAsAmount } from '@/utils/amount-param'
 import { type Address, type Hash } from 'viem'
 import { type TRequestChargeResponse, type PaymentCreationResponse } from '@/services/services.types'
 import type { Person } from '@/lib/person/person.types'
@@ -78,14 +80,35 @@ const DirectSendFlowContext = createContext<DirectSendFlowContextType | undefine
 interface SendFlowProviderProps {
     children: ReactNode
     initialRecipient?: DirectSendRecipient
+    /** A past send's amount (USD) and note, offered by "Send again" as an editable suggestion. */
+    initialDraft?: { amount: string; message?: string }
 }
 
-export const DirectSendFlowProvider: React.FC<SendFlowProviderProps> = ({ children, initialRecipient }) => {
-    const [amount, setAmount] = useState<string>('')
-    const [usdAmount, setUsdAmount] = useState<string>('')
+export const DirectSendFlowProvider: React.FC<SendFlowProviderProps> = ({
+    children,
+    initialRecipient,
+    initialDraft,
+}) => {
+    // the amount rides in the URL, so a bank page or /verify opened to add money comes back to it
+    // (TASK-25467). Never the message: it is free text and may hold personal data. A "Send again"
+    // draft is only a suggestion until the user types: the URL's own amount wins over it. `usdAmount`
+    // stays in memory, so the receipt keeps it after a sent payment clears the URL.
+    const [{ amount: urlAmount }, setQuery] = useQueryStates({ amount: parseAsAmount })
+    const [draftAmount, setDraftAmount] = useState<string>(initialDraft?.amount ?? '')
+    const amount = urlAmount ?? draftAmount
+    const setAmount = useCallback(
+        (value: string) => {
+            setDraftAmount('')
+            void setQuery({ amount: value || null })
+        },
+        [setQuery]
+    )
+    const [usdAmount, setUsdAmount] = useState<string>(amount)
     const [currentView, setCurrentView] = useState<DirectSendFlowView>('INITIAL')
     const [recipient, setRecipient] = useState<DirectSendRecipient | null>(initialRecipient ?? null)
-    const [attachment, setAttachment] = useState<DirectSendAttachment>({})
+    const [attachment, setAttachment] = useState<DirectSendAttachment>(
+        initialDraft?.message ? { message: initialDraft.message } : {}
+    )
     const [charge, setCharge] = useState<TRequestChargeResponse | null>(null)
     const [payment, setPayment] = useState<PaymentCreationResponse | null>(null)
     const [txHash, setTxHash] = useState<Hash | null>(null)
@@ -104,7 +127,7 @@ export const DirectSendFlowProvider: React.FC<SendFlowProviderProps> = ({ childr
         setError({ showError: false, errorMessage: '' })
         setIsLoading(false)
         setIsSuccess(false)
-    }, [])
+    }, [setAmount])
 
     const value = useMemo(
         () => ({
@@ -144,6 +167,7 @@ export const DirectSendFlowProvider: React.FC<SendFlowProviderProps> = ({ childr
             error,
             isLoading,
             isSuccess,
+            setAmount,
             resetSendFlow,
         ]
     )
