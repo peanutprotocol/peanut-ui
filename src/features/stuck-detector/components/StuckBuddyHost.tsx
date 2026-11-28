@@ -17,8 +17,20 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { isAndroidNative, isIOSNative } from '@/utils/capacitor'
 import { isManagerOverlayOpen, useAnyOverlayOpen } from '@/utils/overlay-visibility'
 import { decideStuckIntervention } from '../decideIntervention'
-import { markSeenAddMoneyUnfunded, readStuckMemory, recordSessionOutcome, recordSurfaceDismissal } from '../memory'
-import { isStuckExcludedPath, journeyForPath, parseDemoSurface, surfaceForPath } from '../routeJourney'
+import {
+    createDefaultStuckMemory,
+    markSeenAddMoneyUnfunded,
+    readStuckMemory,
+    recordSessionOutcome,
+    recordSurfaceDismissal,
+} from '../memory'
+import {
+    isBankDepositPath,
+    isStuckExcludedPath,
+    journeyForPath,
+    parseDemoSurface,
+    surfaceForPath,
+} from '../routeJourney'
 import { scoreStuckSession, STUCK_MODEL } from '../scoreModel'
 import {
     evaluateIdleTick,
@@ -72,25 +84,26 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent }: StuckBuddyCoreProps) 
     const { keyboardInset } = useVisualViewport(true)
 
     const runtime = useSyncExternalStore(subscribeStuckRuntime, getStuckRuntimeSnapshot, getStuckRuntimeSnapshot)
-    const [memory, setMemory] = useState(() => readStuckMemory(userId))
+    const analyticsOptedOut = typeof posthog.has_opted_out_capturing === 'function' && posthog.has_opted_out_capturing()
+    const [memory, setMemory] = useState(() =>
+        analyticsOptedOut ? createDefaultStuckMemory() : readStuckMemory(userId)
+    )
     const [drawerSurface, setDrawerSurface] = useState<StuckSurface | null>(null)
     const [dismissedThisVisit, setDismissedThisVisit] = useState(false)
     const [nowMs, setNowMs] = useState(() => Date.now())
     const smoothedRef = useRef(0)
     const sessionOutcomeSavedRef = useRef(false)
 
-    // Refresh per-user localStorage memory when auth state settles.
+    // Refresh per-user localStorage memory when auth or opt-out state settles.
     useEffect(() => {
-        setMemory(readStuckMemory(userId))
-    }, [userId])
-
-    const analyticsOptedOut = typeof posthog.has_opted_out_capturing === 'function' && posthog.has_opted_out_capturing()
+        setMemory(analyticsOptedOut ? createDefaultStuckMemory() : readStuckMemory(userId))
+    }, [userId, analyticsOptedOut])
 
     // Sync pathname into the signal store and reset per-screen dismiss state.
     useEffect(() => {
         setStuckRoute(pathname)
         setDismissedThisVisit(false)
-        if (!analyticsOptedOut && pathname.startsWith('/add-money') && (balanceUsd ?? 0) <= 0) {
+        if (!analyticsOptedOut && isBankDepositPath(pathname) && (balanceUsd ?? 0) <= 0) {
             setMemory(markSeenAddMoneyUnfunded(userId))
         }
     }, [pathname, userId, balanceUsd, analyticsOptedOut])
@@ -208,7 +221,7 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent }: StuckBuddyCoreProps) 
             hasOverlayOpen: anyUserOverlayOpen || isManagerOverlayOpen() || drawerSurface !== null,
             isKeyboardOpen: keyboardInset > 0,
             isFlowBusy: runtime.isFlowBusy,
-            isSetupErrorScreenOpen: runtime.isSetupErrorScreenOpen,
+            passkeyStepState: runtime.passkeyStepState,
             localVerifyAttempts: runtime.localVerifyAttempts,
             passkeyCancelCount: runtime.passkeyCancelCount,
             corridorSwitchCount: runtime.corridorSwitchCount,
@@ -291,14 +304,16 @@ function StuckBuddyCore({ variant, balanceUsd, hasSpent }: StuckBuddyCoreProps) 
         setDismissedThisVisit(true)
         if (!decision.isDemo) {
             markSessionNudgeShown()
-            setMemory(recordSurfaceDismissal(userId, decision.surface))
+            if (!analyticsOptedOut) {
+                setMemory(recordSurfaceDismissal(userId, decision.surface))
+            }
         }
         posthog.capture(ANALYTICS_EVENTS.STUCK_BUDDY_DISMISSED, {
             surface: decision.surface,
             reason: decision.reason,
             raw_score: Number(scoreResult.rawScore.toFixed(4)),
         })
-    }, [decision, userId, scoreResult.rawScore])
+    }, [decision, userId, analyticsOptedOut, scoreResult.rawScore])
 
     const handleSubmitBugReport = useCallback(
         (category: BugReportCategory, note: string) => {

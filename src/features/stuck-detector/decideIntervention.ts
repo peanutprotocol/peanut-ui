@@ -36,8 +36,13 @@ export function decideStuckIntervention(input: StuckDecisionInput): StuckInterve
     if (input.hasOverlayOpen) return { show: false, suppressedBy: 'overlay_open' }
     if (input.isKeyboardOpen) return { show: false, suppressedBy: 'keyboard_open' }
     if (input.isFlowBusy) return { show: false, suppressedBy: 'flow_busy' }
-    if (surface === 'setup_passkey' && input.isSetupErrorScreenOpen) {
-        return { show: false, suppressedBy: 'setup_error_open' }
+    if (surface === 'setup_passkey') {
+        if (input.passkeyStepState === 'dedicated_help') {
+            return { show: false, suppressedBy: 'setup_error_open' }
+        }
+        if (input.passkeyStepState !== 'ready') {
+            return { show: false, suppressedBy: 'no_surface' }
+        }
     }
     if (input.sessionNudgeShown) return { show: false, suppressedBy: 'already_nudged_session' }
 

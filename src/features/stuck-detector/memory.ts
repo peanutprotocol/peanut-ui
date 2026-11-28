@@ -17,9 +17,13 @@ function keyFor(userId?: string | null): string {
     return `${STORAGE_PREFIX}${userId || 'anon'}`
 }
 
+export function createDefaultStuckMemory(): StuckMemory {
+    return { ...DEFAULT_MEMORY, dismissedUntil: {} }
+}
+
 export function readStuckMemory(userId?: string | null): StuckMemory {
     const raw = readStoredValue(keyFor(userId))
-    if (!raw) return { ...DEFAULT_MEMORY, dismissedUntil: {} }
+    if (!raw) return createDefaultStuckMemory()
     try {
         const parsed = JSON.parse(raw) as Partial<StuckMemory>
         return {

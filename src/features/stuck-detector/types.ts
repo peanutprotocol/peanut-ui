@@ -64,6 +64,8 @@ export interface StuckScoreResult {
     modelVersion: string
 }
 
+export type PasskeyStepState = 'inactive' | 'ready' | 'dedicated_help'
+
 export interface StuckDecisionInput {
     pathname: string
     surface: StuckSurface | null
@@ -77,7 +79,7 @@ export interface StuckDecisionInput {
     hasOverlayOpen: boolean
     isKeyboardOpen: boolean
     isFlowBusy: boolean
-    isSetupErrorScreenOpen: boolean
+    passkeyStepState: PasskeyStepState
     localVerifyAttempts: number
     passkeyCancelCount: number
     corridorSwitchCount: number

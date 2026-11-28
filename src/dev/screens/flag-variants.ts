@@ -21,6 +21,7 @@ export const FLAGS: Record<string, { values: ReadonlyArray<FlagValue>; baseline:
     // Read with nonProdBypass, which turns it on in every non-production build.
     'user-interviews-invite': { values: [true, false], baseline: true },
     'signup-rollout-inviter-suggestions': { values: [true, false], baseline: false },
+    'stuck-buddy-interventions': { values: [true, false], baseline: false },
 }
 
 /** Flags no capture can show, and why. */
@@ -33,4 +34,6 @@ export const FLAG_EXEMPTIONS: Record<string, string> = {
         'The suggest route does not exist yet (TASK-24908), so no capture can show the chips; the flag stays off until it ships.',
     'user-interviews-invite':
         'No fixture reaches the invite: even fixture-home-activated, which reads the flag, shows no invite card with it on.',
+    'stuck-buddy-interventions':
+        'Driven by runtime friction signals and shadow scoring; no static capture fixture triggers the buddy.',
 }

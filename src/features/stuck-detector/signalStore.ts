@@ -1,7 +1,8 @@
 'use client'
 
+import { isBankDepositPath } from './routeJourney'
 import { emitStuckSignal, subscribeStuckSignals, type StuckSignalKind } from './signalTap'
-import type { StuckSessionFlags } from './types'
+import type { PasskeyStepState, StuckSessionFlags } from './types'
 
 const RAGE_WINDOW_MS = 1_500
 const RAGE_RADIUS_PX = 28
@@ -18,7 +19,7 @@ export interface StuckRuntimeSnapshot {
     passkeyCancelCount: number
     corridorSwitchCount: number
     errorRetryCount: number
-    isSetupErrorScreenOpen: boolean
+    passkeyStepState: PasskeyStepState
     isFlowBusy: boolean
     sessionNudgeShown: boolean
     shadowLoggedForSession: boolean
@@ -46,7 +47,7 @@ const createInitialState = (now = Date.now()): StuckRuntimeSnapshot => ({
     passkeyCancelCount: 0,
     corridorSwitchCount: 0,
     errorRetryCount: 0,
-    isSetupErrorScreenOpen: false,
+    passkeyStepState: 'inactive',
     isFlowBusy: false,
     sessionNudgeShown: false,
     shadowLoggedForSession: false,
@@ -126,7 +127,7 @@ export function getStuckRuntimeSnapshot(): StuckRuntimeSnapshot {
 export function setStuckRoute(pathname: string, now = Date.now()): void {
     if (state.pathname === pathname) return
     const switchedDepositCorridor =
-        state.pathname.startsWith('/add-money') && pathname.startsWith('/add-money') && state.pathname !== pathname
+        isBankDepositPath(state.pathname) && isBankDepositPath(pathname) && state.pathname !== pathname
     state = {
         ...state,
         pathname,
@@ -163,8 +164,7 @@ export function evaluateIdleTick(now = Date.now()): void {
     const idleMs = now - state.lastInteractionAt
     const onScreenMs = now - state.screenEnteredAt
     const nextIdle = idleMs >= IDLE_THRESHOLD_MS
-    const nextMoneyStuck =
-        state.pathname.startsWith('/add-money') && onScreenMs >= 45_000 ? true : state.flags.moneyStuck
+    const nextMoneyStuck = isBankDepositPath(state.pathname) && onScreenMs >= 45_000 ? true : state.flags.moneyStuck
     if (nextIdle !== state.flags.longIdle || nextMoneyStuck !== state.flags.moneyStuck) {
         state = {
             ...state,
@@ -192,9 +192,9 @@ export function noteDepositFriction(): void {
     emitStuckSignal('moneyStuck', 'deposit_friction')
 }
 
-export function setSetupErrorScreenOpen(isOpen: boolean): void {
-    if (state.isSetupErrorScreenOpen === isOpen) return
-    state = { ...state, isSetupErrorScreenOpen: isOpen }
+export function setPasskeyStepState(nextState: PasskeyStepState): void {
+    if (state.passkeyStepState === nextState) return
+    state = { ...state, passkeyStepState: nextState }
     notify()
 }
 

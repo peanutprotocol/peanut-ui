@@ -1,4 +1,5 @@
 import { decideStuckIntervention } from '../decideIntervention'
+import { isBankDepositPath, isCryptoDepositPath, surfaceForPath } from '../routeJourney'
 import type { StuckDecisionInput } from '../types'
 
 const BASE_INPUT: StuckDecisionInput = {
@@ -28,7 +29,7 @@ const BASE_INPUT: StuckDecisionInput = {
     hasOverlayOpen: false,
     isKeyboardOpen: false,
     isFlowBusy: false,
-    isSetupErrorScreenOpen: false,
+    passkeyStepState: 'inactive',
     localVerifyAttempts: 0,
     passkeyCancelCount: 0,
     corridorSwitchCount: 0,
@@ -69,12 +70,22 @@ describe('decideStuckIntervention', () => {
         expect(res).toEqual({ show: false, suppressedBy: 'cooldown_active' })
     })
 
-    it('never duplicates Passkey error screens or PasskeySetupHelpDrawer on /setup', () => {
+    it('only triggers Passkey buddy while PasskeyScreenView is ready (never on other /setup steps or failure screens)', () => {
+        const nonPasskeyStep = decideStuckIntervention({
+            ...BASE_INPUT,
+            pathname: '/setup',
+            surface: 'setup_passkey',
+            passkeyStepState: 'inactive',
+            rawScore: 0.85,
+            elapsedOnScreenMs: 35_000,
+        })
+        expect(nonPasskeyStep).toEqual({ show: false, suppressedBy: 'no_surface' })
+
         const blocked = decideStuckIntervention({
             ...BASE_INPUT,
             pathname: '/setup',
             surface: 'setup_passkey',
-            isSetupErrorScreenOpen: true,
+            passkeyStepState: 'dedicated_help',
             passkeyCancelCount: 3,
         })
         expect(blocked).toEqual({ show: false, suppressedBy: 'setup_error_open' })
@@ -83,11 +94,19 @@ describe('decideStuckIntervention', () => {
             ...BASE_INPUT,
             pathname: '/setup',
             surface: 'setup_passkey',
-            isSetupErrorScreenOpen: false,
+            passkeyStepState: 'ready',
             rawScore: 0.75,
             elapsedOnScreenMs: 30_000,
         })
         expect(silentStall).toMatchObject({ show: true, surface: 'setup_passkey', pose: 'waving-hello' })
+    })
+
+    it('never routes /add-money/crypto into bank-transfer deposit help', () => {
+        expect(isCryptoDepositPath('/add-money/crypto')).toBe(true)
+        expect(isBankDepositPath('/add-money/crypto')).toBe(false)
+        expect(isBankDepositPath('/add-money/ar/bank')).toBe(true)
+        expect(surfaceForPath('/add-money/crypto', false)).toBe('active_issue')
+        expect(surfaceForPath('/add-money/us/bank', false)).toBe('add_money')
     })
 
     it('triggers verify buddy on 3rd local field error regardless of PostHog dedup', () => {

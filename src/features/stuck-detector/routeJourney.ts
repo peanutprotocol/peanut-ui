@@ -21,15 +21,26 @@ export function journeyForPath(pathname: string): StuckJourney {
     return 'other'
 }
 
+/** Whether a path is the crypto deposit screen (never bank-transfer help). */
+export function isCryptoDepositPath(pathname: string): boolean {
+    return pathname === '/add-money/crypto' || pathname.startsWith('/add-money/crypto/')
+}
+
+/** Whether a path is a fiat / bank-transfer add-money screen. */
+export function isBankDepositPath(pathname: string): boolean {
+    return (pathname === '/add-money' || pathname.startsWith('/add-money/')) && !isCryptoDepositPath(pathname)
+}
+
 /**
  * Map a pathname + activation state to one of the 5 eligible intervention surfaces.
- * Card terms and marketing pages are deliberately excluded.
+ * Card terms and marketing pages are deliberately excluded; crypto deposits use active_issue.
  */
 export function surfaceForPath(pathname: string, hasSpent: boolean): StuckSurface | null {
     if (isStuckExcludedPath(pathname)) return null
     if (pathname.startsWith('/setup')) return 'setup_passkey'
     if (pathname.startsWith('/verify')) return 'verify_loop'
-    if (pathname.startsWith('/add-money')) return hasSpent ? 'active_issue' : 'add_money'
+    if (isCryptoDepositPath(pathname)) return 'active_issue'
+    if (isBankDepositPath(pathname)) return hasSpent ? 'active_issue' : 'add_money'
     if (pathname === '/home') return hasSpent ? null : 'home_funded'
     if (pathname.startsWith('/qr-pay') || pathname.startsWith('/withdraw') || pathname.startsWith('/card')) {
         return 'active_issue'

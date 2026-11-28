@@ -5661,7 +5661,9 @@
             "openHelper": "Open Peanut helper"
         },
         "inline": {
-            "verifyFormatHint": "Enter digits only, no spaces or dashes."
+            "verifyFormatHint": "Enter digits only, no spaces or dashes.",
+            "verifyPhoneHint": "Include the country code starting with +.",
+            "verifyGenericHint": "Check the format or contact support."
         },
         "supportTopics": {
             "addMoney": "Bank transfer deposit help",

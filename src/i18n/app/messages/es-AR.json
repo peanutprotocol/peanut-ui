@@ -2499,7 +2499,9 @@
     },
     "stuckBuddy": {
         "inline": {
-            "verifyFormatHint": "Ingresá solo números, sin espacios ni guiones."
+            "verifyFormatHint": "Ingresá solo números, sin espacios ni guiones.",
+            "verifyPhoneHint": "Incluí el código de país empezando con +.",
+            "verifyGenericHint": "Revisá el formato o contactá a soporte."
         },
         "drawers": {
             "addMoney": {

@@ -5661,7 +5661,9 @@
             "openHelper": "Abrir ayuda de Peanut"
         },
         "inline": {
-            "verifyFormatHint": "Ingresa solo números, sin espacios ni guiones."
+            "verifyFormatHint": "Ingresa solo números, sin espacios ni guiones.",
+            "verifyPhoneHint": "Incluye el código de país empezando con +.",
+            "verifyGenericHint": "Revisa el formato o contacta a soporte."
         },
         "supportTopics": {
             "addMoney": "Ayuda con depósito por transferencia bancaria",

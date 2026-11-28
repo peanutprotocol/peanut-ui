@@ -13,7 +13,7 @@ import type { SignupPasskey } from '@/features/setup/useSignupPasskey'
 import { useBackHandler } from '@/hooks/useBackHandler'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { notifyHaptic } from '@/utils/haptics'
-import { setSetupErrorScreenOpen } from '@/features/stuck-detector/signalStore'
+import { setPasskeyStepState } from '@/features/stuck-detector/signalStore'
 import { PasskeyFailureArt } from './PasskeyFailureArt'
 import { PasskeyHeroArt } from './PasskeyHeroArt'
 import { PasskeyHeroPanel } from './PasskeyHeroPanel'
@@ -89,12 +89,12 @@ export function PasskeyScreenView({ passkey }: { passkey: SignupPasskey }) {
         if (state === 'error-inline' || state === 'taken' || failed || cannot) notifyHaptic('error')
     }, [state, failed, cannot, message])
 
-    // Keep the proactive stuck buddy hidden whenever Passkey already shows a failure screen or recovery drawer.
+    // Allow the Passkey stuck buddy only while PasskeyScreenView is live without a dedicated failure or recovery view.
     useEffect(() => {
         const hasDedicatedHelp =
             failed || cannot || state === 'taken' || helpDrawer || Boolean(passkey.recoveryDrawer?.visible)
-        setSetupErrorScreenOpen(hasDedicatedHelp)
-        return () => setSetupErrorScreenOpen(false)
+        setPasskeyStepState(hasDedicatedHelp ? 'dedicated_help' : 'ready')
+        return () => setPasskeyStepState('inactive')
     }, [failed, cannot, state, helpDrawer, passkey.recoveryDrawer?.visible])
 
     // The tap's beat: the hero's sheet grows and the brackets flash twice.

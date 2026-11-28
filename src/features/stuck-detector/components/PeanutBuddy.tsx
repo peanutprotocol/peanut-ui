@@ -2,7 +2,8 @@
 
 import { motion, useReducedMotion } from 'framer-motion'
 import { useState } from 'react'
-import { Icon } from '@/components/Global/Icons/Icon'
+import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
 import { twMerge } from '@/utils/tw'
 import type { StuckBuddyPose } from '../types'
 import { PeanutBuddyMascot } from './PeanutBuddyMascot'
@@ -74,28 +75,35 @@ export function PeanutBuddy({
                     bubbleVisible || reducedMotion ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: 0.9, y: 6 }
                 }
                 transition={{ duration: 0.2, ease: 'easeOut' }}
-                className="pointer-events-auto flex max-w-[244px] min-w-[200px] flex-col gap-2 rounded-sm border border-border-default bg-background-default p-3 shadow-4"
+                className="pointer-events-auto"
             >
-                <div className="flex items-start justify-between gap-2">
-                    <p className="pt-1 text-body-s-semibold text-foreground-primary">{prompt}</p>
-                    <button
+                <Card shadowSize="4" className="max-w-[244px] min-w-[200px] gap-2 p-3">
+                    <div className="flex items-start justify-between gap-2">
+                        <p className="pt-1 text-body-s-semibold text-foreground-primary">{prompt}</p>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            shape="square"
+                            size="small"
+                            icon="cancel"
+                            iconSize={20}
+                            onClick={onDismiss}
+                            aria-label={dismissLabel}
+                            data-testid="peanut-buddy-dismiss"
+                            className="-mt-1 -mr-1 shrink-0 text-foreground-secondary"
+                        />
+                    </div>
+                    <Button
                         type="button"
-                        onClick={onDismiss}
-                        aria-label={dismissLabel}
-                        data-testid="peanut-buddy-dismiss"
-                        className="relative -mt-1.5 -mr-1.5 flex size-10 shrink-0 items-center justify-center rounded-full text-foreground-secondary transition-colors duration-instant after:absolute after:-inset-0.5 hover:bg-background-page focus-visible:outline-3 focus-visible:outline-action-focus"
+                        variant="primary"
+                        size="small"
+                        shadowSize="2"
+                        onClick={onAction}
+                        data-testid="peanut-buddy-cta"
                     >
-                        <Icon name="cancel" size={20} />
-                    </button>
-                </div>
-                <button
-                    type="button"
-                    onClick={onAction}
-                    data-testid="peanut-buddy-cta"
-                    className="btn btn-primary btn-small shadow-2 w-full justify-center"
-                >
-                    {ctaLabel}
-                </button>
+                        {ctaLabel}
+                    </Button>
+                </Card>
             </motion.div>
 
             <button
