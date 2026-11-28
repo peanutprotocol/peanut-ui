@@ -29,6 +29,15 @@ const EVENTS = {
         cameBackFunded: ANALYTICS_EVENTS.SEND_ADD_MONEY_CAME_BACK_FUNDED,
         methodPicked: ANALYTICS_EVENTS.SEND_ADD_MONEY_METHOD_PICKED,
     },
+    send_link: {
+        opened: ANALYTICS_EVENTS.SEND_LINK_ADD_MONEY_DRAWER_OPENED,
+        closed: ANALYTICS_EVENTS.SEND_LINK_ADD_MONEY_DRAWER_CLOSED,
+        networkPicked: ANALYTICS_EVENTS.SEND_LINK_ADD_MONEY_NETWORK_PICKED,
+        railPicked: ANALYTICS_EVENTS.SEND_LINK_ADD_MONEY_RAIL_PICKED,
+        verifyTapped: ANALYTICS_EVENTS.SEND_LINK_ADD_MONEY_VERIFY_TAPPED,
+        cameBackFunded: ANALYTICS_EVENTS.SEND_LINK_ADD_MONEY_CAME_BACK_FUNDED,
+        methodPicked: ANALYTICS_EVENTS.SEND_LINK_ADD_MONEY_METHOD_PICKED,
+    },
 } as const
 
 /** The place that opened the drawer; also its verify source. */

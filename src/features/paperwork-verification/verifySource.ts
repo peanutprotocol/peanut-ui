@@ -11,6 +11,7 @@ export type VerifySource =
     | 'payment_methods'
     | 'card'
     | 'send'
+    | 'send_link'
     | 'direct'
 
 /** set by the caller just before it opens /verify; Verify start takes it when it shows */

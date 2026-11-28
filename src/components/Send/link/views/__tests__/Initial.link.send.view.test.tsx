@@ -11,11 +11,13 @@
  */
 import React from 'react'
 import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { NuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
 import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { LinkSendFlowProvider, useLinkSendFlow } from '@/context/LinkSendFlowContext'
 import en from '@/i18n/app/messages/en.json'
 import { CLAIM_RAIL_MINIMUMS } from '@/constants/payment.consts'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const COOLDOWN_MESSAGE = 'A previous withdrawal signature is still active. Try again in about 2 min.'
 
@@ -58,9 +60,35 @@ jest.mock('@/services/sendLinks', () => ({
     sendLinksApi: { create: jest.fn().mockResolvedValue({}) },
 }))
 
+const mockCapture = jest.fn()
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    default: { capture: jest.fn() },
+    default: { capture: (...args: unknown[]) => mockCapture(...args) },
+}))
+
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ isFetchingUser: false, user: { user: { userId: 'u1' } } }),
+}))
+jest.mock('@/features/add-money/useAddMoneyReadiness', () => ({
+    useAddMoneyReadiness: () => ({ isLoading: true, residenceIso2s: [], ready: {}, topUpGates: {} }),
+}))
+// the drawer's own views have their own tests; these check what the link hands it and gets back
+type DrawerProps = {
+    open: boolean
+    targetUsd: number
+    gapUsd?: number
+    funded: boolean
+    returnTo: () => string
+    place: string
+    onShow: (method: 'bank' | 'crypto' | null, view: string) => void
+    onBankSent: (inDollars: boolean) => void
+}
+let drawerProps: DrawerProps | undefined
+jest.mock('@/features/add-money/drawer/AddMoneyDrawer', () => ({
+    AddMoneyDrawer: (props: DrawerProps) => {
+        drawerProps = props
+        return props.open ? <div data-testid="drawer" /> : null
+    },
 }))
 
 jest.mock('@sentry/nextjs', () => ({
@@ -122,13 +150,22 @@ import { sendLinksApi } from '@/services/sendLinks'
 
 const usdc = (dollars: number) => BigInt(Math.round(dollars * 1e6))
 
-const walletState = (spendableDollars: number | undefined) => ({
-    address: '0x2222222222222222222222222222222222222222',
-    fetchBalance: jest.fn(),
-    spendableBalance: spendableDollars === undefined ? undefined : usdc(spendableDollars),
-    formattedSpendableBalance: spendableDollars === undefined ? '0.00' : spendableDollars.toFixed(2),
-    spendableBalanceDecimal: spendableDollars,
-})
+// the displayed total (held while a refetch settles, or the persisted cache before the first read) and
+// the raw live sum the gates read: the same unless a test splits them, null while the live one is not
+// read yet. `settled` false is a refetch in flight.
+const walletState = (spendableDollars: number | undefined, live?: number | null, settled = true) => {
+    const liveDollars = live === undefined ? spendableDollars : (live ?? undefined)
+    return {
+        address: '0x2222222222222222222222222222222222222222',
+        fetchBalance: jest.fn(),
+        spendableBalance: spendableDollars === undefined ? undefined : usdc(spendableDollars),
+        formattedSpendableBalance: spendableDollars === undefined ? '0.00' : spendableDollars.toFixed(2),
+        spendableBalanceDecimal: spendableDollars,
+        availableSpendableBalance: liveDollars === undefined ? undefined : usdc(liveDollars),
+        isSpendableBalanceReady: liveDollars !== undefined,
+        isSpendableBalanceSettled: liveDollars !== undefined && settled,
+    }
+}
 
 /** Drives the flow context from inside the provider (AmountInput is mocked out). */
 const SetAmount = ({ amount }: { amount: string }) => {
@@ -142,14 +179,20 @@ const SetAmount = ({ amount }: { amount: string }) => {
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 
+// the URL the flow reads at mount, and every write it makes to it
+let searchParams = '?view=link'
+let urlUpdates: UrlUpdateEvent[] = []
+
 const viewTree = (amount: string) => (
     <IntlWrapper>
-        <QueryClientProvider client={queryClient}>
-            <LinkSendFlowProvider>
-                <SetAmount amount={amount} />
-                <LinkSendInitialView />
-            </LinkSendFlowProvider>
-        </QueryClientProvider>
+        <NuqsTestingAdapter searchParams={searchParams} onUrlUpdate={(e) => urlUpdates.push(e)}>
+            <QueryClientProvider client={queryClient}>
+                <LinkSendFlowProvider>
+                    <SetAmount amount={amount} />
+                    <LinkSendInitialView />
+                </LinkSendFlowProvider>
+            </QueryClientProvider>
+        </NuqsTestingAdapter>
     </IntlWrapper>
 )
 
@@ -165,6 +208,11 @@ const rerenderView = (utils: ReturnType<typeof render>, amount: string) => {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    sessionStorage.clear()
+    drawerProps = undefined
+    searchParams = '?view=link'
+    urlUpdates = []
+    window.history.replaceState({}, '', '/send?view=link&amount=20')
     window.localStorage.clear()
     mockReadUserOpOutcome.mockReset().mockResolvedValue('unknown')
 })
@@ -277,14 +325,15 @@ describe('LinkSendInitialView sub-minimum fiat-claim warning', () => {
 // the amount input and leave the primary CTA intact. Only submit-time (flow)
 // failures may flip the CTA to Retry.
 describe('LinkSendInitialView validation errors keep the primary CTA', () => {
-    test('balance shortfall shows the field error without flipping Create link to Retry', async () => {
+    // TASK-25467: the shortfall's primary button is "Add $X", never Retry
+    test('balance shortfall shows the field error without flipping the CTA to Retry', async () => {
         mockUseWallet.mockReturnValue(walletState(10))
 
         renderView('20')
         await waitFor(() =>
             expect(screen.getByTestId('error-alert')).toHaveTextContent(en.errors.notEnoughBalanceAddFunds)
         )
-        expect(screen.getByText('Create link')).toBeInTheDocument()
+        expect(screen.getByText('Add $10')).toBeInTheDocument()
         expect(screen.queryByText('Retry')).not.toBeInTheDocument()
     })
 
@@ -367,6 +416,146 @@ describe('LinkSendInitialView balance fill', () => {
 
         const input = await screen.findByTestId('amount-input')
         expect(input).not.toHaveAttribute('data-balance-fill')
+    })
+})
+
+// TASK-25467: a short balance adds the gap in place, as on Send, and never creates the link by itself
+describe('LinkSendInitialView add money', () => {
+    test('a shortfall keeps the error and offers "Add $X" for the gap; it opens the drawer with a way back here', async () => {
+        mockUseWallet.mockReturnValue(walletState(10))
+
+        renderView('20')
+        fireEvent.click(await screen.findByText('Add $10'))
+        expect(screen.getByTestId('error-alert')).toHaveTextContent(en.errors.notEnoughBalanceAddFunds)
+        expect(screen.queryByText('Create link')).not.toBeInTheDocument()
+        expect(screen.getByTestId('drawer')).toBeInTheDocument()
+        expect(drawerProps).toMatchObject({ place: 'send_link', targetUsd: 20, gapUsd: 10 })
+        expect(drawerProps!.returnTo()).toBe('/send?view=link&amount=20')
+    })
+
+    // Chip on ui#4320: an amount edited after the tap must be the one a bank page or /verify comes back to
+    test('the way back carries the form amount, even before its URL write lands', async () => {
+        mockUseWallet.mockReturnValue(walletState(10))
+        renderView('20')
+        fireEvent.click(await screen.findByText('Add $10'))
+
+        // the route opens before nuqs writes the edit: the URL still says 20
+        fireEvent.change(screen.getByTestId('amount-input'), { target: { value: '30' } })
+        expect(window.location.search).toBe('?view=link&amount=20')
+        expect(drawerProps!.returnTo()).toBe('/send?view=link&amount=30')
+    })
+
+    // the display cache can read high while the live total is short or not read yet
+    test('a cached balance that covers the amount never reads as funded in the drawer', async () => {
+        mockUseWallet.mockReturnValue(walletState(10))
+        const utils = renderView('20')
+        fireEvent.click(await screen.findByText('Add $10'))
+        act(() => drawerProps!.onShow('crypto', 'address'))
+
+        // the persisted display cache while the live total is not read yet
+        mockUseWallet.mockReturnValue(walletState(100, null))
+        rerenderView(utils, '20')
+        expect(screen.getByTestId('drawer')).toBeInTheDocument()
+        expect(drawerProps!.gapUsd).toBeUndefined()
+        // Chip on ui#4320: money moving from Rain to the wallet can count twice for a moment in the raw
+        // sum; nothing reads as funded until both reads settle
+        mockUseWallet.mockReturnValue(walletState(10, 20, false))
+        rerenderView(utils, '20')
+        expect(screen.getByTestId('drawer')).toBeInTheDocument()
+        expect(drawerProps!.funded).toBe(false)
+        expect(mockCapture).not.toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.SEND_LINK_ADD_MONEY_CAME_BACK_FUNDED,
+            expect.anything()
+        )
+    })
+
+    // Kush, 2026-11-28: the gate follows the live balance as the user types, not the display cache
+    test('a live shortfall shows "Add $X" as the user types, even when the cached total covers it', async () => {
+        mockUseWallet.mockReturnValue(walletState(100, 10))
+        renderView('20')
+        expect(await screen.findByText('Add $10')).toBeInTheDocument()
+        expect(screen.getByTestId('error-alert')).toHaveTextContent(en.errors.notEnoughBalanceAddFunds)
+    })
+
+    test('no shortfall is shown before the live balance reads', async () => {
+        mockUseWallet.mockReturnValue(walletState(5, null))
+        renderView('20')
+        await waitFor(() => expect(screen.getByText('Create link')).toBeInTheDocument())
+        expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument()
+    })
+
+    test('rounds the gap up to the cent', async () => {
+        mockUseWallet.mockReturnValue(walletState(3.205))
+
+        renderView('10')
+        expect(await screen.findByText('Add $6.80')).toBeInTheDocument()
+    })
+
+    test('once funded, the drawer closes and Create link turns on without creating the link', async () => {
+        mockUseWallet.mockReturnValue(walletState(10))
+        const utils = renderView('20')
+        fireEvent.click(await screen.findByText('Add $10'))
+        act(() => drawerProps!.onShow('crypto', 'address'))
+
+        mockUseWallet.mockReturnValue(walletState(25))
+        rerenderView(utils, '20')
+        await waitFor(() => expect(screen.getByText('Create link')).toBeEnabled())
+        expect(screen.queryByTestId('drawer')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument()
+        expect(mockCreateLink).not.toHaveBeenCalled()
+        expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SEND_LINK_ADD_MONEY_CAME_BACK_FUNDED, {
+            in_drawer: true,
+            method: 'crypto',
+        })
+    })
+
+    test('"I\'ve sent the transfer": the note and a waiting Create link replace the error and "Add $X" until it lands', async () => {
+        mockUseWallet.mockReturnValue(walletState(10))
+        const utils = renderView('20')
+        fireEvent.click(await screen.findByText('Add $10'))
+        act(() => drawerProps!.onBankSent(true))
+
+        expect(screen.queryByTestId('drawer')).not.toBeInTheDocument()
+        expect(screen.getByTestId('send-link-add-money-bank-sent')).toHaveTextContent('$10 transfer')
+        expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument()
+        expect(screen.queryByText('Add $10')).not.toBeInTheDocument()
+        expect(screen.getByText('Create link')).toBeDisabled()
+
+        // another way reopens the drawer on this step
+        fireEvent.click(screen.getByText('Add money another way'))
+        expect(screen.getByTestId('drawer')).toBeInTheDocument()
+
+        mockUseWallet.mockReturnValue(walletState(25))
+        rerenderView(utils, '20')
+        await waitFor(() => expect(screen.getByText('Create link')).toBeEnabled())
+        expect(screen.queryByTestId('send-link-add-money-bank-sent')).not.toBeInTheDocument()
+    })
+
+    // review on ui#4320: `5e3` is not an amount the field holds; parseFloat would read 5000
+    test.each(['5e3', 'abc'])('a URL amount the field would not hold is ignored: %s', async (bad) => {
+        searchParams = `?view=link&amount=${bad}`
+        mockUseWallet.mockReturnValue(walletState(10))
+        render(viewTree(''))
+        await waitFor(() => expect(screen.getByText('Create link')).toBeInTheDocument())
+        expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('send-link-add-money')).not.toBeInTheDocument()
+    })
+
+    test('the amount comes back from the URL, and the URL drops it once the link is created', async () => {
+        searchParams = '?view=link&amount=20'
+        mockUseWallet.mockReturnValue(walletState(10))
+        const utils = render(viewTree('20'))
+        // no amount typed: the shortfall on $20 comes from the URL alone
+        expect(await screen.findByText('Add $10')).toBeInTheDocument()
+
+        fireEvent.change(screen.getByTestId('amount-input'), { target: { value: '5' } })
+        await waitFor(() => expect(urlUpdates.at(-1)?.queryString).toBe('?view=link&amount=5'))
+
+        mockCreateLink.mockResolvedValue({ link: 'https://peanut.me/claim#x', amount: '5000000' })
+        rerenderView(utils, '5')
+        fireEvent.click(await screen.findByText('Create link'))
+        await waitFor(() => expect(urlUpdates.at(-1)?.searchParams.has('amount')).toBe(false))
+        expect(urlUpdates.at(-1)?.searchParams.get('view')).toBe('link')
     })
 })
 

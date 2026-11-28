@@ -223,3 +223,23 @@ describe('send add-money drawer fixtures', () => {
         expect(addMoneyGapUsd(10, spendableUsd())).toBe(0)
     })
 })
+
+// TASK-25467: the same drawer on Send a link, a $10 link with the card fixtures' $3.20
+describe('send-link add-money drawer fixtures', () => {
+    it.each([
+        ['send-link-add-money', { kind: 'rows', rows: [{ kind: 'page', corridor: 'ACH_US' }] }],
+        ['send-link-add-money-bank-details', { kind: 'rows', rows: [{ kind: 'account', corridor: 'ACH_US' }] }],
+        ['send-link-add-money-bank-sent', { kind: 'rows', rows: [{ kind: 'account', corridor: 'ACH_US' }] }],
+        ['send-link-add-money-funded', { kind: 'rows', rows: [{ kind: 'page', corridor: 'ACH_US' }] }],
+    ])('%s: the link short by $6.80, and the bank choice is %j', async (name, expected) => {
+        expect(FIXTURES[name].route).toBe('/send?view=link&amount=10')
+        expect(await bankPlanOf(name)).toEqual(expected)
+        expect(addMoneyGapUsd(10, spendableUsd())).toBe(6.8)
+    })
+
+    it('funded: a $10 deposit lands and the balance then covers the $10 link', async () => {
+        activate('send-link-add-money-funded')
+        for (let i = 0; i < 3; i++) await read(`/rhino/status/${DEMO_ADDRESS}`)
+        expect(addMoneyGapUsd(10, spendableUsd())).toBe(0)
+    })
+})

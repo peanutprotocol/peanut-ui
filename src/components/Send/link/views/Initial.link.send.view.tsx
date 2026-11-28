@@ -22,13 +22,16 @@ import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
-import { parseUnits, type Address, type Hash } from 'viem'
+import { formatUnits, parseUnits, type Address, type Hash } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import AmountInput from '../../../Global/AmountInput'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { useAddMoneyAction } from '@/features/add-money/drawer/useAddMoneyAction'
+import { formatBankAmount } from '@/utils/currency'
 
 // Below the smallest fiat minimum the recipient loses every fiat claim rail
 // (bank / Pix / Mercado Pago all reject at claim time) and is left with only
@@ -48,6 +51,8 @@ const LinkSendInitialView = () => {
     const tErrors = useTranslations('errors')
     const tWithdraw = useTranslations('withdraw')
     const tPayment = useTranslations('payment')
+    const tAdd = useTranslations('addMoney')
+    const tCard = useTranslations('card.addMoney')
     const toFriendlyError = useFriendlyError()
     const {
         attachmentOptions,
@@ -70,7 +75,14 @@ const LinkSendInitialView = () => {
         spendableBalance: balance,
         formattedSpendableBalance,
         spendableBalanceDecimal,
+        availableSpendableBalance,
+        isSpendableBalanceReady,
+        isSpendableBalanceSettled,
     } = useWallet()
+    // the live total (smart + Rain), what the spend can route now; undefined until both terms read, so
+    // the display cache never passes or blocks an amount. Both gates and the add-money gap read it, as
+    // on Send (TASK-25467)
+    const liveBalance = isSpendableBalanceReady ? availableSpendableBalance : undefined
     const queryClient = useQueryClient()
     const { hasPendingTransactions } = usePendingTransactions()
 
@@ -175,10 +187,9 @@ const LinkSendInitialView = () => {
 
         // Re-check affordability at submit too: the Retry button isn't disabled
         // on a balance error (unlike the other flows), so without this a blocked
-        // amount could reach createLink. Only when the balance has loaded — else
-        // a tap before the query resolves would false-reject. Gates on the
-        // displayed total; an in-transit shortfall fails late with the settling copy.
-        if (balance !== undefined && !isAmountWithinBalance(tokenValue, balance)) {
+        // amount could reach createLink. Only once the live balance has read — else
+        // a tap before the queries resolve would false-reject.
+        if (liveBalance !== undefined && !isAmountWithinBalance(tokenValue, liveBalance)) {
             setErrorState({
                 showError: true,
                 errorMessage: tErrors('notEnoughBalanceAddFunds'),
@@ -260,7 +271,7 @@ const LinkSendInitialView = () => {
         setLoadingState,
         attachmentOptions,
         setErrorState,
-        balance,
+        liveBalance,
         tErrors,
         toFriendlyError,
     ])
@@ -273,7 +284,7 @@ const LinkSendInitialView = () => {
             return
         }
 
-        if (!peanutWalletBalance || !tokenValue) {
+        if (liveBalance === undefined || !tokenValue) {
             // An emptied amount is user input — clear everything (a Retry with no
             // amount would be a dead button). A momentarily-unavailable balance is
             // NOT a user action: release only the gate's own error, never a
@@ -283,10 +294,9 @@ const LinkSendInitialView = () => {
             }
             return
         }
-        // Gate on the displayed total: block only a true shortfall. An in-transit
-        // amount passes and fails late (settling message + refetch) — the FE balance
-        // is ~30s-polled, so blocking it here would over-reject routable funds.
-        if (!isAmountWithinBalance(tokenValue, balance)) {
+        // Gate on the live total as the user types, as Send does (TASK-25467): "Add $X" shows the real
+        // gap before Create link is tapped. Money still in transit fails late with the settling copy.
+        if (!isAmountWithinBalance(tokenValue, liveBalance)) {
             // Claim the error slot only when it's free or already ours. A submit-time
             // failure (cooldown / settling copy) must stay until the user retries or
             // edits — right after a collateral spend the polled balance oscillates
@@ -306,8 +316,7 @@ const LinkSendInitialView = () => {
             setErrorState({ showError: false, errorMessage: '' })
         }
     }, [
-        peanutWalletBalance,
-        balance,
+        liveBalance,
         tokenValue,
         setErrorState,
         hasPendingTransactions,
@@ -339,12 +348,27 @@ const LinkSendInitialView = () => {
         (errorState.errorCode === 'invalidAmount' || errorState.errorCode === 'notEnoughBalanceAddFunds')
     const isFlowError = !!errorState?.showError && !isFieldError
 
+    // a short balance adds the gap in place (TASK-25467), as on Send: the drawer comes back to this URL,
+    // amount in it. The gate's own error clears once the balance covers the amount, which turns Create link on.
+    const isShort = !!errorState?.showError && errorState.errorCode === 'notEnoughBalanceAddFunds'
+    const liveSpendableUsd =
+        liveBalance === undefined ? undefined : Number(formatUnits(liveBalance, PEANUT_WALLET_TOKEN_DECIMALS))
+    const addMoney = useAddMoneyAction({
+        place: 'send_link',
+        targetUsd: enteredAmount || 0,
+        spendableUsd: liveSpendableUsd,
+        balanceSettled: isSpendableBalanceSettled,
+        step: `link:${tokenValue ?? ''}`,
+        urlState: { amount: tokenValue },
+    })
+    const bankSent = isShort ? addMoney.bankSent : undefined
+
     return (
         // ponytail: no wrapper — PageStack.Center's gap-4 owns the spacing
         <>
             <PeanutActionCard type="send" />
 
-            <Field error={isFieldError ? errorState?.errorMessage : undefined} errorTestId="error-alert">
+            <Field error={isFieldError && !bankSent ? errorState?.errorMessage : undefined} errorTestId="error-alert">
                 <AmountInput
                     initialAmount={tokenValue}
                     setPrimaryAmount={handleAmountChange}
@@ -368,34 +392,66 @@ const LinkSendInitialView = () => {
             )}
 
             <div className="flex flex-col gap-4">
-                {/* only a flow (submit-time) error flips the CTA to retry — a
-                    validation error keeps the primary Create link button */}
-                {isFlowError ? (
-                    <Button
-                        shadowSize="4"
-                        icon="retry"
-                        onClick={handleOnNext}
-                        loading={isLoading || pendingSend.isRecovering}
-                        // a deposit that may still land keeps Retry off until it is final
-                        disabled={isLoading || pendingSend.isPending}
-                    >
-                        {tCommon('retry')}
-                    </Button>
-                ) : (
-                    <Button
-                        shadowSize="4"
-                        onClick={handleOnNext}
-                        loading={isLoading}
-                        disabled={
-                            isLoading ||
-                            pendingSend.isPending ||
-                            !isValidSendAmount(tokenValue) ||
-                            !!errorState?.showError
-                        }
-                    >
-                        {isLoading ? tLoading('creatingLink') : t('link.createLink')}
-                    </Button>
+                {bankSent && (
+                    <Callout priority="info" className="w-full" data-testid="send-link-add-money-bank-sent">
+                        {bankSent.usd
+                            ? tCard('bankSentPending', { amount: formatBankAmount(bankSent.usd, 'USD') })
+                            : tCard('bankSentPendingNoAmount')}
+                    </Callout>
                 )}
+                {/* the tertiary sits gap-6 under the primary (design.md tertiary CTA) */}
+                <div className="flex flex-col gap-6">
+                    {/* only a flow (submit-time) error flips the CTA to retry — a
+                        validation error keeps the primary Create link button, and a short
+                        balance turns it into "Add $X" until a bank transfer is on its way */}
+                    {isFlowError ? (
+                        <Button
+                            shadowSize="4"
+                            icon="retry"
+                            onClick={handleOnNext}
+                            loading={isLoading || pendingSend.isRecovering}
+                            // a deposit that may still land keeps Retry off until it is final
+                            disabled={isLoading || pendingSend.isPending}
+                        >
+                            {tCommon('retry')}
+                        </Button>
+                    ) : isShort && !bankSent ? (
+                        <Button
+                            variant="primary"
+                            icon="arrow-down"
+                            onClick={addMoney.openAddMoney}
+                            data-testid="send-link-add-money"
+                        >
+                            {addMoney.gapUsd
+                                ? tAdd('addAmount', { amount: formatBankAmount(addMoney.gapUsd, 'USD') })
+                                : tAdd('title')}
+                        </Button>
+                    ) : (
+                        <Button
+                            shadowSize="4"
+                            onClick={handleOnNext}
+                            loading={isLoading}
+                            disabled={
+                                isLoading ||
+                                pendingSend.isPending ||
+                                !isValidSendAmount(tokenValue) ||
+                                !!errorState?.showError
+                            }
+                        >
+                            {isLoading ? tLoading('creatingLink') : t('link.createLink')}
+                        </Button>
+                    )}
+                    {bankSent && (
+                        <LinkButton
+                            className="self-center"
+                            onClick={addMoney.openAddMoney}
+                            data-testid="send-link-add-money-another-way"
+                        >
+                            {tAdd('anotherWay')}
+                        </LinkButton>
+                    )}
+                </div>
+                {addMoney.drawer}
                 {isFlowError && (
                     <Callout priority="error" data-testid="error-alert">
                         <CooldownErrorText message={errorState.errorMessage} />

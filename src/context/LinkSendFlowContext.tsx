@@ -12,6 +12,8 @@
  */
 
 import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react'
+import { useQueryStates } from 'nuqs'
+import { parseAsAmount } from '@/utils/amount-param'
 
 // view states for link send flow
 export type LinkSendFlowView = 'INITIAL' | 'SUCCESS'
@@ -57,8 +59,27 @@ interface LinkSendFlowProviderProps {
 }
 
 export const LinkSendFlowProvider: React.FC<LinkSendFlowProviderProps> = ({ children }) => {
-    const [view, setView] = useState<LinkSendFlowView>('INITIAL')
-    const [tokenValue, setTokenValue] = useState<string | undefined>(undefined)
+    const [view, setViewState] = useState<LinkSendFlowView>('INITIAL')
+    // the amount rides in the URL too, so a bank page or /verify opened to add money comes back to it
+    // (TASK-25467). Never the message or the file: free text may hold personal data. The memory copy
+    // keeps the amount on the success view after the URL drops it.
+    const [{ amount }, setQuery] = useQueryStates({ amount: parseAsAmount })
+    const [tokenValue, setTokenValueState] = useState<string | undefined>(amount ?? undefined)
+    const setTokenValue = useCallback(
+        (value: string | undefined) => {
+            setTokenValueState(value)
+            void setQuery({ amount: value || null })
+        },
+        [setQuery]
+    )
+    // a refresh after a created link must not open the form filled in again
+    const setView = useCallback(
+        (next: LinkSendFlowView) => {
+            setViewState(next)
+            if (next === 'SUCCESS') void setQuery({ amount: null })
+        },
+        [setQuery]
+    )
     const [link, setLink] = useState<string | undefined>(undefined)
     const [attachmentOptions, setAttachmentOptions] = useState<LinkSendAttachmentOptions>({
         fileUrl: undefined,
@@ -67,9 +88,10 @@ export const LinkSendFlowProvider: React.FC<LinkSendFlowProviderProps> = ({ chil
     })
     const [errorState, setErrorState] = useState<LinkSendErrorState | undefined>(undefined)
 
+    // memory only: the URL dropped the amount at SUCCESS, and this runs as the user leaves the route
     const resetLinkSendFlow = useCallback(() => {
-        setView('INITIAL')
-        setTokenValue(undefined)
+        setViewState('INITIAL')
+        setTokenValueState(undefined)
         setLink(undefined)
         setAttachmentOptions({
             fileUrl: undefined,
@@ -93,7 +115,7 @@ export const LinkSendFlowProvider: React.FC<LinkSendFlowProviderProps> = ({ chil
             setErrorState,
             resetLinkSendFlow,
         }),
-        [view, tokenValue, link, attachmentOptions, errorState, resetLinkSendFlow]
+        [view, setView, tokenValue, setTokenValue, link, attachmentOptions, errorState, resetLinkSendFlow]
     )
 
     return <LinkSendFlowContext.Provider value={value}>{children}</LinkSendFlowContext.Provider>

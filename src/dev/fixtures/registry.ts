@@ -2854,6 +2854,8 @@ const CARD_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
  */
 // the native route: the web /send/[username] route lives outside the fixture app group
 const SEND_ADD_MONEY_ROUTE = '/send?recipient=alice&amount=10'
+// Send a link, the same $10 short by $6.80
+const SEND_LINK_ADD_MONEY_ROUTE = '/send?view=link&amount=10'
 const OPEN_DRAWER = '[role="dialog"][data-state="open"]'
 const sendAddMoney = (
     about: string,
@@ -2861,11 +2863,21 @@ const sendAddMoney = (
     depositAccounts: Record<string, unknown>,
     extra: Partial<Fixture> = {}
 ): Fixture => ({ ...cardAddMoney(about, user, depositAccounts, extra), route: SEND_ADD_MONEY_ROUTE })
-const sendView = (id: string, name: string, clickTestIds: string[], expectTestId: string) => ({
+const sendLinkAddMoney = (...args: Parameters<typeof sendAddMoney>): Fixture => ({
+    ...sendAddMoney(...args),
+    route: SEND_LINK_ADD_MONEY_ROUTE,
+})
+const sendView = (
+    id: string,
+    name: string,
+    clickTestIds: string[],
+    expectTestId: string,
+    route = SEND_ADD_MONEY_ROUTE
+) => ({
     id,
     name,
     flow: 'Send',
-    route: SEND_ADD_MONEY_ROUTE,
+    route,
     clickTestIds,
     expectSelector: `${OPEN_DRAWER} [data-testid="${expectTestId}"]`,
 })
@@ -2939,9 +2951,69 @@ const SEND_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
     ),
 }
 
+const SEND_LINK_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
+    'send-link-add-money': sendLinkAddMoney(
+        'Send a $10 link with $3.20 spendable: the error stays and the button reads "Add $6.80"; it opens the add-money drawer on this step.',
+        CARD_US_USER,
+        {},
+        {
+            capture: { expectSelector: '[data-testid="send-link-add-money"]' },
+            views: [
+                sendView(
+                    'send-link-add-money-methods',
+                    'Send a link: the drawer lists the ready bank way and crypto',
+                    ['send-link-add-money'],
+                    'add-money-method-crypto',
+                    SEND_LINK_ADD_MONEY_ROUTE
+                ),
+            ],
+        }
+    ),
+    'send-link-add-money-bank-details': sendLinkAddMoney(
+        'Send a $10 link with $3.20 spendable: a held USD account (ACH) next to crypto; tap it for its details in the drawer.',
+        CARD_US_USER,
+        { depositAccounts: [DEPOSIT_ACCOUNT_USD] },
+        {
+            views: [
+                sendView(
+                    'send-link-add-money-bank-details-view',
+                    "Send a link: the held account's details in the drawer",
+                    ['send-link-add-money', 'card-add-money-rail-ach_us'],
+                    'card-add-money-bank-details',
+                    SEND_LINK_ADD_MONEY_ROUTE
+                ),
+            ],
+        }
+    ),
+    'send-link-add-money-bank-sent': sendLinkAddMoney(
+        'Send a $10 link with $3.20 spendable: after "I\'ve sent the transfer" from the held USD account, the drawer closes; the error and Add $6.80 give way to the $6.80 transfer on its way, Add money another way, and Create link waiting off.',
+        CARD_US_USER,
+        { depositAccounts: [DEPOSIT_ACCOUNT_USD] },
+        {
+            views: [
+                {
+                    id: 'send-link-add-money-bank-sent-view',
+                    name: 'Send a link: the bank transfer on its way, back on the step',
+                    flow: 'Send',
+                    route: SEND_LINK_ADD_MONEY_ROUTE,
+                    clickTestIds: ['send-link-add-money', 'card-add-money-rail-ach_us', 'add-money-bank-sent'],
+                    expectSelector: '[data-testid="send-link-add-money-bank-sent"]',
+                },
+            ],
+        }
+    ),
+    'send-link-add-money-funded': sendLinkAddMoney(
+        'Send a $10 link with $3.20 spendable: tap Add $6.80, Crypto, EVM; a $10 deposit lands, the drawer closes and Create link turns on, not created (wait ~15 s).',
+        CARD_US_USER,
+        {},
+        { balanceAfterDeposit: '13.20', responses: { [RHINO_STATUS]: { status: 'completed', amount: 10 } } }
+    ),
+}
+
 export const FIXTURES: Record<string, Fixture> = {
     ...SETUP_REDESIGN_FIXTURES,
     ...SEND_ADD_MONEY_FIXTURES,
+    ...SEND_LINK_ADD_MONEY_FIXTURES,
     'setup-signup-reserved': {
         capture: {
             actions: [
