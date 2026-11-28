@@ -25,7 +25,7 @@ import { currencyToAccountType } from '@/utils/bridge.utils'
 import { useQueryState, parseAsString } from 'nuqs'
 import { useTranslations } from 'next-intl'
 import { useHistoryEntry } from '@/hooks/useHistoryEntry'
-import { historyEntryPhase, useDepositSuccessEntry } from '@/features/add-money/useDepositSuccessEntry'
+import { useDepositSuccessEntry } from '@/features/add-money/useDepositSuccessEntry'
 import { BankDepositSuccessView } from '@/features/add-money/components/BankDepositSuccessView'
 
 /**
@@ -68,7 +68,7 @@ export default function AddMoneyBankDetails({ onBack }: AddMoneyBankDetailsProps
     // no status route for a one-time transfer: its history entry is the signal, polled every 15 s while not final
     const transferId = onrampData?.transferId
     const { data: transferEntry } = useHistoryEntry(transferId, 'ONRAMP')
-    const depositSuccess = useDepositSuccessEntry(transferId, historyEntryPhase(transferEntry))
+    const depositSuccess = useDepositSuccessEntry(transferEntry, transferId)
 
     // routing and country context
     const router = useRouter()

@@ -2068,10 +2068,6 @@ const VA_READY_RESPONSE = {
     'GET /users/me': { capabilities: VA_READY_CAPABILITIES, depositAccounts: { enabled: true } },
 }
 
-/**
- * A UK top-up as the API returns it: GBP over Faster Payments, so the bank
- * details are a sort code and an account number, not an IBAN and a BIC.
- */
 // HANDOFF rule 7: a Bridge one-time transfer that lands while its bank details are
 // up ends on the success screen. Each poll answers in turn (Fixture.sequences): open, then done.
 const EUR_ONRAMP = {
@@ -2106,6 +2102,10 @@ const eurTransferEntry = (status: string) => ({
     extraData: { kind: 'ONRAMP', provider: 'BRIDGE', usdAmount: '21.62' },
 })
 
+/**
+ * A UK top-up as the API returns it: GBP over Faster Payments, so the bank
+ * details are a sort code and an account number, not an IBAN and a BIC.
+ */
 const GBP_ONRAMP = {
     transferId: 'fixture-onramp-gbp',
     depositInstructions: {
