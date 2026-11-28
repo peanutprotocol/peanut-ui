@@ -224,6 +224,18 @@ describe('funding step', () => {
         expect(screen.getByText('fundingBody')).toBeInTheDocument()
     })
 
+    // kush on ui#4312: the note is a callout right above the CTA, not text at the top of the page
+    it('shows the gap as one callout right above Continue, and the transfer note takes its place', async () => {
+        readiness = { ...readiness, ready: { ...noneReady, account: ['USD'] } }
+        renderFunding()
+        const continueButton = screen.getByRole('button', { name: 'continue' })
+        expect(screen.getByTestId('card-add-money-gap').nextElementSibling).toBe(continueButton)
+        fireEvent.click(screen.getByTestId('card-add-money-bank'))
+        fireEvent.click(within(drawer()).getByText('sentTransfer'))
+        expect((await screen.findByTestId('card-add-money-bank-sent')).nextElementSibling).toBe(continueButton)
+        expect(screen.queryByTestId('card-add-money-gap')).not.toBeInTheDocument()
+    })
+
     it('shows a balance and a gap that add up to the minimum (0.29 * 100 is 28.999…)', () => {
         renderFunding({ spendableUsd: 0.29 })
         expect(screen.getByText('fundingBodyGap($10|$0.29|$9.71)')).toBeInTheDocument()
