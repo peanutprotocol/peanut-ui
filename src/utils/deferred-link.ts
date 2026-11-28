@@ -681,11 +681,15 @@ async function doRestore(): Promise<RestoredContext | null> {
     }
 
     const restored = applyDeferredPayload(payload)
+    let restoredAttribution: SignupAttributionContext | null = null
     if (payload.attribution && deferredAnalyticsAllowed(payload)) {
         // WKWebView can discard the cookie immediately. Await the native
         // write using the decoded evidence before registration or a restart.
-        const persisted = readSignupAttribution() ?? { ...payload.attribution, captureMethod: 'deferred_link' as const }
-        await persistSignupAttribution(persisted)
+        restoredAttribution = readSignupAttribution() ?? {
+            ...payload.attribution,
+            captureMethod: 'deferred_link' as const,
+        }
+        await persistSignupAttribution(restoredAttribution)
     }
     const restoreFields: Record<string, boolean | string> = {
         has_dest: !!restored.dest,
@@ -709,9 +713,10 @@ async function doRestore(): Promise<RestoredContext | null> {
     // Register only after the privacy-preserving restore event above. The
     // journey id is useful on subsequent native events, but must not turn the
     // restore telemetry into a payload dump.
-    if (payload.attribution && deferredAnalyticsAllowed(payload) && typeof posthog.register === 'function') {
+    // Not a cookie re-read: on iOS it returns null and registers nothing.
+    if (restoredAttribution && typeof posthog.register === 'function') {
         try {
-            posthog.register(signupAttributionPosthogProperties(readSignupAttribution()))
+            posthog.register(signupAttributionPosthogProperties(restoredAttribution))
         } catch {}
     }
 

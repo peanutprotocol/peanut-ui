@@ -12,9 +12,17 @@ import {
  * inviter. In particular, `?code=juanacervio` carries no NITA campaign unless
  * `?badge_campaign=nita` is also present.
  */
-/** Published storage key retained for old bundles. Do not rename the string value. */
+/**
+ * The pending queue is one localStorage record with its expiry inside; the
+ * cookies below are only a mirror. iOS WKWebView (capacitor://localhost) ignores
+ * cookie writes, so no iOS badge campaign survived to signup (TASK-25110).
+ * Same move as invite-stash.ts.
+ */
+export const PENDING_BADGE_CAMPAIGNS_STORAGE_KEY = 'peanut:pending-badge-campaigns'
+const PENDING_BADGE_CAMPAIGNS_TTL_DAYS = 30
+/** Cookie mirror read by older bundles. Do not rename the string value. */
 export const LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE = 'campaignTag'
-/** Published lossless queue key retained across rolling deploys. */
+/** Lossless cookie mirror read by older bundles. */
 export const LEGACY_PENDING_BADGE_CAMPAIGNS_V2_COOKIE = 'campaignTagsV2'
 /** Persisted account-boundary epoch; the string value is compatibility state. */
 export const PENDING_BADGE_CAMPAIGN_INTENT_EPOCH_STORAGE_KEY = 'campaignIntentEpoch'
@@ -137,7 +145,7 @@ export function badgeCampaignForLegacyWire(searchParams: BadgeCampaignSearchPara
     return badgeCampaignsFromSearchParams(searchParams)[0]
 }
 
-/** Accept both the new array cookie and the legacy single-string cookie. */
+/** Accept both the array queue and the legacy single-string cookie. */
 export function parsePendingBadgeCampaigns(value: unknown): string[] {
     if (Array.isArray(value)) return sanitizeBadgeCampaignIdentities(value)
     return sanitizeBadgeCampaignIdentities([value])
@@ -154,32 +162,44 @@ function mergeBadgeCampaignQueues(existing: readonly string[], incoming: readonl
     return merged
 }
 
-function sameBadgeCampaignQueue(left: readonly string[], right: readonly string[]): boolean {
-    return (
-        left.length === right.length &&
-        left.every((badgeCampaign, index) => badgeCampaign.toLowerCase() === right[index]?.toLowerCase())
-    )
+function readStoredBadgeCampaigns(): string[] {
+    let raw: string | null
+    try {
+        raw = localStorage.getItem(PENDING_BADGE_CAMPAIGNS_STORAGE_KEY)
+    } catch {
+        return []
+    }
+    if (!raw) return []
+    try {
+        const parsed = JSON.parse(raw) as { badgeCampaigns?: unknown; expiresAt?: unknown }
+        if (typeof parsed.expiresAt === 'number' && parsed.expiresAt > Date.now()) {
+            return parsePendingBadgeCampaigns(parsed.badgeCampaigns)
+        }
+    } catch {}
+    writeStoredBadgeCampaigns([])
+    return []
+}
+
+function writeStoredBadgeCampaigns(badgeCampaigns: readonly string[], expiryDays = PENDING_BADGE_CAMPAIGNS_TTL_DAYS) {
+    try {
+        if (badgeCampaigns.length === 0) {
+            localStorage.removeItem(PENDING_BADGE_CAMPAIGNS_STORAGE_KEY)
+            return
+        }
+        const expiresAt = Date.now() + expiryDays * 24 * 60 * 60 * 1000
+        localStorage.setItem(PENDING_BADGE_CAMPAIGNS_STORAGE_KEY, JSON.stringify({ badgeCampaigns, expiresAt }))
+    } catch {
+        // Storage unavailable (private mode, sandboxed document): the badge is
+        // lost, but signup must never fail because of it.
+    }
 }
 
 export function getPendingBadgeCampaigns(): string[] {
-    const rawV2 = getFromCookie(LEGACY_PENDING_BADGE_CAMPAIGNS_V2_COOKIE)
-    const rawLegacy = getFromCookie(LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE)
-    const v2 = parsePendingBadgeCampaigns(rawV2)
-    const legacy = parsePendingBadgeCampaigns(rawLegacy)
-    const merged = mergeBadgeCampaignQueues(v2, legacy)
-
-    // Upgrade a legacy scalar/array or a newer value written by an old bundle
-    // into the lossless queue. The old key remains scalar-only from this point
-    // forward. A missing legacy scalar is deliberately not reconstructed: an
-    // old bundle may have cleared it, but that cannot erase the v2 queue.
-    if (legacy.length > 0 && (!sameBadgeCampaignQueue(v2, merged) || Array.isArray(rawLegacy))) {
-        saveToCookie(LEGACY_PENDING_BADGE_CAMPAIGNS_V2_COOKIE, merged, 30)
-        if (Array.isArray(rawLegacy)) {
-            saveToCookie(LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE, merged[merged.length - 1], 30)
-        }
-    }
-
-    return merged
+    // Cookies hold queues from older bundles and the mirror below; a cookie
+    // value counts as the newest. They are read, never deleted here.
+    const v2 = parsePendingBadgeCampaigns(getFromCookie(LEGACY_PENDING_BADGE_CAMPAIGNS_V2_COOKIE))
+    const legacy = parsePendingBadgeCampaigns(getFromCookie(LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE))
+    return mergeBadgeCampaignQueues(readStoredBadgeCampaigns(), mergeBadgeCampaignQueues(v2, legacy))
 }
 
 export function getPendingBadgeCampaignIntentGeneration(): string {
@@ -188,13 +208,13 @@ export function getPendingBadgeCampaignIntentGeneration(): string {
 
 export function savePendingBadgeCampaigns(badgeCampaigns: readonly string[], expiryDays?: number): void {
     const pending = sanitizeBadgeCampaignIdentities(badgeCampaigns)
+    writeStoredBadgeCampaigns(pending, expiryDays)
+    // Cookie mirror for old-bundle tabs and a rollback; no-op on iOS. Drop it one release later.
     if (pending.length === 0) {
         removeFromCookie(LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE)
         removeFromCookie(LEGACY_PENDING_BADGE_CAMPAIGNS_V2_COOKIE)
         return
     }
-    // V2 owns the lossless queue. The unversioned key is a compatibility mirror
-    // for older bundles and must always remain scalar; prefer the newest intent.
     saveToCookie(LEGACY_PENDING_BADGE_CAMPAIGNS_V2_COOKIE, pending, expiryDays)
     saveToCookie(LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE, pending[pending.length - 1], expiryDays)
 }
@@ -204,7 +224,7 @@ export function queuePendingBadgeCampaigns(badgeCampaigns: readonly string[], ex
     const incoming = sanitizeBadgeCampaignIdentities(badgeCampaigns)
     if (incoming.length === 0) return getPendingBadgeCampaigns()
 
-    // A newly clicked acquisition must not disappear behind a cookie already at
+    // A newly clicked acquisition must not disappear behind a queue already at
     // the contract cap. Move incoming identities to the newest end, evicting
     // only the oldest retryable entries when capacity is exhausted.
     const incomingKeys = new Set(incoming.map((badgeCampaign) => badgeCampaign.toLowerCase()))
@@ -228,6 +248,5 @@ export function clearPendingBadgeCampaigns(): void {
     processBadgeCampaignIntentGeneration += 1
     const durableEpoch = getDurableBadgeCampaignIntentEpoch()
     saveToLocalStorage(PENDING_BADGE_CAMPAIGN_INTENT_EPOCH_STORAGE_KEY, Math.max(Date.now(), durableEpoch + 1))
-    removeFromCookie(LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE)
-    removeFromCookie(LEGACY_PENDING_BADGE_CAMPAIGNS_V2_COOKIE)
+    savePendingBadgeCampaigns([])
 }

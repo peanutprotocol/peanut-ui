@@ -29,6 +29,7 @@ import {
     stashInvite,
 } from '../invite-stash'
 import { EInviteType } from '@/services/services.types'
+import { getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import publicAttributionPaths from '@/constants/signup-attribution-paths.generated.json'
 import {
     parseDeferredPayload as parseLegacyDeferredPayload,
@@ -787,12 +788,14 @@ describe('applyDeferredPayload', () => {
         applyDeferredPayload({ invite: 'abc', campaign: 'off' })
         expect(readInviteCode()).toBe('abc')
         expect(mockSaveToCookie).not.toHaveBeenCalledWith('inviteCode', expect.anything())
+        expect(getPendingBadgeCampaigns()).toEqual(['off'])
         expect(mockSaveToCookie).toHaveBeenCalledWith('campaignTag', 'off', 30)
     })
 
     it('normalizes invite separately while preserving campaign spelling after outer trim', () => {
         applyDeferredPayload({ invite: ' @Alice ', campaign: ' OFFRAMP ' })
         expect(readInviteCode()).toBe('alice')
+        expect(getPendingBadgeCampaigns()).toEqual(['OFFRAMP'])
         expect(mockSaveToCookie).toHaveBeenCalledWith('campaignTag', 'OFFRAMP', 30)
     })
 
@@ -842,7 +845,7 @@ describe('restoreDeferredContext', () => {
 
         await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/claim/XYZ', locale: 'es-419' })
         expect(readInviteCode()).toBe('abc')
-        expect(document.cookie).toContain('campaignTag=')
+        expect(getPendingBadgeCampaigns()).toEqual(['off'])
         expect(localStorage.getItem(APP_LOCALE_KEY)).toBe('es-419')
 
         // consumed: second call never touches the plugin again
@@ -943,6 +946,41 @@ describe('restoreDeferredContext', () => {
         await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/home', locale: null })
         expect(readInviteCode()).toBe('test')
         expect(clipboardWrite).toHaveBeenCalled()
+    })
+
+    // capacitor://localhost: WKWebView ignores cookie writes and reads ''.
+    it('keeps the badge campaign and registers the journey in an iOS WebView without cookies', async () => {
+        Object.defineProperty(document, 'cookie', { configurable: true, get: () => '', set: () => {} })
+        try {
+            mockIsIOSNative.mockReturnValue(true)
+            mockClipboardHasStrings.mockResolvedValue(true)
+            mockClipboardHasProbableWebUrl.mockResolvedValue(true)
+            const attribution = encodeURIComponent(
+                JSON.stringify({
+                    schemaVersion: '1',
+                    journeyId: '44444444-4444-4444-8444-444444444444',
+                    platform: 'web',
+                    analyticsState: 'enabled',
+                    captureMethod: 'browser',
+                    firstTouch: { occurredAt: '2026-11-10T09:00:00.000Z', utmCampaign: 'nita' },
+                })
+            )
+            clipboardRead.mockResolvedValue({
+                value: `https://peanut.me/?pnutdl=1&badge_campaign=nita&attribution=${attribution}&dest=%2Fsetup`,
+            })
+            clipboardWrite.mockResolvedValue(undefined)
+
+            await restoreDeferredContext()
+
+            expect(getPendingBadgeCampaigns()).toEqual(['nita'])
+            expect(posthogRegister).toHaveBeenCalledWith({
+                signup_journey_id: '44444444-4444-4444-8444-444444444444',
+                signup_platform: 'web',
+                signup_attribution_capture_method: 'deferred_link',
+            })
+        } finally {
+            delete (document as unknown as Record<string, unknown>).cookie
+        }
     })
 })
 
@@ -1072,7 +1110,7 @@ describe('restore telemetry', () => {
         })
         // an unmarked referrer is not our hand-off: no invite, locale, badge campaign or dest
         expect(readInviteCode()).toBe('')
-        expect(document.cookie).not.toContain('campaignTag=')
+        expect(getPendingBadgeCampaigns()).toEqual([])
         expect(localStorage.getItem(APP_LOCALE_KEY)).toBeNull()
         expect(JSON.stringify(posthogCapture.mock.calls)).not.toContain('abc')
         expect(JSON.stringify(posthogCapture.mock.calls)).not.toContain('XYZ')
