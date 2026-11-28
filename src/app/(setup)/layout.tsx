@@ -8,6 +8,7 @@ import Loading from '@/components/Global/Loading'
 import { AppShell } from '@/components/Global/AppShell'
 import { AttentionBanner } from '@/features/attention/AttentionBanner'
 import SupportDrawer from '@/components/Global/SupportDrawer'
+import { SetupStuckBuddyHost } from '@/features/stuck-detector/components/StuckBuddyHost'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { usePullToRefresh, useShouldPullToRefresh } from '@/hooks/usePullToRefresh'
 import { isCapacitor } from '@/utils/capacitor'
@@ -103,7 +104,12 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
             variant="onboarding"
             banner={<AttentionBanner />}
             bottomInsetClassName={bottomInsetFill}
-            modals={<SupportDrawer />}
+            modals={
+                <>
+                    <SupportDrawer />
+                    <SetupStuckBuddyHost />
+                </>
+            }
         >
             {children}
         </AppShell>

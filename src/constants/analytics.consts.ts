@@ -570,6 +570,14 @@ export const ANALYTICS_EVENTS = {
     // camera failed. Scan results stay on qr_scanned.
     QR_SCANNER_OPENED: 'qr_scanner_opened',
     QR_CAMERA_PERMISSION: 'qr_camera_permission',
+
+    // ── Real-time stuck detection & proactive buddy ──
+    STUCK_SIGNAL_CHECKPOINT: 'stuck_signal_checkpoint',
+    STUCK_BUDDY_ELIGIBLE: 'stuck_buddy_eligible',
+    STUCK_BUDDY_SHOWN: 'stuck_buddy_shown',
+    STUCK_BUDDY_ACTION: 'stuck_buddy_action',
+    STUCK_BUDDY_DISMISSED: 'stuck_buddy_dismissed',
+    STUCK_BUG_REPORT_SUBMITTED: 'stuck_bug_report_submitted',
 } as const
 
 /**

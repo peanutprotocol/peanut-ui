@@ -19,13 +19,8 @@ const DAY_MS = 86_400_000
  */
 const FRICTION_KEY = 'peanut:app-review-friction'
 
-/**
- * Analytics events that mean the user just had a bad time. Any of them silences
- * the ask for QUIET_DAYS. This is the honest version of what the old
- * "Could be better" branch was reaching for: suppress the question rather than
- * filter the answer.
- */
-const FRICTION_EVENTS = new Set<string>([
+/** Money-flow failure events shared with `stuck-detector/signalTap.ts` (one source of truth). */
+export const MONEY_FAILED_EVENTS = new Set<string>([
     ANALYTICS_EVENTS.SEND_FAILED,
     ANALYTICS_EVENTS.SEND_LINK_FAILED,
     ANALYTICS_EVENTS.CLAIM_LINK_FAILED,
@@ -33,6 +28,16 @@ const FRICTION_EVENTS = new Set<string>([
     ANALYTICS_EVENTS.WITHDRAW_FAILED,
     ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED,
     ANALYTICS_EVENTS.CARD_APPLY_FAILED,
+])
+
+/**
+ * Analytics events that mean the user just had a bad time. Any of them silences
+ * the ask for QUIET_DAYS. This is the honest version of what the old
+ * "Could be better" branch was reaching for: suppress the question rather than
+ * filter the answer.
+ */
+const FRICTION_EVENTS = new Set<string>([
+    ...MONEY_FAILED_EVENTS,
     ANALYTICS_EVENTS.BACKEND_ERROR_SHOWN,
     ANALYTICS_EVENTS.KYC_REJECTED,
 ])

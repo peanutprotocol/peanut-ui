@@ -2499,5 +2499,24 @@
     "notifications": {
         "firstDepositTitle": "Enterate cuando se mueva tu dinero",
         "migrationSetupTitle": "Recibí alertas de dinero"
+    },
+    "stuckBuddy": {
+        "supportTopics": {
+            "setupPasskey": "Ayuda para configurar la passkey",
+            "loginRecovery": "Recuperación de inicio de sesión con passkey",
+            "passkeyError": "Ayuda con passkey ({errorName})",
+            "usernameCheck": "Error al verificar el nombre de usuario"
+        },
+        "drawers": {
+            "addMoney": {
+                "step1": "¿Rechazaron el alias? Copiá el CVU o número de cuenta completo.",
+                "step2": "¿Enviaste desde otro nombre? Algunas transferencias requieren una cuenta propia.",
+                "step3": "¿Pasó el tiempo de llegada indicado? Compartí el comprobante con soporte."
+            },
+            "homeFunded": {
+                "title": "Pagá en segundos",
+                "description": "Elegí la forma más rápida de hacer el primer pago."
+            }
+        }
     }
 }
