@@ -9,7 +9,7 @@ import { servedCardState, type ServedCardState } from '@/components/Card/servedC
  * target a CANCELED card's id. Returns the newest non-canceled card, or null.
  */
 export function findActiveCard(overview: RainCardOverview | undefined): RainCardSummary | null {
-    return overview?.cards.find((c) => c.status !== 'CANCELED') ?? null
+    return overview?.cards?.find((c) => c.status !== 'CANCELED') ?? null
 }
 
 /** The served card state plus two client-only states. */

@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // Keeps the TLA+ specs in verification/tla/ in step with the code they model.
 //
-// Each spec names the files it models in its header: `Models: src/a.ts, src/b.ts`. When a branch
-// changes one of those files and changes no spec or config that names it, this fails, unless a
-// commit on the branch carries the trailer `Model-unchanged: <reason>` (the change does not touch
-// what the model describes). A path that does not exist yet is a warning, so a spec can name a
-// module that a parallel change is about to add.
+// Each spec names the files it models in its header: `Models: src/a.ts, src/b.ts`. Every named
+// path must exist, every spec must carry at least one holding `.cfg` and one `*_Buggy*.cfg`, and
+// every `*_Buggy*.cfg` must carry a `\* Replay: <test-path>` (or `OPEN_GAP` / `ARCHITECTURAL`).
+// When a branch changes a modelled file and changes no spec or config that names it, this fails,
+// unless a commit on the branch carries the trailer `Model-unchanged: <reason>`.
 //
 // usage: node scripts/check-model-sync.mjs --base-ref <ref>   (CI: the tla job, on a pull request)
 // What TLA+ checks and how to add a model: mono engineering/api/state-machines/README.md.
@@ -35,6 +35,13 @@ function readModels(root) {
     return models
 }
 
+function readConfigs(root, spec) {
+    const dir = join(root, SPEC_DIR)
+    return readdirSync(dir)
+        .filter((f) => f.endsWith('.cfg') && (f === `${spec}.cfg` || f.startsWith(`${spec}_`)))
+        .sort()
+}
+
 function main() {
     const root = git(process.cwd(), ['rev-parse', '--show-toplevel']).trim()
     const at = process.argv.indexOf('--base-ref')
@@ -43,14 +50,40 @@ function main() {
     const models = readModels(root)
     let failed = false
     for (const [spec, paths] of models) {
+        const specFile = `${SPEC_DIR}/${spec}.tla`
         if (paths.length === 0) {
+            console.error(`::error file=${specFile}::${spec}.tla has no "Models:" line naming the code it models.`)
+            failed = true
+        }
+        for (const path of paths.filter((p) => !existsSync(join(root, p)))) {
+            console.error(`::error file=${specFile}::${spec}.tla models ${path}, which does not exist.`)
+            failed = true
+        }
+        const cfgs = readConfigs(root, spec)
+        const buggyCfgs = cfgs.filter((c) => /_Buggy/i.test(c))
+        const holdingCfgs = cfgs.filter((c) => !/_Buggy/i.test(c))
+        if (holdingCfgs.length === 0 || buggyCfgs.length === 0) {
             console.error(
-                `::error file=${SPEC_DIR}/${spec}.tla::${spec}.tla has no "Models:" line naming the code it models.`
+                `::error file=${specFile}::${spec}.tla needs at least one holding .cfg and one *_Buggy*.cfg (found ${holdingCfgs.length} holding, ${buggyCfgs.length} buggy).`
             )
             failed = true
         }
-        for (const path of paths.filter((p) => !existsSync(join(root, p))))
-            console.warn(`::warning file=${SPEC_DIR}/${spec}.tla::${spec}.tla models ${path}, which does not exist.`)
+        for (const cfg of buggyCfgs) {
+            const cfgText = readFileSync(join(root, SPEC_DIR, cfg), 'utf8')
+            const replay = cfgText.match(/^\s*\\\*\s*Replay:\s*(.+)$/m)
+            if (!replay) {
+                console.error(
+                    `::error file=${SPEC_DIR}/${cfg}::${cfg} needs a "\\* Replay: <test-path>" (or OPEN_GAP / ARCHITECTURAL) line.`
+                )
+                failed = true
+            } else {
+                const target = replay[1].trim().split(/\s+/)[0]
+                if (target !== 'OPEN_GAP' && target !== 'ARCHITECTURAL' && !existsSync(join(root, target))) {
+                    console.error(`::error file=${SPEC_DIR}/${cfg}::${cfg} Replay target "${target}" does not exist.`)
+                    failed = true
+                }
+            }
+        }
     }
     if (failed) process.exit(1)
 

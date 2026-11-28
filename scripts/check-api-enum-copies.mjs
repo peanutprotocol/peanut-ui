@@ -37,9 +37,17 @@ function enumHolding(values, enums) {
     return Object.entries(enums).find(([, list]) => values.every((value) => list.includes(value)))?.[0] ?? null
 }
 
-function literalStrings(nodes) {
+function literalStrings(nodes, { allowNullable = false } = {}) {
     const values = []
     for (const node of nodes) {
+        if (
+            allowNullable &&
+            (node.kind === ts.SyntaxKind.NullKeyword ||
+                node.kind === ts.SyntaxKind.UndefinedKeyword ||
+                (ts.isLiteralTypeNode(node) && node.literal.kind === ts.SyntaxKind.NullKeyword))
+        ) {
+            continue
+        }
         const literal = ts.isLiteralTypeNode(node) ? node.literal : node
         if (!ts.isStringLiteral(literal)) return null
         values.push(literal.text)
@@ -57,7 +65,7 @@ export function findCopies(file, text, enums) {
     }
     const visit = (node) => {
         if (ts.isUnionTypeNode(node)) {
-            const values = literalStrings(node.types)
+            const values = literalStrings(node.types, { allowNullable: true })
             const owner = node.parent
             const label = ts.isTypeAliasDeclaration(owner)
                 ? `type ${owner.name.text}`
@@ -65,14 +73,13 @@ export function findCopies(file, text, enums) {
                   ? `${owner.name.getText(source)}: union`
                   : 'union'
             if (values) record(node, values, label)
-        } else if (
-            ts.isAsExpression(node) &&
-            ts.isTypeReferenceNode(node.type) &&
-            node.type.typeName.getText(source) === 'const' &&
-            ts.isArrayLiteralExpression(node.expression)
-        ) {
-            const values = literalStrings(node.expression.elements)
-            if (values) record(node, values, 'as const array')
+        } else if (ts.isArrayLiteralExpression(node)) {
+            const isAsConst =
+                ts.isAsExpression(node.parent) &&
+                ts.isTypeReferenceNode(node.parent.type) &&
+                node.parent.type.typeName.getText(source) === 'const'
+            const values = literalStrings(node.elements)
+            if (values) record(node, values, isAsConst ? 'as const array' : 'string array')
         } else if (
             ts.isAsExpression(node) &&
             ts.isTypeReferenceNode(node.type) &&

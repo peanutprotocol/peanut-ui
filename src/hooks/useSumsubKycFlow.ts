@@ -37,6 +37,7 @@ import {
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { RESIDENCE_ADDRESS_ACTION_KEY } from '@/constants/kyc.consts'
 import { isDemoMode } from '@/utils/demo'
+import { API_ERROR_CODES } from '@/services/api-error'
 import { captureSessionFence } from '@/utils/session-fence'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import { pixFlowPath } from '@/features/pix/pixRoute.utils'
@@ -706,7 +707,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     return false
                 }
 
-                if (!qrPool && !unscopedLatam && response.code === 'PIX_PROVIDER_MOVED') {
+                if (!qrPool && !unscopedLatam && response.code === API_ERROR_CODES.PIX_PROVIDER_MOVED) {
                     userInitiatedRef.current = false
                     if (crossRegion) prevStatusRef.current = savedPrevStatus
                     await followPixRoute()
@@ -787,7 +788,6 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     userInitiatedRef.current = false
                     setIsTerminalError(true)
                     setError(t('unsupportedRegionError'))
-                    setIsTerminalError(true)
                     return false
                 }
 
@@ -828,7 +828,6 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     userInitiatedRef.current = false
                     setIsTerminalError(true)
                     setError(t('railsUnavailableError'))
-                    setIsTerminalError(true)
                     return false
                 }
 
@@ -1815,7 +1814,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                         return false
                     }
                 }
-                if (response.code === 'PIX_PROVIDER_MOVED') {
+                if (response.code === API_ERROR_CODES.PIX_PROVIDER_MOVED) {
                     userInitiatedRef.current = false
                     await followPixRoute()
                     return false

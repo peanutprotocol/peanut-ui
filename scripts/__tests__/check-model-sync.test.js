@@ -5,7 +5,7 @@ const path = require('path')
 
 // Drive the real checker against a tiny repo: one spec that models src/owner.ts.
 const SCRIPT = path.join(__dirname, '..', 'check-model-sync.mjs')
-const SPEC = '---- MODULE Payout ----\n(* One payout.\n   Models: src/owner.ts, src/planned.ts\n*)\n====\n'
+const SPEC = '---- MODULE Payout ----\n(* One payout.\n   Models: src/owner.ts\n*)\n====\n'
 
 let repo
 
@@ -42,8 +42,10 @@ beforeEach(() => {
     repo = mkdtempSync(path.join(tmpdir(), 'model-sync-'))
     git('init', '-q', '-b', 'base')
     write('verification/tla/Payout.tla', SPEC)
-    write('verification/tla/Payout_Buggy.cfg', 'SPECIFICATION Spec\n')
+    write('verification/tla/Payout_Fixed.cfg', 'SPECIFICATION Spec\n')
+    write('verification/tla/Payout_Buggy.cfg', '\\* Replay: src/owner.test.ts › replays bug\nSPECIFICATION Spec\n')
     write('src/owner.ts', 'export const pay = 1\n')
+    write('src/owner.test.ts', 'test("replays bug", () => {})\n')
     write('src/other.ts', 'export const other = 1\n')
     commit('base')
     git('checkout', '-q', '-b', 'feature')
@@ -62,7 +64,10 @@ describe('check-model-sync', () => {
 
     it('passes when the spec or one of its configs changes with the code', () => {
         write('src/owner.ts', 'export const pay = 2\n')
-        write('verification/tla/Payout_Buggy.cfg', 'SPECIFICATION Spec\n\\* Replay: test.ts › it\n')
+        write(
+            'verification/tla/Payout_Buggy.cfg',
+            '\\* Replay: src/owner.test.ts › updated replay\nSPECIFICATION Spec\n'
+        )
         commit('change the payout and its config')
         expect(check('--base-ref', 'base').status).toBe(0)
     })
@@ -81,10 +86,26 @@ describe('check-model-sync', () => {
         expect(check('--base-ref', 'base').status).toBe(0)
     })
 
-    it('warns, and does not fail, on a modelled path that does not exist yet', () => {
+    it('fails on a modelled path that does not exist', () => {
+        write(
+            'verification/tla/Payout.tla',
+            '---- MODULE Payout ----\n(* One payout.\n   Models: src/owner.ts, src/missing.ts\n*)\n====\n'
+        )
+        commit('reference missing path')
         const result = check('--base-ref', 'base')
-        expect(result.status).toBe(0)
-        expect(result.stderr).toContain('models src/planned.ts, which does not exist')
+        expect(result.status).toBe(1)
+        expect(result.stderr).toContain('models src/missing.ts, which does not exist')
+    })
+
+    it('fails when a Buggy config omits or breaks its Replay target', () => {
+        write(
+            'verification/tla/Payout_Buggy.cfg',
+            '\\* Replay: src/nonexistent.test.ts › missing\nSPECIFICATION Spec\n'
+        )
+        commit('break replay path')
+        const result = check('--base-ref', 'base')
+        expect(result.status).toBe(1)
+        expect(result.stderr).toContain('Replay target "src/nonexistent.test.ts" does not exist')
     })
 
     it('fails on a spec with no Models line', () => {

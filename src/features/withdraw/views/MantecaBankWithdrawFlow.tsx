@@ -114,6 +114,13 @@ import {
     mantecaWithdrawInitRequest,
     sameWithdrawInitRequest,
 } from '@/features/withdraw/manteca-withdraw-amount'
+import {
+    classifyMantecaHistoryEntries,
+    isAmbiguousMantecaSubmitResult,
+    resolveMantecaReadDestination,
+    type BookedMantecaWithdrawal,
+    type MantecaHistoryRow,
+} from '@/features/withdraw/manteca-withdraw-recovery'
 import { WITHDRAW_MANTECA_STEPS } from '@/features/withdraw/types'
 import { mantecaStepGuards, type MantecaOutcome } from '@/features/withdraw/step-guards'
 import { useLocale, useTranslations } from 'next-intl'
@@ -146,53 +153,17 @@ function withdrawalBroadcast(artifact: SignedSpendArtifact): SpendBroadcast {
     }
 }
 
-type HistoryRow = {
-    status?: string
-    /** USD, as the withdrawal debited it; '0' when the ledger has no leg yet. */
-    amount?: string
-    currency?: { amount?: string; code?: string }
-    recipientAccount?: { identifier?: string }
-    extraData?: { provider?: string; kind?: string; isRefund?: boolean }
-}
-
-/** What the booked withdrawal says it paid, and to whom. A recovered success has no quote, so it shows these. */
-type BookedWithdrawal = Pick<HistoryRow, 'amount' | 'currency' | 'recipientAccount'>
-
-/**
- * The Manteca withdrawal the backend booked after this send began, from the
- * user's activity, matched strictly to `destination` (a saved account's hold).
- * When `destination` is null (an unsaved destination or a deleted saved
- * account), we cannot distinguish this device's lost-answer send from a
- * withdrawal made on another device — keep recovery unsettled (`settling`) so
- * another device's completed withdrawal never clears this guard or renders as
- * this submission's success (chain `ReadUserOps` / Rain preparation status
- * still prove `not-sent` when nothing moved).
- */
 async function readBookedWithdrawal(
     send: PendingChargeSend,
     destination: string | null,
-    showBooked: (booked: BookedWithdrawal) => void
+    showBooked: (booked: BookedMantecaWithdrawal) => void
 ): Promise<SendOrderRead> {
     if (destination === null) return { state: 'settling' }
     const query = new URLSearchParams({ from: new Date(send.startedAt).toISOString(), limit: '20' })
     const response = await serverFetch(`/users/history?${query.toString()}`, { method: 'GET', cache: 'no-store' })
     if (!response.ok) throw new Error(`Failed to read the withdrawal: ${response.status}`)
-    const { entries } = (await response.json()) as { entries: HistoryRow[] }
-    const withdrawals = entries.filter(
-        (row) =>
-            row.extraData?.provider === 'MANTECA' &&
-            row.extraData.kind === 'OFFRAMP' &&
-            !row.extraData.isRefund &&
-            row.recipientAccount?.identifier?.toLowerCase() === destination
-    )
-    if (withdrawals.length !== 1) return { state: 'settling' }
-    const { status, amount, currency, recipientAccount } = withdrawals[0]
-    if (status === 'COMPLETED') {
-        return { state: 'completed', show: () => showBooked({ amount, currency, recipientAccount }) }
-    }
-    return status === 'FAILED' || status === 'CANCELLED' || status === 'REFUNDED'
-        ? { state: 'closed' }
-        : { state: 'settling' }
+    const { entries } = (await response.json()) as { entries: MantecaHistoryRow[] }
+    return classifyMantecaHistoryEntries(entries, destination, showBooked)
 }
 
 /**
@@ -204,7 +175,7 @@ async function readBookedWithdrawal(
 async function readWithdrawal(
     send: PendingChargeSend,
     destination: string | null,
-    showBooked: (booked: BookedWithdrawal) => void
+    showBooked: (booked: BookedMantecaWithdrawal) => void
 ): Promise<SendOrderRead> {
     const booked = await readBookedWithdrawal(send, destination, showBooked)
     if (booked.state !== 'settling' || !send.backendBroadcast) return booked
@@ -348,7 +319,7 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
     // A recovered withdrawal that completed shows the success its answer would
     // have. After a reload there is no quote: the success shows what the booked
     // withdrawal says it paid.
-    const [bookedAmounts, setBookedAmounts] = useState<BookedWithdrawal | null>(null)
+    const [bookedAmounts, setBookedAmounts] = useState<BookedMantecaWithdrawal | null>(null)
     const showRecoveredSuccess = useCallback(
         (success: boolean) => {
             if (!success) return
@@ -383,22 +354,24 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
           )?.id ?? null)
         : null
     const intent = pendingDestination ? (heldIntent ?? mantecaWithdrawIntent(savedAccountForDestination)) : null
-    // The read matches the booked row by the held account's destination. For
-    // `new`, or an account since deleted, it takes the one Manteca withdrawal
-    // booked since the send began: every other Manteca withdrawal here is held.
-    // While user.accounts is still hydrating for a saved-account hold, wait
-    // (`settling`) rather than degrading destination to null and matching another row.
+    // The read matches the booked row strictly by the held saved account's
+    // destination. While `user.accounts` is still hydrating, wait (`settling`);
+    // for an unsaved (`new`) or deleted account, history matching stays
+    // `settling` so another device's completed withdrawal never clears this hold.
     const heldAccountId = intent ? mantecaWithdrawAccountId(intent) : null
-    const accountsLoaded = user?.accounts !== undefined
-    const readDestination = heldAccountId
-        ? (user?.accounts?.find((account) => account.id === heldAccountId)?.identifier.toLowerCase() ?? null)
-        : null
+    const readTarget = resolveMantecaReadDestination({
+        heldAccountId,
+        accountsLoaded: user?.accounts !== undefined,
+        accounts: user?.accounts,
+    })
+    const readTargetKind = readTarget.kind
+    const readDestination = readTarget.kind === 'resolved' ? readTarget.destination : null
     const readThisWithdrawal = useCallback(
         (send: PendingChargeSend) => {
-            if (heldAccountId && !accountsLoaded) return Promise.resolve({ state: 'settling' as const })
+            if (readTargetKind === 'loading') return Promise.resolve({ state: 'settling' as const })
             return readWithdrawal(send, readDestination, setBookedAmounts)
         },
-        [heldAccountId, accountsLoaded, readDestination]
+        [readTargetKind, readDestination]
     )
     const pendingSend = usePendingChargeSend({
         intent,
@@ -1011,11 +984,7 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
             // The backend failed without saying why, or this signed withdrawal is
             // still confirming there: it submits the withdrawal before it creates
             // the order, so the money may have moved.
-            if (
-                result.error === 'Unexpected error' ||
-                result.code === API_ERROR_CODES.FUNDING_PENDING_CONFIRMATION ||
-                result.code === 'USER_OP_RECEIPT_TIMEOUT'
-            ) {
+            if (isAmbiguousMantecaSubmitResult(result)) {
                 await pendingSend.recover()
                 return
             }
@@ -1046,7 +1015,7 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
                 // handle third-party account error with user-friendly message
                 if (result.error === 'TAX_ID_MISMATCH' || result.error === 'CUIT_MISMATCH') {
                     setErrorMessage(tCommon('ownAccountOnly'))
-                } else if (result.code === 'USER_OP_REVERTED') {
+                } else if (result.code === API_ERROR_CODES.USER_OP_REVERTED) {
                     setErrorMessage(toFriendlyError(result), 'userOpReverted')
                 } else {
                     setErrorMessage(result.message ?? result.error)

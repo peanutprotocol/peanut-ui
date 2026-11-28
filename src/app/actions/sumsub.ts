@@ -6,6 +6,7 @@ import {
     type VerificationActionSession,
 } from './types/sumsub.types'
 import { serverFetch } from '@/utils/api-fetch'
+import { API_ERROR_CODES } from '@/services/api-error'
 import { kycClientHeaders } from '@/utils/kyc-client-headers'
 import { featureReverificationConflict } from '@/utils/kyc-reverification'
 import type { FeatureReverificationEntry } from './types/kyc-reverification.types'
@@ -50,11 +51,11 @@ export type SumsubActionErrorCode =
     // a provider asks for a new ID: the identity restart collects it, never a raw upload (`fallback`)
     | 'restart_identity'
     // a Manteca session for Brazil, refused because the user's Pix moved to another provider (409)
-    | 'PIX_PROVIDER_MOVED'
+    | typeof API_ERROR_CODES.PIX_PROVIDER_MOVED
     | 'invalid_response'
     | 'unexpected'
 
-const PIX_PROVIDER_MOVED = 'PIX_PROVIDER_MOVED'
+const PIX_PROVIDER_MOVED = API_ERROR_CODES.PIX_PROVIDER_MOVED
 
 interface SumsubActionError {
     error: string
