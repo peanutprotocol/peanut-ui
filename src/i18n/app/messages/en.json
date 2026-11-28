@@ -2524,7 +2524,19 @@
         },
         "pixMaintenanceBadge": "Maintenance",
         "addCryptoTitle": "Add crypto",
-        "bankNotAvailableNote": "Bank transfers aren't available in your country. You can still add and withdraw crypto."
+        "bankNotAvailableNote": "Bank transfers aren't available in your country. You can still add and withdraw crypto.",
+        "verified": {
+            "title": "ID verified",
+            "titleBankReady": "Bank account ready",
+            "sub": "Add money to start paying with Peanut.",
+            "underReview": "Under review by {provider}, we’ll notify you",
+            "notApproved": "Not approved by {provider}",
+            "actionTerms": "{provider}’s terms for {currencies}",
+            "actionTermsGeneric": "{provider}’s terms",
+            "actionAddress": "proof of address",
+            "cryptoWorksNow": "From wallets or exchanges, works now",
+            "actionNeeded": "Action needed"
+        }
     },
     "withdraw": {
         "reviewUpdatedQuote": "Review the updated quote to continue.",

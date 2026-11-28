@@ -1006,6 +1006,46 @@ describe('PaperworkVerificationFlow', () => {
         expect(mockReplace).toHaveBeenCalledWith('/home')
     })
 
+    // add-money proposal rule 1: a self-started check ends on the verified page, a task-started one returns to its task
+    describe('where an approval lands', () => {
+        const approveAfterPassport = async () => {
+            mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+            mockToken.mockResolvedValue({
+                kind: 'session',
+                session: {
+                    attemptId: 'attempt-1',
+                    token: 'tok',
+                    applicantId: 'app',
+                    levelName: 'base',
+                    sdkConfig: {
+                        documentDefinitions: { IDENTITY: { country: 'USA', idDocType: 'PASSPORT' } },
+                        autoSelectDocumentDefinitions: true,
+                    },
+                } as never,
+            })
+            mockMismatch.mockResolvedValue(null)
+            await startFlow()
+            fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-US'))
+            fireEvent.click(await screen.findByText('sumsub-id-step-done'))
+            const { useWebSocket } = jest.requireMock('@/hooks/useWebSocket') as { useWebSocket: jest.Mock }
+            const { onSumsubKycStatusUpdate } = useWebSocket.mock.calls.at(-1)[0]
+            act(() => onSumsubKycStatusUpdate('APPROVED'))
+        }
+
+        it('self-started (sign-up): replaces /verify with the verified page', async () => {
+            markVerifySource('signup')
+            await approveAfterPassport()
+            await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/verified'))
+        })
+
+        it('task-started (the card): keeps the verified step that returns to the task', async () => {
+            markVerifySource('card')
+            await approveAfterPassport()
+            expect(await screen.findByTestId('verify-verified-payments')).toBeInTheDocument()
+            expect(mockReplace).not.toHaveBeenCalledWith('/verified')
+        })
+    })
+
     describe("an ID Sumsub reads as another country's", () => {
         const openSumsubOnPassport = async () => {
             mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
