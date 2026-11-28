@@ -43,10 +43,6 @@ jest.mock('@/context/OnrampFlowContext', () => ({
         onrampData: { transferId: 't-1', depositInstructions: { amount: '20', depositMessage: 'BRGABCDEF123' } },
     }),
 }))
-jest.mock('@/context/RequestFulfillmentFlowContext', () => ({
-    useRequestFulfillmentFlow: () => ({ selectedCountry: undefined, onrampData: null }),
-    RequestFulfillmentBankFlowStep: {},
-}))
 jest.mock('@/hooks/useOnrampQuote', () => ({ useOnrampQuote: () => ({ netRate: 1.1, isLoading: false }) }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/CopyToClipboard', () => ({ __esModule: true, default: () => null }))
